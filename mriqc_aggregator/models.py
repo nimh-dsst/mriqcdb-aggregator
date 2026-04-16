@@ -104,6 +104,12 @@ class SourceRecordMixin:
     provenance_settings_extra: Mapped[dict[str, Any]] = mapped_column(
         JSON, nullable=False, default=dict
     )
+    provenance_extra: Mapped[dict[str, Any]] = mapped_column(
+        JSON, nullable=False, default=dict
+    )
+    payload_extra: Mapped[dict[str, Any]] = mapped_column(
+        JSON, nullable=False, default=dict
+    )
 
     dedupe_exact_key: Mapped[str | None] = mapped_column(String(64))
     dedupe_series_key: Mapped[str | None] = mapped_column(String(64))
@@ -358,3 +364,6 @@ class BoldRecord(SourceRecordMixin, CommonBidsMixin, BoldIQMMixin, Base):
     rating_name: Mapped[str | None] = mapped_column(String(255))
     rating_comment: Mapped[str | None] = mapped_column(Text)
     rating_md5sum: Mapped[str | None] = mapped_column(String(32))
+    rating_extra: Mapped[dict[str, Any]] = mapped_column(
+        JSON, nullable=False, default=dict
+    )

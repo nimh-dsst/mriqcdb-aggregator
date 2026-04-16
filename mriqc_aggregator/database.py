@@ -3,6 +3,7 @@ from __future__ import annotations
 import os
 
 from sqlalchemy import Engine, create_engine
+from sqlalchemy.orm import sessionmaker
 
 from .models import Base
 
@@ -33,3 +34,16 @@ def create_database_schema(url: str | None = None, *, echo: bool = False) -> Non
     engine = create_database_engine(url=url, echo=echo)
     with engine.begin() as connection:
         Base.metadata.create_all(connection)
+
+
+def create_session_factory(
+    url: str | None = None,
+    *,
+    echo: bool = False,
+) -> sessionmaker:
+    return sessionmaker(
+        bind=create_database_engine(url=url, echo=echo),
+        autoflush=False,
+        expire_on_commit=False,
+        future=True,
+    )

@@ -23,7 +23,7 @@ That command will:
 3. Download exact raw API page payloads into `data/runs/<run-id>/raw/`
 4. Write derived item/page manifests and a summary for inspection
 
-See [docs/representative-sampling.md](/Users/johnlee/.codex/worktrees/e67a/mriqc-aggregator/docs/representative-sampling.md) for details.
+See [docs/representative-sampling.md](docs/representative-sampling.md) for details.
 
 ## Local Postgres
 
@@ -31,9 +31,12 @@ See [docs/representative-sampling.md](/Users/johnlee/.codex/worktrees/e67a/mriqc
 cp .env.example .env
 pixi run db-up
 pixi run db-init
+pixi run db-load -- --run-id 20260416T152222Z
 ```
 
 That starts a local PostgreSQL instance with Docker Compose and initializes the
-current SQLAlchemy schema.
+current SQLAlchemy schema, then loads a sampled raw run into `t1w`, `t2w`, and
+`bold` using idempotent `source_api_id` upserts.
 
-See [docs/erd.md](/Users/johnlee/.codex/worktrees/e67a/mriqc-aggregator/docs/erd.md) for the current and proposed normalized entity model.
+See [docs/erd.md](docs/erd.md) for the current and proposed normalized entity model.
+See [docs/ingestion.md](docs/ingestion.md) for the raw ingestion workflow.

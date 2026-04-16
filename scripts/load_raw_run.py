@@ -6,4 +6,4 @@ from mriqc_aggregator.cli import main
 
 
 if __name__ == "__main__":
-    raise SystemExit(main(["pull-representative", *sys.argv[1:]]))
+    raise SystemExit(main(["load-raw-run", *sys.argv[1:]]))
