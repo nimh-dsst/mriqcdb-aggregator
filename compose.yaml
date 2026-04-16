@@ -1,0 +1,25 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: mriqc-aggregator-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-mriqc_aggregator}
+      POSTGRES_USER: ${POSTGRES_USER:-mriqc}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-mriqc}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - pg_isready -U ${POSTGRES_USER:-mriqc} -d ${POSTGRES_DB:-mriqc_aggregator}
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+volumes:
+  postgres-data:
+
