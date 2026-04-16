@@ -9,7 +9,14 @@ from mriqc_aggregator.loading import load_raw_run
 from mriqc_aggregator.models import T1wRecord
 
 
-def _write_t1w_page(run_root: Path, *, source_id: str, manufacturer: str) -> None:
+def _write_t1w_page(
+    run_root: Path,
+    *,
+    source_id: str,
+    manufacturer: str,
+    session_id: str | None = "session-1",
+    page_number: int = 1,
+) -> None:
     payload = {
         "_items": [
             {
@@ -88,7 +95,6 @@ def _write_t1w_page(run_root: Path, *, source_id: str, manufacturer: str) -> Non
                 "bids_meta": {
                     "modality": "T1w",
                     "subject_id": "subject-1",
-                    "session_id": "session-1",
                     "Manufacturer": manufacturer,
                 },
                 "provenance": {
@@ -100,9 +106,14 @@ def _write_t1w_page(run_root: Path, *, source_id: str, manufacturer: str) -> Non
             }
         ]
     }
+    if session_id is not None:
+        payload["_items"][0]["bids_meta"]["session_id"] = session_id
     raw_dir = run_root / "raw" / "T1w"
     raw_dir.mkdir(parents=True, exist_ok=True)
-    (raw_dir / "page-000001.json").write_text(json.dumps(payload), encoding="utf-8")
+    (raw_dir / f"page-{page_number:06d}.json").write_text(
+        json.dumps(payload),
+        encoding="utf-8",
+    )
 
 
 def test_load_raw_run_is_idempotent(tmp_path: Path) -> None:
@@ -160,3 +171,37 @@ def test_load_raw_run_updates_existing_row(tmp_path: Path) -> None:
         record = session.execute(select(T1wRecord)).scalar_one()
 
     assert record.manufacturer == "GE"
+
+
+def test_load_raw_run_handles_mixed_optional_columns_in_batch(tmp_path: Path) -> None:
+    run_root = tmp_path / "runs" / "test-run"
+    _write_t1w_page(
+        run_root,
+        source_id="abc123def456abc123def456",
+        manufacturer="Siemens",
+        session_id="session-1",
+        page_number=1,
+    )
+    _write_t1w_page(
+        run_root,
+        source_id="def456abc123def456abc123",
+        manufacturer="GE",
+        session_id=None,
+        page_number=2,
+    )
+
+    database_path = tmp_path / "ingest.db"
+    database_url = f"sqlite+pysqlite:///{database_path}"
+
+    summary = load_raw_run(run_root=run_root, database_url=database_url, batch_size=250)
+
+    engine = create_engine(database_url)
+    with Session(engine) as session:
+        records = (
+            session.execute(select(T1wRecord).order_by(T1wRecord.source_api_id))
+            .scalars()
+            .all()
+        )
+
+    assert summary.per_modality["T1w"].inserted_count == 2
+    assert [record.session_id for record in records] == ["session-1", None]

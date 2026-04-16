@@ -121,7 +121,17 @@ def _upsert_rows(
     else:
         raise ValueError(f"Unsupported SQL dialect for upsert: {dialect_name}")
 
-    statement = dialect_insert(model).values(rows)
+    insertable_columns = [
+        column.name
+        for column in model.__table__.columns
+        if column.name not in {"id", "inserted_at"}
+    ]
+    normalized_rows = [
+        {column_name: row.get(column_name) for column_name in insertable_columns}
+        for row in rows
+    ]
+
+    statement = dialect_insert(model).values(normalized_rows)
     update_columns = {
         column.name: getattr(statement.excluded, column.name)
         for column in model.__table__.columns
