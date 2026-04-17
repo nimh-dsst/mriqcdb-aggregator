@@ -42,6 +42,16 @@ current SQLAlchemy schema, then loads a sampled raw run into `t1w`, `t2w`, and
 
 ## Containerized Stack
 
+If you already have direct dump files on disk instead of sampled API pages, use
+the dedicated dump loader:
+
+```bash
+pixi run db-load-dump -- --dump-root /data/dump
+```
+
+That path is meant for large host-side backfills from `mriqc_api.<modality>.json`
+files and bypasses the page-oriented API sampling format entirely.
+
 ```bash
 cp .env.example .env
 pixi run stack-up

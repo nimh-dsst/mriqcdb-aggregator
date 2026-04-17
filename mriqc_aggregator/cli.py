@@ -3,7 +3,7 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 
-from .loading import load_raw_run
+from .loading import load_dump, load_raw_run
 from .profiling import ObservationView, write_database_profile
 from .workflows import MODALITIES, pull_representative_sample
 
@@ -96,6 +96,45 @@ def build_parser() -> argparse.ArgumentParser:
         help="Do not create database tables before loading.",
     )
 
+    dump_parser = subparsers.add_parser(
+        "load-dump",
+        help="Load a direct MRIQC dump into PostgreSQL without going through API pages.",
+    )
+    dump_parser.add_argument(
+        "--dump-root",
+        type=Path,
+        default=Path("data") / "dump",
+        help="Directory containing mriqc_api.<modality>.json dump files.",
+    )
+    dump_parser.add_argument(
+        "--database-url",
+        help="Database URL override. Defaults to MRIQC_DATABASE_URL.",
+    )
+    dump_parser.add_argument(
+        "--modalities",
+        nargs="+",
+        default=list(MODALITIES),
+        choices=list(MODALITIES),
+        help="Modalities to load.",
+    )
+    dump_parser.add_argument(
+        "--batch-size",
+        type=int,
+        default=1000,
+        help="Batch size for bulk dump ingestion chunks.",
+    )
+    dump_parser.add_argument(
+        "--skip-schema",
+        action="store_true",
+        help="Do not create database tables before loading.",
+    )
+    dump_parser.add_argument(
+        "--progress-every",
+        type=int,
+        default=5000,
+        help="Emit a progress line every N rows per modality. Use 0 to disable.",
+    )
+
     profile_parser = subparsers.add_parser(
         "profile-db",
         help="Profile loaded PostgreSQL data for backend exploration.",
@@ -174,6 +213,18 @@ def main(argv: list[str] | None = None) -> int:
             modalities=args.modalities,
             batch_size=args.batch_size,
             create_schema_first=not args.skip_schema,
+        )
+        print(summary.to_dict())
+        return 0
+
+    if args.command == "load-dump":
+        summary = load_dump(
+            dump_root=args.dump_root,
+            database_url=args.database_url,
+            modalities=args.modalities,
+            batch_size=args.batch_size,
+            create_schema_first=not args.skip_schema,
+            progress_every=args.progress_every or None,
         )
         print(summary.to_dict())
         return 0

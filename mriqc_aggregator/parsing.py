@@ -4,6 +4,7 @@ import hashlib
 import json
 import re
 from dataclasses import dataclass
+from datetime import datetime
 from email.utils import parsedate_to_datetime
 from pathlib import Path
 from typing import Any
@@ -259,7 +260,7 @@ class ParsedObservation:
     modality: str
     model: type[T1wRecord] | type[T2wRecord] | type[BoldRecord]
     values: dict[str, Any]
-    source_page: int
+    source_page: int | None
     raw_payload_path: str
 
 
@@ -273,7 +274,12 @@ def parse_page_number(page_path: Path) -> int:
 def parse_datetime(value: str | None) -> Any:
     if value is None:
         return None
-    return parsedate_to_datetime(value)
+    if value.endswith("Z"):
+        value = f"{value[:-1]}+00:00"
+    try:
+        return datetime.fromisoformat(value)
+    except ValueError:
+        return parsedate_to_datetime(value)
 
 
 def normalize_identity_value(value: Any) -> Any:
@@ -337,7 +343,7 @@ def parse_observation(
     payload: dict[str, Any],
     *,
     raw_payload_path: str,
-    source_page: int,
+    source_page: int | None,
 ) -> ParsedObservation:
     if modality not in MODALITY_MODEL_MAP:
         raise PayloadMappingError(f"Unsupported modality: {modality}")

@@ -6,7 +6,14 @@ from .database import (
     create_session_factory,
     default_database_url,
 )
-from .loading import LoadSummary, ModalityLoadSummary, load_raw_run, resolve_run_root
+from .loading import (
+    LoadSummary,
+    ModalityLoadSummary,
+    load_dump,
+    load_raw_run,
+    resolve_dump_root,
+    resolve_run_root,
+)
 from .models import Base, BoldRecord, DedupeStatus, T1wRecord, T2wRecord
 from .parsing import ParsedObservation, PayloadMappingError, parse_observation
 from .profiling import (
@@ -29,6 +36,7 @@ __all__ = [
     "default_database_url",
     "DuplicateKind",
     "LoadSummary",
+    "load_dump",
     "load_raw_run",
     "ModalityLoadSummary",
     "ObservationFilters",
@@ -37,6 +45,7 @@ __all__ = [
     "parse_observation",
     "PayloadMappingError",
     "resolve_run_root",
+    "resolve_dump_root",
     "T1wRecord",
     "T2wRecord",
     "write_database_profile",

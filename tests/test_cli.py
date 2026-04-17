@@ -52,6 +52,37 @@ def test_main_dispatches_load_raw_run(monkeypatch, capsys) -> None:
     assert capsys.readouterr().out.strip() == "{'inserted': 1}"
 
 
+def test_main_dispatches_load_dump(monkeypatch, capsys, tmp_path: Path) -> None:
+    class FakeSummary:
+        def to_dict(self):
+            return {"inserted": 2}
+
+    called: dict[str, object] = {}
+
+    def fake_load_dump(**kwargs):
+        called.update(kwargs)
+        return FakeSummary()
+
+    monkeypatch.setattr(cli, "load_dump", fake_load_dump)
+
+    exit_code = cli.main(
+        [
+            "load-dump",
+            "--dump-root",
+            str(tmp_path),
+            "--progress-every",
+            "0",
+            "--skip-schema",
+        ]
+    )
+
+    assert exit_code == 0
+    assert called["dump_root"] == tmp_path
+    assert called["create_schema_first"] is False
+    assert called["progress_every"] is None
+    assert capsys.readouterr().out.strip() == "{'inserted': 2}"
+
+
 def test_main_dispatches_profile_db(monkeypatch, capsys, tmp_path: Path) -> None:
     called: dict[str, object] = {}
 

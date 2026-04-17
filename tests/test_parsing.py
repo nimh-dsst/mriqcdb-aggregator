@@ -3,8 +3,10 @@ from pathlib import Path
 from mriqc_aggregator.parsing import (
     compute_dedupe_series_key,
     parse_observation,
+    parse_datetime,
     parse_page_number,
 )
+from mriqc_aggregator.loading import normalize_dump_payload
 
 
 def test_parse_t1w_observation_preserves_extras() -> None:
@@ -203,3 +205,33 @@ def test_parse_bold_observation_sets_task_identity_hash() -> None:
 
 def test_parse_page_number() -> None:
     assert parse_page_number(Path("page-000123.json")) == 123
+
+
+def test_parse_datetime_accepts_iso8601() -> None:
+    parsed = parse_datetime("2017-06-08T05:54:47.000Z")
+
+    assert parsed.isoformat() == "2017-06-08T05:54:47+00:00"
+
+
+def test_normalize_dump_payload_unwraps_extended_json() -> None:
+    normalized = normalize_dump_payload(
+        {
+            "_id": {"$oid": "abc123def456abc123def456"},
+            "_created": {"$date": "2017-06-08T05:54:47.000Z"},
+            "bids_meta": {
+                "FlipAngle": {"$numberInt": "7"},
+                "EchoTime": {"$numberDouble": "0.01"},
+            },
+            "nested": [{"value": {"$numberLong": "42"}}],
+        }
+    )
+
+    assert normalized == {
+        "_id": "abc123def456abc123def456",
+        "_created": "2017-06-08T05:54:47.000Z",
+        "bids_meta": {
+            "FlipAngle": 7,
+            "EchoTime": 0.01,
+        },
+        "nested": [{"value": 42}],
+    }

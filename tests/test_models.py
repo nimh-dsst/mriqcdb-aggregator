@@ -50,3 +50,9 @@ def test_structural_models_expose_core_columns() -> None:
     assert "task_name" in bold_columns
     assert "rating_label" in bold_columns
     engine.dispose()
+
+
+def test_dump_overflow_prone_string_columns_allow_host_dump_values() -> None:
+    assert T1wRecord.__table__.c.patient_position.type.length == 128
+    assert T2wRecord.__table__.c.patient_position.type.length == 128
+    assert BoldRecord.__table__.c.gradient_set_type.type.length == 128
