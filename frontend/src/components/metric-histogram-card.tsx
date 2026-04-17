@@ -11,6 +11,7 @@ import {
   YAxis,
 } from "recharts"
 import { fetchMetricDistribution, type MetricDistribution } from "@/lib/api"
+import { ViewSwitcher } from "@/components/view-switcher"
 import type { MetricId, ModalityId, ViewId } from "@/types/ui"
 
 type LoadState =
@@ -35,11 +36,13 @@ export function MetricHistogramCard({
   metric,
   metricLabel,
   selectedView,
+  onSelectView,
 }: {
   modality: ModalityId
   metric: MetricId
   metricLabel: string
   selectedView: ViewId
+  onSelectView: (view: ViewId) => void
 }) {
   const [state, setState] = useState<LoadState>({ status: "loading" })
 
@@ -127,11 +130,17 @@ export function MetricHistogramCard({
               `{selectedView}` view.
             </p>
           </div>
-          <div className="rounded-2xl border border-border/70 bg-background/80 px-4 py-3 text-right">
-            <p className="text-xs uppercase tracking-[0.22em] text-muted-foreground">
-              Samples
-            </p>
-            <p className="mt-1 text-2xl font-semibold">{distribution.value_count}</p>
+          <div className="flex flex-col items-end gap-3">
+            <ViewSwitcher
+              selectedView={selectedView}
+              onSelectView={onSelectView}
+            />
+            <div className="rounded-2xl border border-border/70 bg-background/80 px-4 py-3 text-right">
+              <p className="text-xs uppercase tracking-[0.22em] text-muted-foreground">
+                Samples
+              </p>
+              <p className="mt-1 text-2xl font-semibold">{distribution.value_count}</p>
+            </div>
           </div>
         </div>
         <div className="mt-6 h-[320px] w-full">

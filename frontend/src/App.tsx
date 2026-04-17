@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from "react"
 import { AppSidebar } from "@/components/qc-measures-sidebar"
 import { MetricHistogramCard } from "@/components/metric-histogram-card"
-import { ViewSwitcher } from "@/components/view-switcher"
 import {
   fuzzyFilterMetrics,
   getMetricDescriptor,
@@ -228,52 +227,31 @@ function App() {
         </header>
         <main className="min-h-[calc(100vh-3.5rem)] bg-[radial-gradient(circle_at_top,rgba(73,119,104,0.12),transparent_42%),linear-gradient(180deg,rgba(249,247,243,0.96),rgba(239,235,226,0.82))] px-4 py-6 sm:px-6 lg:px-8">
           <div className="mx-auto flex max-w-6xl flex-col gap-6">
-            <section className="rounded-3xl border border-border/60 bg-card/90 p-6 shadow-sm backdrop-blur">
-              <div className="flex flex-wrap items-start justify-between gap-4">
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.24em] text-muted-foreground">
-                    Dashboard
-                  </p>
-                  <h1 className="mt-2 font-heading text-3xl font-semibold tracking-tight text-foreground">
-                    MRIQC probability distributions
-                  </h1>
-                  <p className="mt-3 max-w-2xl text-sm leading-6 text-muted-foreground">
-                    Metrics are grouped by modality, family, and subfamily in the
-                    sidebar. Search is fuzzy and the current state is encoded in
-                    the URL for shareable views.
-                  </p>
-                </div>
-                <ViewSwitcher
-                  selectedView={selectedView}
-                  onSelectView={setSelectedView}
-                />
-              </div>
-              <div className="mt-5 flex flex-wrap gap-3">
-                <SummaryChip
-                  label="Metric"
-                  value={selectedMetricDescriptor?.label ?? "Select a metric"}
-                />
-                <SummaryChip
-                  label="Category"
-                  value={
-                    selectedMetricDescriptor
-                      ? `${selectedMetricDescriptor.family} · ${selectedMetricDescriptor.subfamily}`
-                      : "N/A"
-                  }
-                />
-                <SummaryChip
-                  label="Values"
-                  value={String(selectedMetricSummary?.value_count ?? 0)}
-                />
-                <SummaryChip
-                  label="Missing"
-                  value={String(selectedMetricSummary?.missing_count ?? 0)}
-                />
-              </div>
-              {summariesError ? (
-                <p className="mt-4 text-sm text-destructive">{summariesError}</p>
-              ) : null}
-            </section>
+            <div className="flex flex-wrap gap-3">
+              <SummaryChip
+                label="Metric"
+                value={selectedMetricDescriptor?.label ?? "Select a metric"}
+              />
+              <SummaryChip
+                label="Category"
+                value={
+                  selectedMetricDescriptor
+                    ? `${selectedMetricDescriptor.family} · ${selectedMetricDescriptor.subfamily}`
+                    : "N/A"
+                }
+              />
+              <SummaryChip
+                label="Values"
+                value={String(selectedMetricSummary?.value_count ?? 0)}
+              />
+              <SummaryChip
+                label="Missing"
+                value={String(selectedMetricSummary?.missing_count ?? 0)}
+              />
+            </div>
+            {summariesError ? (
+              <p className="text-sm text-destructive">{summariesError}</p>
+            ) : null}
             {activeMetric ? (
               <MetricHistogramCard
                 key={`${activeModality}:${activeMetric}:${selectedView}`}
@@ -281,6 +259,7 @@ function App() {
                 metric={activeMetric}
                 metricLabel={selectedMetricDescriptor?.label ?? activeMetric}
                 selectedView={selectedView}
+                onSelectView={setSelectedView}
               />
             ) : (
               <section className="rounded-3xl border border-dashed border-border/70 bg-card/80 p-8 text-sm text-muted-foreground">

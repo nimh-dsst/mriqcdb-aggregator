@@ -1,9 +1,11 @@
+import * as React from "react"
 import { ChevronRightIcon } from "lucide-react"
 import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible"
+import { Button } from "@/components/ui/button"
 import {
   SidebarContent,
   SidebarGroup,
@@ -41,11 +43,56 @@ type MeasureGroup = {
 
 export function MeasuresSidebar({
   groups,
+  collapseVersion = 0,
 }: {
   groups: readonly MeasureGroup[]
+  collapseVersion?: number
 }) {
+  const [openItems, setOpenItems] = React.useState<Record<string, boolean>>({})
+
+  React.useEffect(() => {
+    setOpenItems((current) => {
+      const next: Record<string, boolean> = {}
+      for (const group of groups) {
+        for (const item of group.items) {
+          next[`${group.title}:${item.title}`] =
+            current[`${group.title}:${item.title}`] ?? Boolean(item.isActive)
+        }
+      }
+      return next
+    })
+  }, [groups])
+
+  React.useEffect(() => {
+    setOpenItems((current) => {
+      const next = { ...current }
+      for (const key of Object.keys(next)) {
+        next[key] = false
+      }
+      return next
+    })
+  }, [collapseVersion])
+
   return (
     <SidebarContent>
+      <div className="px-2 pb-2">
+        <Button
+          variant="ghost"
+          size="xs"
+          className="h-7 w-full justify-start rounded-xl border border-sidebar-border/60 bg-sidebar-accent/40 px-3 text-[11px] uppercase tracking-[0.18em] text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+          onClick={() => {
+            setOpenItems((current) => {
+              const next = { ...current }
+              for (const key of Object.keys(next)) {
+                next[key] = false
+              }
+              return next
+            })
+          }}
+        >
+          Collapse all
+        </Button>
+      </div>
       {groups.map((group) => (
         <SidebarGroup key={group.title}>
           <SidebarGroupLabel>{group.title}</SidebarGroupLabel>
@@ -54,8 +101,14 @@ export function MeasuresSidebar({
               {group.items.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   {item.items?.length ? (
+                    (() => {
+                      const itemKey = `${group.title}:${item.title}`
+                      return (
                     <Collapsible
-                      defaultOpen={item.isActive}
+                      open={openItems[itemKey] ?? Boolean(item.isActive)}
+                      onOpenChange={(open) =>
+                        setOpenItems((current) => ({ ...current, [itemKey]: open }))
+                      }
                       className="group/collapsible"
                     >
                       <CollapsibleTrigger asChild>
@@ -85,6 +138,8 @@ export function MeasuresSidebar({
                         </SidebarMenuSub>
                       </CollapsibleContent>
                     </Collapsible>
+                      )
+                    })()
                   ) : (
                     <SidebarMenuButton
                       isActive={item.isActive}
