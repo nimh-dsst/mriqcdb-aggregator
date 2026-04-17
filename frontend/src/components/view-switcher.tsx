@@ -16,15 +16,16 @@ export function ViewSwitcher({
   onSelectView: (view: ViewId) => void
 }) {
   return (
-    <div className="inline-flex rounded-2xl border border-border/70 bg-background/80 p-1">
+    <div className="inline-flex rounded-2xl border border-border/70 bg-background/72 p-1 shadow-sm">
       {(Object.keys(LABELS) as ViewId[]).map((view) => (
         <Button
           key={view}
           variant="ghost"
           size="sm"
           className={cn(
-            "rounded-xl px-3",
-            selectedView === view && "bg-foreground text-background hover:bg-foreground/90 hover:text-background"
+            "rounded-xl px-3 text-muted-foreground",
+            selectedView === view &&
+              "bg-primary text-primary-foreground shadow-sm hover:bg-primary/92 hover:text-primary-foreground"
           )}
           onClick={() => onSelectView(view)}
         >

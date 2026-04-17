@@ -79,7 +79,7 @@ export function MeasuresSidebar({
         <Button
           variant="ghost"
           size="xs"
-          className="h-7 w-full justify-start rounded-xl border border-sidebar-border/60 bg-sidebar-accent/40 px-3 text-[11px] uppercase tracking-[0.18em] text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+          className="h-7 w-full justify-start rounded-xl border border-sidebar-border/70 bg-[linear-gradient(135deg,color-mix(in_oklab,var(--color-sidebar-accent)_68%,white),color-mix(in_oklab,var(--color-sidebar)_82%,white))] px-3 text-[11px] uppercase tracking-[0.18em] text-sidebar-foreground/75 shadow-sm hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
           onClick={() => {
             setOpenItems((current) => {
               const next = { ...current }
@@ -104,40 +104,43 @@ export function MeasuresSidebar({
                     (() => {
                       const itemKey = `${group.title}:${item.title}`
                       return (
-                    <Collapsible
-                      open={openItems[itemKey] ?? Boolean(item.isActive)}
-                      onOpenChange={(open) =>
-                        setOpenItems((current) => ({ ...current, [itemKey]: open }))
-                      }
-                      className="group/collapsible"
-                    >
-                      <CollapsibleTrigger asChild>
-                        <SidebarMenuButton isActive={item.isActive}>
-                          <span>{item.title}</span>
-                          <ChevronRightIcon className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
-                        </SidebarMenuButton>
-                      </CollapsibleTrigger>
-                      <CollapsibleContent>
-                        <SidebarMenuSub>
-                          {item.items.map((subItem) => (
-                            <SidebarMenuSubItem key={subItem.title}>
-                              <SidebarMenuSubButton
-                                isActive={subItem.isActive}
-                                onClick={subItem.onSelect}
-                                className="justify-between gap-3"
-                              >
-                                <span className="truncate">{subItem.title}</span>
-                                {subItem.badge ? (
-                                  <span className="text-[11px] tabular-nums text-sidebar-foreground/70">
-                                    {subItem.badge}
-                                  </span>
-                                ) : null}
-                              </SidebarMenuSubButton>
-                            </SidebarMenuSubItem>
-                          ))}
-                        </SidebarMenuSub>
-                      </CollapsibleContent>
-                    </Collapsible>
+                        <Collapsible
+                          open={openItems[itemKey] ?? Boolean(item.isActive)}
+                          onOpenChange={(open) =>
+                            setOpenItems((current) => ({ ...current, [itemKey]: open }))
+                          }
+                          className="group/collapsible"
+                        >
+                          <CollapsibleTrigger asChild>
+                            <SidebarMenuButton
+                              isActive={item.isActive}
+                              className="rounded-xl border border-transparent data-[active=true]:border-sidebar-border/60 data-[active=true]:bg-sidebar-accent/70"
+                            >
+                              <span>{item.title}</span>
+                              <ChevronRightIcon className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
+                            </SidebarMenuButton>
+                          </CollapsibleTrigger>
+                          <CollapsibleContent>
+                            <SidebarMenuSub className="mt-1 border-l-sidebar-border/80">
+                              {item.items.map((subItem) => (
+                                <SidebarMenuSubItem key={subItem.title}>
+                                  <SidebarMenuSubButton
+                                    isActive={subItem.isActive}
+                                    onClick={subItem.onSelect}
+                                    className="justify-between gap-3 rounded-lg border-l-2 border-l-transparent pr-2 data-[active=true]:border-l-sidebar-primary data-[active=true]:bg-sidebar-accent/55 data-[active=true]:font-medium"
+                                  >
+                                    <span className="truncate">{subItem.title}</span>
+                                    {subItem.badge ? (
+                                      <span className="rounded-md bg-sidebar/80 px-1.5 py-0.5 text-[11px] tabular-nums text-sidebar-foreground/70">
+                                        {subItem.badge}
+                                      </span>
+                                    ) : null}
+                                  </SidebarMenuSubButton>
+                                </SidebarMenuSubItem>
+                              ))}
+                            </SidebarMenuSub>
+                          </CollapsibleContent>
+                        </Collapsible>
                       )
                     })()
                   ) : (
@@ -148,7 +151,11 @@ export function MeasuresSidebar({
                       {item.title}
                     </SidebarMenuButton>
                   )}
-                  {item.badge ? <SidebarMenuBadge>{item.badge}</SidebarMenuBadge> : null}
+                  {item.badge ? (
+                    <SidebarMenuBadge className="rounded-md bg-sidebar/85 px-1.5 text-[11px] text-sidebar-foreground/75">
+                      {item.badge}
+                    </SidebarMenuBadge>
+                  ) : null}
                 </SidebarMenuItem>
               ))}
             </SidebarMenu>

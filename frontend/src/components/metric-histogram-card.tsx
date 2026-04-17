@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"
+import { type ReactNode, useEffect, useState } from "react"
 import {
   Bar,
   BarChart,
@@ -101,6 +101,7 @@ export function MetricHistogramCard({
     fill:
       index % 2 === 0 ? "var(--color-chart-1)" : "var(--color-chart-2)",
   }))
+  const showCountLabels = chartData.length <= 12
 
   if (distribution.value_count === 0) {
     return (
@@ -115,17 +116,22 @@ export function MetricHistogramCard({
   }
 
   return (
-    <section className="grid gap-6 rounded-3xl border border-border/70 bg-card/90 p-6 shadow-sm xl:grid-cols-[minmax(0,1.8fr)_minmax(280px,0.9fr)]">
+    <section className="grid gap-6 rounded-[1.8rem] border border-border/80 bg-[linear-gradient(180deg,color-mix(in_oklab,var(--color-card)_90%,white),color-mix(in_oklab,var(--color-card)_84%,var(--color-accent)_16%))] p-6 shadow-[0_18px_40px_-28px_rgba(36,66,52,0.45)] xl:grid-cols-[minmax(0,1.8fr)_minmax(280px,0.9fr)]">
       <div className="min-w-0">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-muted-foreground">
+            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-primary/75">
               Probability Distribution
             </p>
-            <h2 className="mt-2 font-heading text-2xl font-semibold tracking-tight">
+            <h2 className="mt-2 font-heading text-[2rem] font-semibold tracking-tight text-foreground">
               {metricLabel}
             </h2>
-            <p className="mt-2 text-sm text-muted-foreground">
+            <div className="mt-3 flex flex-wrap gap-2">
+              <InfoPill>{modality}</InfoPill>
+              <InfoPill>{selectedView}</InfoPill>
+              <InfoPill>{distribution.value_count} values</InfoPill>
+            </div>
+            <p className="mt-3 max-w-2xl text-sm leading-6 text-muted-foreground">
               Normalized binned distribution for {modality} observations in the
               `{selectedView}` view.
             </p>
@@ -135,7 +141,7 @@ export function MetricHistogramCard({
               selectedView={selectedView}
               onSelectView={onSelectView}
             />
-            <div className="rounded-2xl border border-border/70 bg-background/80 px-4 py-3 text-right">
+            <div className="rounded-2xl border border-border/70 bg-background/75 px-4 py-3 text-right shadow-sm">
               <p className="text-xs uppercase tracking-[0.22em] text-muted-foreground">
                 Samples
               </p>
@@ -143,10 +149,10 @@ export function MetricHistogramCard({
             </div>
           </div>
         </div>
-        <div className="mt-6 h-[320px] w-full">
+        <div className="mt-6 h-[320px] w-full rounded-[1.4rem] border border-border/60 bg-background/55 p-3">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={chartData} margin={{ top: 12, right: 12, left: -16, bottom: 0 }}>
-              <CartesianGrid vertical={false} stroke="var(--color-border)" strokeDasharray="3 3" />
+              <CartesianGrid vertical={false} stroke="color-mix(in_oklab,var(--color-border)_85%,white)" strokeDasharray="3 3" />
               <XAxis
                 dataKey="label"
                 tick={{ fill: "var(--color-muted-foreground)", fontSize: 12 }}
@@ -161,11 +167,12 @@ export function MetricHistogramCard({
                 axisLine={false}
               />
               <Tooltip
-                cursor={{ fill: "rgba(28, 41, 34, 0.06)" }}
+                cursor={{ fill: "rgba(63, 108, 84, 0.08)" }}
                 contentStyle={{
                   borderRadius: 16,
                   border: "1px solid var(--color-border)",
-                  background: "rgba(255,255,255,0.98)",
+                  background: "rgba(252,249,244,0.98)",
+                  boxShadow: "0 16px 32px -24px rgba(39, 72, 58, 0.55)",
                 }}
                 formatter={(value) => [
                   `${(((value as number | undefined) ?? 0) * 100).toFixed(1)}%`,
@@ -176,7 +183,9 @@ export function MetricHistogramCard({
                 {chartData.map((entry) => (
                   <Cell key={entry.label} fill={entry.fill} />
                 ))}
-                <LabelList dataKey="count" position="top" className="fill-muted-foreground text-[11px]" />
+                {showCountLabels ? (
+                  <LabelList dataKey="count" position="top" className="fill-muted-foreground text-[11px]" />
+                ) : null}
               </Bar>
             </BarChart>
           </ResponsiveContainer>
@@ -196,11 +205,19 @@ export function MetricHistogramCard({
 
 function StatCard({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-2xl border border-border/70 bg-background/85 p-4">
-      <p className="text-xs font-semibold uppercase tracking-[0.22em] text-muted-foreground">
+    <div className="rounded-2xl border border-border/70 bg-background/72 p-4 shadow-sm">
+      <p className="text-xs font-semibold uppercase tracking-[0.22em] text-primary/70">
         {label}
       </p>
       <p className="mt-2 text-xl font-semibold text-foreground">{value}</p>
     </div>
+  )
+}
+
+function InfoPill({ children }: { children: ReactNode }) {
+  return (
+    <span className="rounded-full border border-border/70 bg-background/75 px-3 py-1 text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground shadow-sm">
+      {children}
+    </span>
   )
 }
