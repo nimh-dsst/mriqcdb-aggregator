@@ -38,7 +38,9 @@ locals {
     for relpath in local.ssh_key_files :
     trimsuffix(basename(relpath), ".pub") => trimspace(file("${path.module}/../../${relpath}"))
   }
-  primary_ssh_key_name = contains(keys(local.ssh_public_keys), "dsst2023") ? "dsst2023" : sort(keys(local.ssh_public_keys))[0]
+  primary_ssh_key_name = contains(keys(local.ssh_public_keys), "dsst2023") ? "dsst2023" : (
+    length(local.ssh_public_keys) > 0 ? sort(keys(local.ssh_public_keys))[0] : null
+  )
 }
 
 data "aws_vpc" "default" {
@@ -198,7 +200,7 @@ resource "aws_instance" "host" {
   subnet_id                   = data.aws_subnet.selected.id
   vpc_security_group_ids      = [aws_security_group.host.id]
   iam_instance_profile        = aws_iam_instance_profile.host.name
-  key_name                    = aws_key_pair.host[local.primary_ssh_key_name].key_name
+  key_name                    = local.primary_ssh_key_name != null ? aws_key_pair.host[local.primary_ssh_key_name].key_name : null
   associate_public_ip_address = true
   user_data = templatefile("${path.module}/scripts/bootstrap.sh", {
     data_volume_id  = aws_ebs_volume.data.id

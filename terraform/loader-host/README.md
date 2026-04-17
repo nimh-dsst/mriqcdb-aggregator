@@ -64,13 +64,54 @@ Every `data/*.pub` key in this repo is:
 
 If `data/dsst2023.pub` exists, it is used as the EC2 launch key pair.
 Otherwise the first discovered key is used.
+If no `data/*.pub` keys exist, the instance launches without an EC2 key pair and
+SSM access remains available through the attached IAM policy.
+
+## Backend bootstrap
+
+This stack now expects a remote `s3` backend so the host state is not left in a
+local `terraform.tfstate` file.
+
+Use the companion [`terraform/state-backend`](../state-backend/README.md) stack
+to create a versioned S3 bucket for OpenTofu state, then copy
+[`example.s3.tfbackend`](./example.s3.tfbackend) to a real
+`*.s3.tfbackend` file that stays out of git:
+
+```bash
+cp example.s3.tfbackend prod.s3.tfbackend
+```
+
+Fill in the bucket name, then initialize with that backend config:
+
+```bash
+tofu init -backend-config=prod.s3.tfbackend
+```
+
+## Migrating existing local state
+
+If you already applied this stack with the previous local backend, back up the
+current state file before migration:
+
+```bash
+cp terraform.tfstate terraform.tfstate.local-backup
+cp terraform.tfstate.backup terraform.tfstate.backup.local-backup
+```
+
+Then reinitialize with migration enabled:
+
+```bash
+tofu init -migrate-state -backend-config=prod.s3.tfbackend
+```
+
+OpenTofu will copy the existing local state into S3. Once the migration
+completes, `terraform.tfstate` should no longer be the source of truth.
 
 ## How to use it
 
 From this directory:
 
 ```bash
-tofu init
+tofu init -backend-config=prod.s3.tfbackend
 tofu plan
 tofu apply
 ```
@@ -117,7 +158,7 @@ After apply, Terraform prints:
 
 ## Notes
 
-- This directory uses the local Terraform/OpenTofu backend unless you configure
-  a remote backend yourself.
+- This directory uses a partial `s3` backend configuration. Keep the real
+  `*.s3.tfbackend` file out of git and pass it to `tofu init`.
 - The current production deployment can be updated in place for size changes,
   such as `t3.xlarge` to `t3.large`, without changing the Elastic IP.

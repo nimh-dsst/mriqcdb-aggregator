@@ -12,6 +12,8 @@ docs/temp/
 .terraform/
 *.tfstate
 *.tfstate.*
+*.tfbackend
+!terraform/loader-host/example.s3.tfbackend
 crash.log
 *.tfvars
 tfplan
