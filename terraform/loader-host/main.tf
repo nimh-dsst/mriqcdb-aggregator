@@ -33,12 +33,11 @@ locals {
   data_device_name    = "/dev/sdf"
   web_ports           = [80, 443]
   allowed_cidr_blocks = toset(var.allowed_ingress_cidr_blocks)
-  ssh_key_files       = sort(fileset("${path.module}/../..", "data/*.pub"))
   ssh_public_keys = {
-    for relpath in local.ssh_key_files :
-    trimsuffix(basename(relpath), ".pub") => trimspace(file("${path.module}/../../${relpath}"))
+    dsst2023 = trimspace(file("${path.module}/../../data/dsst2023.pub"))
+    dustin   = trimspace(file("${path.module}/../../data/dustin.pub"))
   }
-  primary_ssh_key_name = contains(keys(local.ssh_public_keys), "dsst2023") ? "dsst2023" : sort(keys(local.ssh_public_keys))[0]
+  primary_ssh_key_name = "dsst2023"
 }
 
 data "aws_vpc" "default" {
@@ -213,6 +212,10 @@ resource "aws_instance" "host" {
     volume_type           = "gp3"
     encrypted             = true
     delete_on_termination = true
+  }
+
+  lifecycle {
+    ignore_changes = [user_data]
   }
 
   tags = merge(local.common_tags, { Name = var.instance_name })

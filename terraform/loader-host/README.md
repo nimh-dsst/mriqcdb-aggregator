@@ -10,7 +10,7 @@ MRIQC Aggregator production compose stack.
 - One IAM role and instance profile for the host
 - One persistent EBS volume mounted at `/data`
 - One Elastic IP by default
-- One AWS key pair per `data/*.pub` file in this repo
+- Two AWS key pairs imported from `data/dsst2023.pub` and `data/dustin.pub`
 
 The EBS volume keeps the compose data across instance replacement. A full
 `tofu destroy` will still delete that volume unless you snapshot or protect it
@@ -57,20 +57,59 @@ place.
 
 The EC2 login user is `admin`.
 
-Every `data/*.pub` key in this repo is:
+The Terraform stack imports exactly these two public keys:
 
 - imported as an AWS key pair
 - written to `/home/admin/.ssh/authorized_keys`
 
-If `data/dsst2023.pub` exists, it is used as the EC2 launch key pair.
-Otherwise the first discovered key is used.
+`data/dsst2023.pub` is always used as the EC2 launch key pair.
+`data/dustin.pub` is also authorized on the host.
+
+## Backend bootstrap
+
+This stack now expects a remote `s3` backend so the host state is not left in a
+local `terraform.tfstate` file.
+
+Use the companion [`terraform/state-backend`](../state-backend/README.md) stack
+to create a versioned S3 bucket for OpenTofu state, then copy
+[`example.s3.tfbackend`](./example.s3.tfbackend) to a real
+`*.s3.tfbackend` file that stays out of git:
+
+```bash
+cp example.s3.tfbackend prod.s3.tfbackend
+```
+
+Fill in the bucket name, then initialize with that backend config:
+
+```bash
+tofu init -backend-config=prod.s3.tfbackend
+```
+
+## Migrating existing local state
+
+If you already applied this stack with the previous local backend, back up the
+current state file before migration:
+
+```bash
+cp terraform.tfstate terraform.tfstate.local-backup
+cp terraform.tfstate.backup terraform.tfstate.backup.local-backup
+```
+
+Then reinitialize with migration enabled:
+
+```bash
+tofu init -migrate-state -backend-config=prod.s3.tfbackend
+```
+
+OpenTofu will copy the existing local state into S3. Once the migration
+completes, `terraform.tfstate` should no longer be the source of truth.
 
 ## How to use it
 
 From this directory:
 
 ```bash
-tofu init
+tofu init -backend-config=prod.s3.tfbackend
 tofu plan
 tofu apply
 ```
@@ -110,14 +149,17 @@ After apply, Terraform prints:
 
 - `https://<ip>/api/v1/health` should return `{"status":"ok"}`
 - The root path `/` is expected to return `404`
-- `tofu apply` can replace the instance if immutable settings change; the
-  separate `/data` volume is meant to preserve compose data across that
-  replacement
+- Bootstrap is first-boot-only. Later `user_data` edits are intentionally
+  ignored for the existing host, so changing the bootstrap script does not
+  churn the live instance.
+- `tofu apply` can still replace the instance if other immutable settings
+  change; the separate `/data` volume is meant to preserve compose data across
+  that replacement
 - `tofu destroy` removes the whole stack, including the persistent volume
 
 ## Notes
 
-- This directory uses the local Terraform/OpenTofu backend unless you configure
-  a remote backend yourself.
+- This directory uses a partial `s3` backend configuration. Keep the real
+  `*.s3.tfbackend` file out of git and pass it to `tofu init`.
 - The current production deployment can be updated in place for size changes,
   such as `t3.xlarge` to `t3.large`, without changing the Elastic IP.

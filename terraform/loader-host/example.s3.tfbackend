@@ -1,0 +1,4 @@
+bucket       = "replace-with-your-state-bucket-name"
+key          = "loader-host/terraform.tfstate"
+region       = "us-east-1"
+encrypt      = true
