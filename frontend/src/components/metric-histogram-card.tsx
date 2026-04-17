@@ -239,14 +239,6 @@ export function MetricHistogramCard({
             </p>
           </div>
           <div className={compact ? "flex items-start pr-8" : "flex flex-col items-end gap-3 pr-10"}>
-            <div className="rounded-2xl border border-border/70 bg-background/75 px-4 py-3 text-right shadow-sm">
-              <p className="text-xs uppercase tracking-[0.22em] text-muted-foreground">
-                {visibleDistributions.length === 2 ? "Visible sources" : "Samples"}
-              </p>
-              <p className="mt-1 text-2xl font-semibold">
-                {visibleDistributions.length === 2 ? "2" : distribution.value_count}
-              </p>
-            </div>
             {visibleDistributions.length === 2 ? (
               <div className="flex flex-wrap justify-end gap-2 pr-1 text-[11px]">
                 {globalDistribution ? (
@@ -260,7 +252,13 @@ export function MetricHistogramCard({
                   </span>
                 ) : null}
               </div>
-            ) : null}
+            ) : (
+              <div className="pr-1 text-[11px]">
+                <span className="rounded-full border border-border/70 bg-background/75 px-2.5 py-1 font-medium text-foreground">
+                  Samples · {distribution.value_count}
+                </span>
+              </div>
+            )}
           </div>
         </div>
         <div className={compact ? "mt-3 h-[220px] w-full rounded-[1.1rem] border border-border/60 bg-background/55 p-2.5" : "mt-6 h-[320px] w-full rounded-[1.4rem] border border-border/60 bg-background/55 p-3"}>

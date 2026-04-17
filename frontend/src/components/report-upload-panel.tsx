@@ -198,8 +198,8 @@ export function ReportUploadPanel({
                 key={draft.id}
                 className="rounded-[0.85rem] border border-amber-200/70 bg-white/70 p-3"
               >
-                <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-                  <div className="min-w-0 lg:flex-1">
+                <div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
+                  <div className="min-w-0 xl:flex-1">
                     <p className="truncate text-sm font-medium text-foreground">
                       {draft.fileName}
                     </p>
@@ -208,7 +208,7 @@ export function ReportUploadPanel({
                       {draft.detectedModality ?? "unknown"}
                     </p>
                   </div>
-                  <div className="grid gap-3 sm:grid-cols-2 lg:min-w-[320px] lg:grid-cols-[110px_190px]">
+                  <div className="grid gap-3 xl:min-w-[320px] xl:grid-cols-[110px_minmax(0,190px)]">
                     <div className="min-w-0">
                       <p className="text-xs text-muted-foreground">Replaces</p>
                       <p className="mt-1 text-sm font-medium text-foreground">
