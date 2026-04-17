@@ -104,17 +104,40 @@ def humanize_metric_field(field_name: str) -> str:
 def _metric_family(field_name: str, modality: str) -> str:
     if field_name.startswith("fd_") or field_name == "dummy_trs":
         return "Motion"
-    if field_name.startswith("dvars") or field_name in {"aor", "aqi", "gcor", "gsr_x", "gsr_y", "tsnr"}:
+    if field_name.startswith("dvars") or field_name in {
+        "aor",
+        "aqi",
+        "gcor",
+        "gsr_x",
+        "gsr_y",
+        "tsnr",
+    }:
         return "Temporal Stability"
-    if field_name.startswith("fwhm") or field_name.startswith("size_") or field_name.startswith("spacing_"):
+    if (
+        field_name.startswith("fwhm")
+        or field_name.startswith("size_")
+        or field_name.startswith("spacing_")
+    ):
         return "Resolution"
     if field_name.startswith("summary_"):
         return "Tissue Summaries" if modality in {"T1w", "T2w"} else "Signal Summaries"
     if field_name.startswith("snr") or field_name.startswith("snrd"):
         return "Signal Quality"
-    if field_name.startswith("icvs") or field_name.startswith("rpve") or field_name.startswith("tpm_overlap"):
+    if (
+        field_name.startswith("icvs")
+        or field_name.startswith("rpve")
+        or field_name.startswith("tpm_overlap")
+    ):
         return "Tissue Composition"
-    if field_name.startswith("inu") or field_name in {"cjv", "cnr", "efc", "fber", "qi_1", "qi_2", "wm2max"}:
+    if field_name.startswith("inu") or field_name in {
+        "cjv",
+        "cnr",
+        "efc",
+        "fber",
+        "qi_1",
+        "qi_2",
+        "wm2max",
+    }:
         return "Artifacts and Contrast"
     return "Other"
 

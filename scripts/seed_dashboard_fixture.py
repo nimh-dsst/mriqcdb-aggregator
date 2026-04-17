@@ -56,7 +56,9 @@ BOLD_METRICS = {
 }
 
 
-def _write_page(run_root: Path, page_number: int, items: list[dict[str, object]]) -> None:
+def _write_page(
+    run_root: Path, page_number: int, items: list[dict[str, object]]
+) -> None:
     raw_dir = run_root / "raw" / "bold"
     raw_dir.mkdir(parents=True, exist_ok=True)
     payload = {"_items": items}
@@ -148,7 +150,9 @@ def main() -> None:
         )
 
         create_database_schema(database_url)
-        summary = load_raw_run(run_root=run_root, database_url=database_url, batch_size=100)
+        summary = load_raw_run(
+            run_root=run_root, database_url=database_url, batch_size=100
+        )
         print(f"Loaded dashboard fixture into {database_url}: {summary}")
 
 

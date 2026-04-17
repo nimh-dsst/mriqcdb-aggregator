@@ -12,7 +12,7 @@ from sqlalchemy import Select, String, Text, case, func, or_, select
 from sqlalchemy.orm import Session, sessionmaker
 
 from .database import create_session_factory
-from .metrics import QC_METRIC_FIELDS, supported_metric_fields
+from .metrics import supported_metric_fields
 from .models import BoldRecord, T1wRecord, T2wRecord
 from .storage import make_run_id, write_json
 
