@@ -9,6 +9,7 @@ def test_sqlalchemy_models_create_tables() -> None:
 
     inspector = inspect(engine)
     assert set(inspector.get_table_names()) == {"bold", "t1w", "t2w"}
+    engine.dispose()
 
 
 def test_structural_models_expose_core_columns() -> None:
@@ -48,3 +49,4 @@ def test_structural_models_expose_core_columns() -> None:
     assert "inversion_time" in t1w_columns
     assert "task_name" in bold_columns
     assert "rating_label" in bold_columns
+    engine.dispose()

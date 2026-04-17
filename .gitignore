@@ -5,5 +5,13 @@ __pycache__/
 *.pyc
 .DS_Store
 .env
+pixi.lock
 data/
 docs/temp/
+.coverage
+.terraform/
+*.tfstate
+*.tfstate.*
+crash.log
+*.tfvars
+tfplan

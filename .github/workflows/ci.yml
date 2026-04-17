@@ -1,0 +1,79 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  python-checks:
+    name: Python Checks
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v5
+
+      - name: Set up Pixi
+        uses: prefix-dev/setup-pixi@v0.9.3
+        with:
+          pixi-version: v0.67.0
+          cache: false
+
+      - name: Run pre-commit checks
+        run: pixi exec pre-commit run --all-files --show-diff-on-failure
+
+      - name: Run tests
+        run: pixi run test
+
+  frontend-lint:
+    name: Frontend Lint
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v5
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: "22"
+
+      - name: Install frontend dependencies
+        run: npm --prefix frontend install
+
+      - name: Run frontend lint
+        run: npm --prefix frontend run lint
+
+  compose-smoke:
+    name: Compose Smoke
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v5
+
+      - name: Build and start compose stack
+        run: docker compose up --build -d --wait
+
+      - name: Verify API health endpoint
+        run: curl --fail --silent --show-error http://127.0.0.1:8000/api/v1/health
+
+      - name: Show compose status
+        if: always()
+        run: docker compose ps
+
+      - name: Show API logs on failure
+        if: failure()
+        run: docker compose logs --no-color api
+
+      - name: Tear down compose stack
+        if: always()
+        run: docker compose down -v

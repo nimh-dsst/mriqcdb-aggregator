@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from contextlib import asynccontextmanager
 from datetime import datetime
 from functools import lru_cache
 
@@ -38,11 +39,22 @@ def _filters_dependency(
 
 
 def create_app(*, database_url: str | None = None) -> FastAPI:
+    @asynccontextmanager
+    async def lifespan(_app: FastAPI):
+        yield
+        if get_profiler.cache_info().currsize:
+            get_profiler().close()
+            get_profiler.cache_clear()
+        if get_engine.cache_info().currsize:
+            get_engine().dispose()
+            get_engine.cache_clear()
+
     app = FastAPI(
         title="MRIQC Aggregator API",
         version=__version__,
         docs_url="/docs",
         redoc_url="/redoc",
+        lifespan=lifespan,
     )
     app.add_middleware(
         CORSMiddleware,

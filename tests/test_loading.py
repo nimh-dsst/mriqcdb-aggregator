@@ -116,7 +116,7 @@ def _write_t1w_page(
     )
 
 
-def test_load_raw_run_is_idempotent(tmp_path: Path) -> None:
+def test_load_raw_run_is_idempotent(tmp_path: Path, postgres_database_url: str) -> None:
     run_root = tmp_path / "runs" / "test-run"
     _write_t1w_page(
         run_root,
@@ -124,19 +124,26 @@ def test_load_raw_run_is_idempotent(tmp_path: Path) -> None:
         manufacturer="Siemens",
     )
 
-    database_path = tmp_path / "ingest.db"
-    database_url = f"sqlite+pysqlite:///{database_path}"
-    create_database_schema(database_url)
+    create_database_schema(postgres_database_url)
 
-    first = load_raw_run(run_root=run_root, database_url=database_url, batch_size=1)
-    second = load_raw_run(run_root=run_root, database_url=database_url, batch_size=1)
+    first = load_raw_run(
+        run_root=run_root,
+        database_url=postgres_database_url,
+        batch_size=1,
+    )
+    second = load_raw_run(
+        run_root=run_root,
+        database_url=postgres_database_url,
+        batch_size=1,
+    )
 
-    engine = create_engine(database_url)
+    engine = create_engine(postgres_database_url)
     with Session(engine) as session:
         row_count = session.execute(
             select(func.count()).select_from(T1wRecord)
         ).scalar_one()
         record = session.execute(select(T1wRecord)).scalar_one()
+    engine.dispose()
 
     assert row_count == 1
     assert first.per_modality["T1w"].inserted_count == 1
@@ -147,7 +154,10 @@ def test_load_raw_run_is_idempotent(tmp_path: Path) -> None:
     assert record.dedupe_exact_key == "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
 
 
-def test_load_raw_run_updates_existing_row(tmp_path: Path) -> None:
+def test_load_raw_run_updates_existing_row(
+    tmp_path: Path,
+    postgres_database_url: str,
+) -> None:
     run_root = tmp_path / "runs" / "test-run"
     _write_t1w_page(
         run_root,
@@ -155,25 +165,34 @@ def test_load_raw_run_updates_existing_row(tmp_path: Path) -> None:
         manufacturer="Siemens",
     )
 
-    database_path = tmp_path / "ingest.db"
-    database_url = f"sqlite+pysqlite:///{database_path}"
-
-    load_raw_run(run_root=run_root, database_url=database_url, batch_size=1)
+    load_raw_run(
+        run_root=run_root,
+        database_url=postgres_database_url,
+        batch_size=1,
+    )
     _write_t1w_page(
         run_root,
         source_id="abc123def456abc123def456",
         manufacturer="GE",
     )
-    load_raw_run(run_root=run_root, database_url=database_url, batch_size=1)
+    load_raw_run(
+        run_root=run_root,
+        database_url=postgres_database_url,
+        batch_size=1,
+    )
 
-    engine = create_engine(database_url)
+    engine = create_engine(postgres_database_url)
     with Session(engine) as session:
         record = session.execute(select(T1wRecord)).scalar_one()
+    engine.dispose()
 
     assert record.manufacturer == "GE"
 
 
-def test_load_raw_run_handles_mixed_optional_columns_in_batch(tmp_path: Path) -> None:
+def test_load_raw_run_handles_mixed_optional_columns_in_batch(
+    tmp_path: Path,
+    postgres_database_url: str,
+) -> None:
     run_root = tmp_path / "runs" / "test-run"
     _write_t1w_page(
         run_root,
@@ -190,18 +209,20 @@ def test_load_raw_run_handles_mixed_optional_columns_in_batch(tmp_path: Path) ->
         page_number=2,
     )
 
-    database_path = tmp_path / "ingest.db"
-    database_url = f"sqlite+pysqlite:///{database_path}"
+    summary = load_raw_run(
+        run_root=run_root,
+        database_url=postgres_database_url,
+        batch_size=250,
+    )
 
-    summary = load_raw_run(run_root=run_root, database_url=database_url, batch_size=250)
-
-    engine = create_engine(database_url)
+    engine = create_engine(postgres_database_url)
     with Session(engine) as session:
         records = (
             session.execute(select(T1wRecord).order_by(T1wRecord.source_api_id))
             .scalars()
             .all()
         )
+    engine.dispose()
 
     assert summary.per_modality["T1w"].inserted_count == 2
     assert [record.session_id for record in records] == ["session-1", None]

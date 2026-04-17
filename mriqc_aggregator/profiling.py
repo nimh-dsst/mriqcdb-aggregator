@@ -341,6 +341,17 @@ class DatabaseProfiler:
             url=database_url
         )
 
+    def close(self) -> None:
+        bind = self._session_factory.kw.get("bind")
+        if bind is not None:
+            bind.dispose()
+
+    def __enter__(self) -> "DatabaseProfiler":
+        return self
+
+    def __exit__(self, *_exc_info: object) -> None:
+        self.close()
+
     def overview(self, *, filters: ObservationFilters | None = None) -> dict[str, Any]:
         effective_filters = filters or ObservationFilters()
         with self._session_factory() as session:
@@ -886,7 +897,6 @@ def write_database_profile(
     duplicate_member_limit: int = 5,
     extra_key_limit: int = 25,
 ) -> Path:
-    profiler = DatabaseProfiler(database_url=database_url)
     selected_modalities = tuple(modalities or supported_modalities())
     run_root = Path(output_root) / "db-profiles" / make_run_id()
     write_json(
@@ -900,19 +910,20 @@ def write_database_profile(
             "extra_key_limit": extra_key_limit,
         },
     )
-    write_json(run_root / "overview.json", profiler.overview())
-    for modality in selected_modalities:
-        write_json(
-            run_root / f"{modality}.json",
-            profiler.modality_profile(
-                modality,
-                view=view,
-                top_n=top_n,
-                duplicate_group_limit=duplicate_group_limit,
-                duplicate_member_limit=duplicate_member_limit,
-                extra_key_limit=extra_key_limit,
-            ),
-        )
+    with DatabaseProfiler(database_url=database_url) as profiler:
+        write_json(run_root / "overview.json", profiler.overview())
+        for modality in selected_modalities:
+            write_json(
+                run_root / f"{modality}.json",
+                profiler.modality_profile(
+                    modality,
+                    view=view,
+                    top_n=top_n,
+                    duplicate_group_limit=duplicate_group_limit,
+                    duplicate_member_limit=duplicate_member_limit,
+                    extra_key_limit=extra_key_limit,
+                ),
+            )
     return run_root
 
 

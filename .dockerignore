@@ -1,0 +1,12 @@
+.git
+.pixi
+.pytest_cache
+.ruff_cache
+.terraform
+__pycache__
+*.pyc
+.DS_Store
+.env
+data
+docs/temp
+frontend/node_modules

@@ -1,8 +1,11 @@
 from __future__ import annotations
 
 import json
+from datetime import date, datetime
+from decimal import Decimal
+from enum import Enum
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import timezone
 from pathlib import Path
 from typing import Any, Iterable
 
@@ -44,7 +47,14 @@ def build_run_layout(output_root: Path, run_id: str) -> RunLayout:
 def write_json(path: Path, payload: Any) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(
-        json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+        json.dumps(
+            payload,
+            indent=2,
+            sort_keys=True,
+            default=_json_default,
+        )
+        + "\n",
+        encoding="utf-8",
     )
 
 
@@ -57,4 +67,14 @@ def append_jsonl(path: Path, rows: Iterable[dict[str, Any]]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("a", encoding="utf-8") as handle:
         for row in rows:
-            handle.write(json.dumps(row, sort_keys=True) + "\n")
+            handle.write(json.dumps(row, sort_keys=True, default=_json_default) + "\n")
+
+
+def _json_default(value: Any) -> Any:
+    if isinstance(value, Decimal):
+        return float(value)
+    if isinstance(value, (datetime, date)):
+        return value.isoformat()
+    if isinstance(value, Enum):
+        return value.value
+    raise TypeError(f"Object of type {type(value).__name__} is not JSON serializable")

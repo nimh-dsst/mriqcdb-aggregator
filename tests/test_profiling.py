@@ -235,7 +235,7 @@ def _bold_item(
     }
 
 
-def _load_profile_fixture(tmp_path: Path) -> str:
+def _load_profile_fixture(tmp_path: Path, database_url: str) -> str:
     run_root = tmp_path / "runs" / "profile-run"
     _write_page(
         run_root,
@@ -295,25 +295,25 @@ def _load_profile_fixture(tmp_path: Path) -> str:
         ],
     )
 
-    database_path = tmp_path / "profile.db"
-    database_url = f"sqlite+pysqlite:///{database_path}"
     create_database_schema(database_url)
     load_raw_run(run_root=run_root, database_url=database_url, batch_size=100)
     return database_url
 
 
-def test_database_profiler_reports_counts_and_duplicates(tmp_path: Path) -> None:
-    database_url = _load_profile_fixture(tmp_path)
-    profiler = DatabaseProfiler(database_url=database_url)
-
-    profile = profiler.modality_profile(
-        "T1w",
-        view=ObservationView.RAW,
-        top_n=5,
-        duplicate_group_limit=5,
-        duplicate_member_limit=2,
-        extra_key_limit=5,
-    )
+def test_database_profiler_reports_counts_and_duplicates(
+    tmp_path: Path,
+    postgres_database_url: str,
+) -> None:
+    database_url = _load_profile_fixture(tmp_path, postgres_database_url)
+    with DatabaseProfiler(database_url=database_url) as profiler:
+        profile = profiler.modality_profile(
+            "T1w",
+            view=ObservationView.RAW,
+            top_n=5,
+            duplicate_group_limit=5,
+            duplicate_member_limit=2,
+            extra_key_limit=5,
+        )
 
     assert profile["overview"]["row_counts"] == {"raw": 3, "exact": 2, "series": 3}
     manufacturer_values = profile["top_values"]["manufacturer"]
@@ -339,8 +339,11 @@ def test_database_profiler_reports_counts_and_duplicates(tmp_path: Path) -> None
     assert exact_duplicates["histogram"][0] == {"group_size": 2, "group_count": 1}
 
 
-def test_write_database_profile_writes_snapshot(tmp_path: Path) -> None:
-    database_url = _load_profile_fixture(tmp_path)
+def test_write_database_profile_writes_snapshot(
+    tmp_path: Path,
+    postgres_database_url: str,
+) -> None:
+    database_url = _load_profile_fixture(tmp_path, postgres_database_url)
 
     output_root = write_database_profile(
         output_root=tmp_path / "docs-temp",
@@ -355,52 +358,56 @@ def test_write_database_profile_writes_snapshot(tmp_path: Path) -> None:
     assert (output_root / "T1w.json").exists()
 
 
-def test_fastapi_profile_endpoint_returns_expected_payload(tmp_path: Path) -> None:
-    database_url = _load_profile_fixture(tmp_path)
-    client = TestClient(create_app(database_url=database_url))
+def test_fastapi_profile_endpoint_returns_expected_payload(
+    tmp_path: Path,
+    postgres_database_url: str,
+) -> None:
+    database_url = _load_profile_fixture(tmp_path, postgres_database_url)
+    with TestClient(create_app(database_url=database_url)) as client:
+        modalities_response = client.get("/api/v1/modalities")
+        assert modalities_response.status_code == 200
+        t1w_modality = next(
+            row
+            for row in modalities_response.json()["modalities"]
+            if row["name"] == "T1w"
+        )
+        assert "cjv" in t1w_modality["metric_fields"]
 
-    modalities_response = client.get("/api/v1/modalities")
-    assert modalities_response.status_code == 200
-    t1w_modality = next(
-        row for row in modalities_response.json()["modalities"] if row["name"] == "T1w"
-    )
-    assert "cjv" in t1w_modality["metric_fields"]
+        profile_response = client.get(
+            "/api/v1/modalities/T1w/profile", params={"view": "exact"}
+        )
+        assert profile_response.status_code == 200
+        profile_payload = profile_response.json()
+        assert profile_payload["selected_view"]["row_count"] == 2
+        assert profile_payload["overview"]["row_counts"]["raw"] == 3
 
-    profile_response = client.get(
-        "/api/v1/modalities/T1w/profile", params={"view": "exact"}
-    )
-    assert profile_response.status_code == 200
-    profile_payload = profile_response.json()
-    assert profile_payload["selected_view"]["row_count"] == 2
-    assert profile_payload["overview"]["row_counts"]["raw"] == 3
+        distribution_response = client.get(
+            "/api/v1/modalities/bold/distributions/task_id",
+            params={"view": "raw"},
+        )
+        assert distribution_response.status_code == 200
+        values = distribution_response.json()["values"]
+        assert values == [
+            {"value": "nback", "count": 1},
+            {"value": "rest", "count": 1},
+        ]
 
-    distribution_response = client.get(
-        "/api/v1/modalities/bold/distributions/task_id",
-        params={"view": "raw"},
-    )
-    assert distribution_response.status_code == 200
-    values = distribution_response.json()["values"]
-    assert values == [
-        {"value": "nback", "count": 1},
-        {"value": "rest", "count": 1},
-    ]
+        metric_summaries_response = client.get(
+            "/api/v1/modalities/T1w/metrics",
+            params={"view": "raw"},
+        )
+        assert metric_summaries_response.status_code == 200
+        metric_summaries = {
+            row["field"]: row for row in metric_summaries_response.json()["metrics"]
+        }
+        assert metric_summaries["cjv"]["mean"] == pytest.approx(0.4)
 
-    metric_summaries_response = client.get(
-        "/api/v1/modalities/T1w/metrics",
-        params={"view": "raw"},
-    )
-    assert metric_summaries_response.status_code == 200
-    metric_summaries = {
-        row["field"]: row for row in metric_summaries_response.json()["metrics"]
-    }
-    assert metric_summaries["cjv"]["mean"] == pytest.approx(0.4)
-
-    metric_distribution_response = client.get(
-        "/api/v1/modalities/T1w/metrics/cjv",
-        params={"view": "raw", "bins": 3},
-    )
-    assert metric_distribution_response.status_code == 200
-    distribution = metric_distribution_response.json()["distribution"]
-    assert distribution["mean"] == pytest.approx(0.4)
-    assert distribution["quantiles"]["p50"] == pytest.approx(0.4)
-    assert sum(bucket["count"] for bucket in distribution["histogram"]) == 3
+        metric_distribution_response = client.get(
+            "/api/v1/modalities/T1w/metrics/cjv",
+            params={"view": "raw", "bins": 3},
+        )
+        assert metric_distribution_response.status_code == 200
+        distribution = metric_distribution_response.json()["distribution"]
+        assert distribution["mean"] == pytest.approx(0.4)
+        assert distribution["quantiles"]["p50"] == pytest.approx(0.4)
+        assert sum(bucket["count"] for bucket in distribution["histogram"]) == 3
