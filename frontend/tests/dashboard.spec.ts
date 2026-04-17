@@ -59,7 +59,7 @@ test("dashboard renders and supports core interactions", async ({ page }) => {
 test("uploaded data re-enables raw view when it becomes visible", async ({ page }) => {
   await page.goto("/")
 
-  await page.getByRole("button", { name: /your data/i }).click()
+  await page.getByRole("button", { name: /upload data/i }).click()
   await page.locator('input[type="file"]').setInputFiles({
     name: "demo-bold.csv",
     mimeType: "text/csv",
@@ -82,11 +82,11 @@ test("uploaded data re-enables raw view when it becomes visible", async ({ page 
   await expect(page).toHaveURL(/view=raw/)
 
   await page.keyboard.press("Escape")
-  await page.getByRole("button", { name: "Yours" }).click()
+  await page.getByRole("button", { name: /toggle uploaded data/i }).click()
   await page.getByRole("button", { name: "Exact" }).click()
   await expect(page).toHaveURL(/view=exact/)
 
-  await page.getByRole("button", { name: "Yours" }).click()
+  await page.getByRole("button", { name: /toggle uploaded data/i }).click()
   await expect(page).toHaveURL(/view=raw/)
   await expect(page.getByText(/uploaded dataset active: 3 rows from demo-bold\.csv/i)).toBeVisible()
 })
