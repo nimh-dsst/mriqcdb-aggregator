@@ -59,7 +59,11 @@ function getGridClassName(selectedCount: number) {
     return "grid-cols-1 xl:grid-cols-2"
   }
 
-  return "grid-cols-1 xl:grid-cols-2 2xl:grid-cols-3"
+  if (selectedCount <= 8) {
+    return "grid-cols-1 xl:grid-cols-2"
+  }
+
+  return "grid-cols-1 2xl:grid-cols-2"
 }
 
 function App() {
@@ -347,6 +351,7 @@ function App() {
                     metricDescription={describeMetric(descriptor)}
                     selectedView={selectedView}
                     onRemove={() => toggleSelectedMetric(descriptor.field)}
+                    compact={selectedMetricDescriptors.length > 1}
                   />
                 ))}
               </div>
