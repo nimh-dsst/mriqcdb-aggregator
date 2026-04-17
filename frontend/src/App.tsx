@@ -520,35 +520,67 @@ function App() {
                     {uploadedModalityCount} uploaded modalit{uploadedModalityCount === 1 ? "y" : "ies"}
                   </span>
                 ) : null}
-                <div className="flex items-center gap-2 rounded-full border border-border/70 bg-background/75 p-1">
-                  <button
-                    type="button"
-                    className={
-                      showGlobalData
-                        ? "rounded-full bg-sky-100 px-3 py-1 text-xs font-medium text-sky-900"
-                        : "rounded-full px-3 py-1 text-xs font-medium text-muted-foreground"
-                    }
-                    onClick={() => setShowGlobalData((current) => !current)}
-                  >
-                    Global
-                  </button>
-                  <button
-                    type="button"
-                    className={
-                      effectiveShowUploadedData
-                        ? "rounded-full bg-emerald-100 px-3 py-1 text-xs font-medium text-emerald-900"
-                        : "rounded-full px-3 py-1 text-xs font-medium text-muted-foreground"
-                    }
-                    onClick={() =>
-                      canShowUploadedData
-                        ? setShowUploadedData((current) => !current)
-                        : undefined
-                    }
-                    disabled={!canShowUploadedData}
-                  >
-                    Yours
-                  </button>
+                <div className="flex flex-wrap items-center gap-2">
+                  <div className="flex items-center gap-2 rounded-full border border-border/70 bg-background/75 p-1">
+                    <button
+                      type="button"
+                      className={
+                        showGlobalData
+                          ? "rounded-full bg-sky-100 px-3 py-1 text-xs font-medium text-sky-900"
+                          : "rounded-full px-3 py-1 text-xs font-medium text-muted-foreground"
+                      }
+                      onClick={() => setShowGlobalData((current) => !current)}
+                    >
+                      Global
+                    </button>
+                    <button
+                      type="button"
+                      className={
+                        effectiveShowUploadedData
+                          ? "rounded-full bg-emerald-100 px-3 py-1 text-xs font-medium text-emerald-900"
+                          : canShowUploadedData
+                            ? "rounded-full px-3 py-1 text-xs font-medium text-muted-foreground"
+                            : "rounded-full px-3 py-1 text-xs font-medium text-muted-foreground opacity-55"
+                      }
+                      onClick={() =>
+                        canShowUploadedData
+                          ? setShowUploadedData((current) => !current)
+                          : undefined
+                      }
+                      disabled={!canShowUploadedData}
+                      aria-label={
+                        canShowUploadedData
+                          ? "Toggle uploaded data"
+                          : `Uploaded data unavailable for ${activeModality} until you upload a CSV`
+                      }
+                      title={
+                        canShowUploadedData
+                          ? undefined
+                          : `Upload a ${activeModality} CSV to enable Yours`
+                      }
+                    >
+                      Yours
+                    </button>
+                  </div>
+                  {!canShowUploadedData ? (
+                    <span className="text-xs text-muted-foreground">
+                      Upload a {activeModality} CSV to enable <span className="font-medium text-foreground">Yours</span>.
+                    </span>
+                  ) : null}
                 </div>
+                {effectiveShowUploadedData && activeUploadedReport ? (
+                  <span className="text-xs text-muted-foreground">
+                    Uploaded data available for {activeModality}.
+                  </span>
+                ) : !canShowUploadedData ? (
+                  <span className="text-xs text-muted-foreground">
+                    No uploaded {activeModality} data yet. Add a CSV to use <span className="font-medium text-foreground">Yours</span>.
+                  </span>
+                ) : (
+                  <span className="text-xs text-muted-foreground">
+                    {showGlobalData ? "Showing global MRIQC reference data." : "Global MRIQC reference hidden."}
+                  </span>
+                )}
                 {pendingUploads.length > 0 ? (
                   <span className="rounded-full border border-amber-300/70 bg-amber-100/80 px-3 py-1 text-xs font-medium text-amber-900">
                     {pendingUploads.length} file{pendingUploads.length === 1 ? "" : "s"} pending review
