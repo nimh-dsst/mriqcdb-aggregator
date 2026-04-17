@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 "use client"
 
 import * as React from "react"
@@ -26,10 +27,13 @@ import { PanelLeftIcon } from "lucide-react"
 
 const SIDEBAR_COOKIE_NAME = "sidebar_state"
 const SIDEBAR_COOKIE_MAX_AGE = 60 * 60 * 24 * 7
-const SIDEBAR_WIDTH = "16rem"
 const SIDEBAR_WIDTH_MOBILE = "18rem"
 const SIDEBAR_WIDTH_ICON = "3rem"
 const SIDEBAR_KEYBOARD_SHORTCUT = "b"
+const SIDEBAR_WIDTH_STORAGE_KEY = "sidebar_width"
+const SIDEBAR_WIDTH_DEFAULT_PX = 256
+const SIDEBAR_WIDTH_MIN_PX = 240
+const SIDEBAR_WIDTH_MAX_PX = 480
 
 type SidebarContextProps = {
   state: "expanded" | "collapsed"
@@ -39,6 +43,8 @@ type SidebarContextProps = {
   setOpenMobile: (open: boolean) => void
   isMobile: boolean
   toggleSidebar: () => void
+  desktopWidth: number
+  setDesktopWidth: (width: number) => void
 }
 
 const SidebarContext = React.createContext<SidebarContextProps | null>(null)
@@ -50,6 +56,10 @@ function useSidebar() {
   }
 
   return context
+}
+
+function clampSidebarWidth(width: number) {
+  return Math.min(Math.max(width, SIDEBAR_WIDTH_MIN_PX), SIDEBAR_WIDTH_MAX_PX)
 }
 
 function SidebarProvider({
@@ -67,11 +77,34 @@ function SidebarProvider({
 }) {
   const isMobile = useIsMobile()
   const [openMobile, setOpenMobile] = React.useState(false)
+  const [desktopWidth, setDesktopWidthState] = React.useState(
+    SIDEBAR_WIDTH_DEFAULT_PX
+  )
 
   // This is the internal state of the sidebar.
   // We use openProp and setOpenProp for control from outside the component.
   const [_open, _setOpen] = React.useState(defaultOpen)
   const open = openProp ?? _open
+  const setDesktopWidth = React.useCallback((width: number) => {
+    const nextWidth = clampSidebarWidth(width)
+    setDesktopWidthState(nextWidth)
+    window.localStorage.setItem(SIDEBAR_WIDTH_STORAGE_KEY, String(nextWidth))
+  }, [])
+
+  React.useEffect(() => {
+    const storedWidth = window.localStorage.getItem(SIDEBAR_WIDTH_STORAGE_KEY)
+    if (!storedWidth) {
+      return
+    }
+
+    const parsedWidth = Number.parseInt(storedWidth, 10)
+    if (!Number.isFinite(parsedWidth)) {
+      return
+    }
+
+    setDesktopWidthState(clampSidebarWidth(parsedWidth))
+  }, [])
+
   const setOpen = React.useCallback(
     (value: boolean | ((value: boolean) => boolean)) => {
       const openState = typeof value === "function" ? value(open) : value
@@ -121,8 +154,20 @@ function SidebarProvider({
       openMobile,
       setOpenMobile,
       toggleSidebar,
+      desktopWidth,
+      setDesktopWidth,
     }),
-    [state, open, setOpen, isMobile, openMobile, setOpenMobile, toggleSidebar]
+    [
+      state,
+      open,
+      setOpen,
+      isMobile,
+      openMobile,
+      setOpenMobile,
+      toggleSidebar,
+      desktopWidth,
+      setDesktopWidth,
+    ]
   )
 
   return (
@@ -131,7 +176,7 @@ function SidebarProvider({
         data-slot="sidebar-wrapper"
         style={
           {
-            "--sidebar-width": SIDEBAR_WIDTH,
+            "--sidebar-width": `${desktopWidth}px`,
             "--sidebar-width-icon": SIDEBAR_WIDTH_ICON,
             ...style,
           } as React.CSSProperties
@@ -277,27 +322,109 @@ function SidebarTrigger({
 }
 
 function SidebarRail({ className, ...props }: React.ComponentProps<"button">) {
-  const { toggleSidebar } = useSidebar()
+  const { isMobile, setDesktopWidth, state, toggleSidebar } = useSidebar()
+  const dragStateRef = React.useRef<{
+    pointerId: number
+    startX: number
+    startWidth: number
+    side: "left" | "right"
+  } | null>(null)
+  const resizedRef = React.useRef(false)
+
+  React.useEffect(() => {
+    const handlePointerMove = (event: PointerEvent) => {
+      const dragState = dragStateRef.current
+      if (!dragState) {
+        return
+      }
+
+      const delta =
+        dragState.side === "left"
+          ? event.clientX - dragState.startX
+          : dragState.startX - event.clientX
+      const nextWidth = clampSidebarWidth(dragState.startWidth + delta)
+      resizedRef.current =
+        resizedRef.current ||
+        Math.abs(nextWidth - dragState.startWidth) >= 4
+      setDesktopWidth(nextWidth)
+    }
+
+    const handlePointerUp = (event: PointerEvent) => {
+      const dragState = dragStateRef.current
+      if (!dragState || event.pointerId !== dragState.pointerId) {
+        return
+      }
+
+      dragStateRef.current = null
+      document.body.style.removeProperty("cursor")
+      document.body.style.removeProperty("user-select")
+    }
+
+    window.addEventListener("pointermove", handlePointerMove)
+    window.addEventListener("pointerup", handlePointerUp)
+    window.addEventListener("pointercancel", handlePointerUp)
+
+    return () => {
+      window.removeEventListener("pointermove", handlePointerMove)
+      window.removeEventListener("pointerup", handlePointerUp)
+      window.removeEventListener("pointercancel", handlePointerUp)
+    }
+  }, [setDesktopWidth])
 
   return (
     <button
       data-sidebar="rail"
       data-slot="sidebar-rail"
-      aria-label="Toggle Sidebar"
+      aria-label="Resize or toggle sidebar"
       tabIndex={-1}
-      onClick={toggleSidebar}
-      title="Toggle Sidebar"
+      onPointerDown={(event) => {
+        if (event.button !== 0 || isMobile || state !== "expanded") {
+          return
+        }
+
+        const sidebar = event.currentTarget.closest("[data-slot='sidebar']")
+        const side = sidebar?.getAttribute("data-side") === "right" ? "right" : "left"
+        const sidebarWidth = sidebar
+          ? Number.parseFloat(
+              getComputedStyle(sidebar).getPropertyValue("--sidebar-width")
+            )
+          : SIDEBAR_WIDTH_DEFAULT_PX
+
+        dragStateRef.current = {
+          pointerId: event.pointerId,
+          startX: event.clientX,
+          startWidth: Number.isFinite(sidebarWidth)
+            ? sidebarWidth
+            : SIDEBAR_WIDTH_DEFAULT_PX,
+          side,
+        }
+        resizedRef.current = false
+        document.body.style.cursor = "col-resize"
+        document.body.style.userSelect = "none"
+      }}
+      onClick={(event) => {
+        if (resizedRef.current) {
+          event.preventDefault()
+          resizedRef.current = false
+          return
+        }
+
+        toggleSidebar()
+      }}
+      title="Drag to resize, click to toggle"
       className={cn(
-        "absolute inset-y-0 z-20 hidden w-4 transition-all ease-linear group-data-[side=left]:-right-4 group-data-[side=right]:left-0 after:absolute after:inset-y-0 after:start-1/2 after:w-[2px] hover:after:bg-sidebar-border sm:flex ltr:-translate-x-1/2 rtl:-translate-x-1/2",
+        "group absolute inset-y-0 z-20 hidden w-5 touch-none items-center justify-center transition-all ease-linear group-data-[side=left]:-right-5 group-data-[side=right]:left-0 sm:flex ltr:-translate-x-1/2 rtl:-translate-x-1/2",
         "in-data-[side=left]:cursor-w-resize in-data-[side=right]:cursor-e-resize",
         "[[data-side=left][data-state=collapsed]_&]:cursor-e-resize [[data-side=right][data-state=collapsed]_&]:cursor-w-resize",
-        "group-data-[collapsible=offcanvas]:translate-x-0 group-data-[collapsible=offcanvas]:after:left-full hover:group-data-[collapsible=offcanvas]:bg-sidebar",
+        "group-data-[collapsible=offcanvas]:translate-x-0 hover:group-data-[collapsible=offcanvas]:bg-sidebar/40",
         "[[data-side=left][data-collapsible=offcanvas]_&]:-right-2",
         "[[data-side=right][data-collapsible=offcanvas]_&]:-left-2",
         className
       )}
       {...props}
-    />
+    >
+      <span className="pointer-events-none h-16 w-1 rounded-full bg-sidebar-border/75 shadow-[0_0_0_1px_color-mix(in_oklab,var(--color-sidebar-border)_65%,transparent)] transition-colors duration-150 group-hover:bg-sidebar-primary/80" />
+    </button>
   )
 }
 

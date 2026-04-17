@@ -1,11 +1,11 @@
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
-import type { ViewId } from "@/types/ui"
+import { VIEW_OPTIONS, type ViewId } from "@/types/ui"
 
 const LABELS: Record<ViewId, string> = {
   raw: "Raw",
   exact: "Exact",
-  series: "Series",
+  series: "Deduplicated",
 }
 
 export function ViewSwitcher({
@@ -17,7 +17,7 @@ export function ViewSwitcher({
 }) {
   return (
     <div className="inline-flex rounded-2xl border border-border/70 bg-background/72 p-1 shadow-sm">
-      {(Object.keys(LABELS) as ViewId[]).map((view) => (
+      {VIEW_OPTIONS.map((view) => (
         <Button
           key={view}
           variant="ghost"

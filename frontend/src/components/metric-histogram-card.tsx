@@ -1,17 +1,9 @@
 import { type ReactNode, useEffect, useState } from "react"
-import {
-  Bar,
-  BarChart,
-  CartesianGrid,
-  Cell,
-  LabelList,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from "recharts"
+import { XIcon } from "lucide-react"
+import { Bar, BarChart, CartesianGrid, Cell, LabelList, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts"
 import { fetchMetricDistribution, type MetricDistribution } from "@/lib/api"
-import { ViewSwitcher } from "@/components/view-switcher"
+import { ModalityIcon } from "@/components/modality-icon"
+import { Button } from "@/components/ui/button"
 import type { MetricId, ModalityId, ViewId } from "@/types/ui"
 
 type LoadState =
@@ -35,14 +27,16 @@ export function MetricHistogramCard({
   modality,
   metric,
   metricLabel,
+  metricDescription,
   selectedView,
-  onSelectView,
+  onRemove,
 }: {
   modality: ModalityId
   metric: MetricId
   metricLabel: string
+  metricDescription?: string
   selectedView: ViewId
-  onSelectView: (view: ViewId) => void
+  onRemove?: () => void
 }) {
   const [state, setState] = useState<LoadState>({ status: "loading" })
 
@@ -116,31 +110,48 @@ export function MetricHistogramCard({
   }
 
   return (
-    <section className="grid gap-6 rounded-[1.8rem] border border-border/80 bg-[linear-gradient(180deg,color-mix(in_oklab,var(--color-card)_90%,white),color-mix(in_oklab,var(--color-card)_84%,var(--color-accent)_16%))] p-6 shadow-[0_18px_40px_-28px_rgba(36,66,52,0.45)] xl:grid-cols-[minmax(0,1.8fr)_minmax(280px,0.9fr)]">
+    <section className="relative grid gap-5 rounded-[1.8rem] border border-border/80 bg-[linear-gradient(180deg,color-mix(in_oklab,var(--color-card)_90%,white),color-mix(in_oklab,var(--color-card)_84%,var(--color-accent)_16%))] p-5 shadow-[0_18px_40px_-28px_rgba(36,66,52,0.45)] xl:grid-cols-[minmax(0,1.8fr)_220px]">
+      {onRemove ? (
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          className="absolute top-4 right-4 z-10 rounded-xl border border-border/70 bg-background/78"
+          onClick={onRemove}
+          aria-label={`Remove ${metricLabel}`}
+        >
+          <XIcon className="size-4" />
+        </Button>
+      ) : null}
       <div className="min-w-0">
         <div className="flex flex-wrap items-start justify-between gap-4">
-          <div>
+          <div className="min-w-0">
             <p className="text-xs font-semibold uppercase tracking-[0.24em] text-primary/75">
               Probability Distribution
             </p>
-            <h2 className="mt-2 font-heading text-[2rem] font-semibold tracking-tight text-foreground">
-              {metricLabel}
-            </h2>
+            <div className="mt-2 flex items-start gap-3">
+              <div className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-background/85 text-primary shadow-sm ring-1 ring-border/70">
+                <ModalityIcon modality={modality} className="size-5" />
+              </div>
+              <div className="min-w-0">
+                <h2 className="font-heading text-[1.7rem] font-semibold tracking-tight text-foreground">
+                  {metricLabel}
+                </h2>
+                <p className="mt-1 text-xs uppercase tracking-[0.2em] text-muted-foreground">
+                  {metric}
+                </p>
+              </div>
+            </div>
             <div className="mt-3 flex flex-wrap gap-2">
               <InfoPill>{modality}</InfoPill>
               <InfoPill>{selectedView}</InfoPill>
               <InfoPill>{distribution.value_count} values</InfoPill>
             </div>
             <p className="mt-3 max-w-2xl text-sm leading-6 text-muted-foreground">
-              Normalized binned distribution for {modality} observations in the
-              `{selectedView}` view.
+              {metricDescription ??
+                `Normalized binned distribution for ${modality} observations in the ${selectedView} view.`}
             </p>
           </div>
-          <div className="flex flex-col items-end gap-3">
-            <ViewSwitcher
-              selectedView={selectedView}
-              onSelectView={onSelectView}
-            />
+          <div className="flex flex-col items-end gap-3 pr-10">
             <div className="rounded-2xl border border-border/70 bg-background/75 px-4 py-3 text-right shadow-sm">
               <p className="text-xs uppercase tracking-[0.22em] text-muted-foreground">
                 Samples
@@ -191,7 +202,7 @@ export function MetricHistogramCard({
           </ResponsiveContainer>
         </div>
       </div>
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
+      <div className="grid auto-rows-min gap-2 sm:grid-cols-3 xl:grid-cols-1">
         <StatCard label="Mean" value={formatMetricValue(distribution.mean)} />
         <StatCard label="Std. dev." value={formatMetricValue(distribution.stddev)} />
         <StatCard label="Min" value={formatMetricValue(distribution.min)} />
@@ -205,11 +216,11 @@ export function MetricHistogramCard({
 
 function StatCard({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-2xl border border-border/70 bg-background/72 p-4 shadow-sm">
-      <p className="text-xs font-semibold uppercase tracking-[0.22em] text-primary/70">
+    <div className="rounded-xl border border-border/70 bg-background/72 px-3 py-2.5 shadow-sm">
+      <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-primary/70">
         {label}
       </p>
-      <p className="mt-2 text-xl font-semibold text-foreground">{value}</p>
+      <p className="mt-1 text-base font-semibold text-foreground">{value}</p>
     </div>
   )
 }

@@ -32,4 +32,4 @@ export type ModalityId = ModalityDescriptor["name"]
 
 export type MetricId = MetricDescriptor["field"]
 
-export const VIEW_OPTIONS: ViewId[] = ["raw", "exact", "series"]
+export const VIEW_OPTIONS: ViewId[] = ["series", "raw", "exact"]

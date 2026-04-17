@@ -1,11 +1,17 @@
 import * as React from "react"
-import { ChevronRightIcon } from "lucide-react"
+import { CheckIcon, ChevronRightIcon, InfoIcon } from "lucide-react"
 import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible"
 import { Button } from "@/components/ui/button"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
 import {
   SidebarContent,
   SidebarGroup,
@@ -23,6 +29,7 @@ import {
 type MeasureItem = {
   title: string
   subtitle?: string
+  description?: string
   isActive?: boolean
   badge?: string
   onSelect?: () => void
@@ -44,9 +51,11 @@ type MeasureGroup = {
 export function MeasuresSidebar({
   groups,
   collapseVersion = 0,
+  onSelectAll,
 }: {
   groups: readonly MeasureGroup[]
   collapseVersion?: number
+  onSelectAll?: () => void
 }) {
   const [openItems, setOpenItems] = React.useState<Record<string, boolean>>({})
 
@@ -74,24 +83,35 @@ export function MeasuresSidebar({
   }, [collapseVersion])
 
   return (
+    <TooltipProvider>
     <SidebarContent>
       <div className="px-2 pb-2">
-        <Button
-          variant="ghost"
-          size="xs"
-          className="h-7 w-full justify-start rounded-xl border border-sidebar-border/70 bg-[linear-gradient(135deg,color-mix(in_oklab,var(--color-sidebar-accent)_68%,white),color-mix(in_oklab,var(--color-sidebar)_82%,white))] px-3 text-[11px] uppercase tracking-[0.18em] text-sidebar-foreground/75 shadow-sm hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-          onClick={() => {
-            setOpenItems((current) => {
-              const next = { ...current }
-              for (const key of Object.keys(next)) {
-                next[key] = false
-              }
-              return next
-            })
-          }}
-        >
-          Collapse all
-        </Button>
+        <div className="grid grid-cols-2 gap-2">
+          <Button
+            variant="ghost"
+            size="xs"
+            className="h-7 w-full justify-start rounded-xl border border-sidebar-border/70 bg-[linear-gradient(135deg,color-mix(in_oklab,var(--color-sidebar-accent)_68%,white),color-mix(in_oklab,var(--color-sidebar)_82%,white))] px-3 text-[11px] uppercase tracking-[0.18em] text-sidebar-foreground/75 shadow-sm hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+            onClick={() => {
+              setOpenItems((current) => {
+                const next = { ...current }
+                for (const key of Object.keys(next)) {
+                  next[key] = false
+                }
+                return next
+              })
+            }}
+          >
+            Collapse all
+          </Button>
+          <Button
+            variant="ghost"
+            size="xs"
+            className="h-7 w-full justify-start rounded-xl border border-sidebar-border/70 bg-[linear-gradient(135deg,color-mix(in_oklab,var(--color-sidebar)_78%,white),color-mix(in_oklab,var(--color-sidebar-accent)_48%,white))] px-3 text-[11px] uppercase tracking-[0.18em] text-sidebar-foreground/75 shadow-sm hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+            onClick={onSelectAll}
+          >
+            Select all
+          </Button>
+        </div>
       </div>
       {groups.map((group) => (
         <SidebarGroup key={group.title}>
@@ -124,18 +144,41 @@ export function MeasuresSidebar({
                             <SidebarMenuSub className="mt-1 border-l-sidebar-border/80">
                               {item.items.map((subItem) => (
                                 <SidebarMenuSubItem key={subItem.title}>
-                                  <SidebarMenuSubButton
-                                    isActive={subItem.isActive}
-                                    onClick={subItem.onSelect}
-                                    className="justify-between gap-3 rounded-lg border-l-2 border-l-transparent pr-2 data-[active=true]:border-l-sidebar-primary data-[active=true]:bg-sidebar-accent/55 data-[active=true]:font-medium"
-                                  >
-                                    <span className="truncate">{subItem.title}</span>
-                                    {subItem.badge ? (
-                                      <span className="rounded-md bg-sidebar/80 px-1.5 py-0.5 text-[11px] tabular-nums text-sidebar-foreground/70">
-                                        {subItem.badge}
+                                  <div className="flex items-center gap-1">
+                                    <SidebarMenuSubButton
+                                      isActive={subItem.isActive}
+                                      onClick={subItem.onSelect}
+                                      className="flex-1 justify-between gap-3 rounded-lg border-l-2 border-l-transparent pr-2 data-[active=true]:border-l-sidebar-primary data-[active=true]:bg-sidebar-accent/55 data-[active=true]:font-medium"
+                                    >
+                                      <span className="flex min-w-0 items-center gap-2">
+                                        {subItem.isActive ? (
+                                          <CheckIcon className="size-3.5 shrink-0 text-sidebar-primary" />
+                                        ) : null}
+                                        <span className="truncate">{subItem.title}</span>
                                       </span>
+                                      {subItem.badge ? (
+                                        <span className="rounded-md bg-sidebar/80 px-1.5 py-0.5 text-[11px] tabular-nums text-sidebar-foreground/70">
+                                          {subItem.badge}
+                                        </span>
+                                      ) : null}
+                                    </SidebarMenuSubButton>
+                                    {subItem.description ? (
+                                      <Tooltip>
+                                        <TooltipTrigger asChild>
+                                          <button
+                                            type="button"
+                                            className="flex size-6 shrink-0 items-center justify-center rounded-md text-sidebar-foreground/55 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                                            aria-label={`About ${subItem.title}`}
+                                          >
+                                            <InfoIcon className="size-3.5" />
+                                          </button>
+                                        </TooltipTrigger>
+                                        <TooltipContent side="right" sideOffset={8}>
+                                          {subItem.description}
+                                        </TooltipContent>
+                                      </Tooltip>
                                     ) : null}
-                                  </SidebarMenuSubButton>
+                                  </div>
                                 </SidebarMenuSubItem>
                               ))}
                             </SidebarMenuSub>
@@ -163,6 +206,7 @@ export function MeasuresSidebar({
         </SidebarGroup>
       ))}
     </SidebarContent>
+    </TooltipProvider>
   )
 }
 
