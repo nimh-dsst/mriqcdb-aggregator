@@ -1,70 +1,123 @@
-# MRIQC aggregator compose host
+# MRIQC Aggregator Compose Host
 
-This stack creates a standalone EC2 host for running the MRIQC aggregator with
-Docker Compose under systemd.
+This Terraform/OpenTofu stack creates a single EC2 host for running the full
+MRIQC Aggregator production compose stack.
 
 ## What it creates
 
 - One Debian 13 (Trixie) EC2 instance
-- One dedicated security group with ports `22`, `80`, and `443`
-- One dedicated IAM role and instance profile
+- One security group allowing `22`, `80`, and `443`
+- One IAM role and instance profile for the host
 - One persistent EBS volume mounted at `/data`
 - One Elastic IP by default
+- One AWS key pair per `data/*.pub` file in this repo
 
-## Runtime shape
+The EBS volume keeps the compose data across instance replacement. A full
+`tofu destroy` will still delete that volume unless you snapshot or protect it
+separately.
 
-Bootstrap now:
+## What bootstrap does
 
-1. Installs Docker on the instance
-2. Attaches and mounts the persistent EBS volume at `/data`
-3. Clones this repository into `/opt/mriqc-aggregator`
-4. Copies `.env.example` to `.env` and appends the production settings
-5. Installs a systemd unit that runs `docker compose -f compose.yaml -f compose.prod.yaml up --build -d --wait`
+On first boot, the instance:
 
-The production stack is:
+1. Installs Docker and the Compose plugin
+2. Mounts the persistent EBS volume at `/data`
+3. Clones this repo into `/opt/mriqc-aggregator`
+4. Creates `.env` from `.env.example` and appends production settings
+5. Installs and starts the `mriqc-aggregator.service` systemd unit
 
-- `postgres` with its data persisted at `/data/postgres`
-- `api` running Gunicorn inside the app container
-- `nginx` publishing `80/443` and proxying to the app container
+That systemd unit runs:
+
+```bash
+docker compose -f compose.yaml -f compose.prod.yaml up --build -d --wait --remove-orphans
+```
+
+The runtime stack is:
+
+- `postgres`, with data under `/data/postgres`
+- `api`, running Gunicorn inside the app container
+- `nginx`, publishing `80/443` and proxying to the API
+
+Bootstrap also creates a self-signed certificate in `/data/nginx/certs` so
+HTTPS comes up immediately. Replace it with a real certificate once DNS is in
+place.
 
 ## Defaults
 
 - Region: `us-east-1`
-- VPC: the account default VPC unless you override it
-- Public subnet: the first public subnet in that VPC unless you override it
+- Network: default VPC unless overridden
+- Subnet: first public subnet in that VPC that supports the chosen instance type
 - Instance type: `t3.large`
 - Root volume: `64 GiB`
 - Data volume: `300 GiB`
 - Repo URL: `https://github.com/nimh-dsst/mriqc-aggregator.git`
 - Repo ref: `main`
 
-## Usage
+## SSH access
 
-The Debian EC2 login user is `admin`.
-SSH access is bootstrapped from every `*.pub` file under the repo `data/`
-directory. `data/dsst2023.pub` is used as the EC2 launch key pair when present,
-and all discovered keys are written into `/home/admin/.ssh/authorized_keys`.
+The EC2 login user is `admin`.
+
+Every `data/*.pub` key in this repo is:
+
+- imported as an AWS key pair
+- written to `/home/admin/.ssh/authorized_keys`
+
+If `data/dsst2023.pub` exists, it is used as the EC2 launch key pair.
+Otherwise the first discovered key is used.
+
+## How to use it
+
+From this directory:
 
 ```bash
-AWS_PROFILE=osm_john tofu init
-AWS_PROFILE=osm_john tofu apply
+tofu init
+tofu plan
+tofu apply
 ```
 
-If you need to pin the network placement or restrict ingress:
+If you need to test a branch before merge, override `repo_ref`:
 
 ```bash
-AWS_PROFILE=osm_john tofu apply \
+tofu apply -var='repo_ref=add-infra'
+```
+
+If you want to restrict inbound access:
+
+```bash
+tofu apply -var='allowed_ingress_cidr_blocks=["203.0.113.10/32"]'
+```
+
+If you do not want to use the default VPC/subnet:
+
+```bash
+tofu apply \
   -var='vpc_id=vpc-0123456789abcdef0' \
-  -var='public_subnet_id=subnet-0123456789abcdef0' \
-  -var='allowed_ingress_cidr_blocks=["203.0.113.10/32"]'
+  -var='public_subnet_id=subnet-0123456789abcdef0'
 ```
 
-If the instance must clone from somewhere other than the public GitHub HTTPS
-URL, override `repo_url` and optionally `repo_ref`.
+## Useful outputs
+
+After apply, Terraform prints:
+
+- `public_ip`
+- `http_url`
+- `https_url`
+- `ssh_command`
+- `instance_id`
+- `data_volume_id`
+
+## Operations
+
+- `https://<ip>/api/v1/health` should return `{"status":"ok"}`
+- The root path `/` is expected to return `404`
+- `tofu apply` can replace the instance if immutable settings change; the
+  separate `/data` volume is meant to preserve compose data across that
+  replacement
+- `tofu destroy` removes the whole stack, including the persistent volume
 
 ## Notes
 
-- OpenTofu now uses the default local backend unless you configure a remote one.
-- The bootstrap path generates a self-signed certificate in `/data/nginx/certs`
-  so `443` comes up immediately. Replace it with a real certificate when you
-  have DNS and cert management in place.
+- This directory uses the local Terraform/OpenTofu backend unless you configure
+  a remote backend yourself.
+- The current production deployment can be updated in place for size changes,
+  such as `t3.xlarge` to `t3.large`, without changing the Elastic IP.
