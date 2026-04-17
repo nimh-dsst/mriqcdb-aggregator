@@ -43,6 +43,7 @@ current SQLAlchemy schema, then loads a sampled raw run into `t1w`, `t2w`, and
 See [docs/erd.md](docs/erd.md) for the current and proposed normalized entity model.
 See [docs/ingestion.md](docs/ingestion.md) for the raw ingestion workflow.
 See [docs/backend.md](docs/backend.md) for the profiling workflow and FastAPI read layer.
+See [docs/data-migration.md](docs/data-migration.md) for the MongoDB-to-PostgreSQL migration rationale, typing decisions, and scaling risks.
 
 ## Profiling And API
 
