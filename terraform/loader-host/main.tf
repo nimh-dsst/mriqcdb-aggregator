@@ -33,14 +33,11 @@ locals {
   data_device_name    = "/dev/sdf"
   web_ports           = [80, 443]
   allowed_cidr_blocks = toset(var.allowed_ingress_cidr_blocks)
-  ssh_key_files       = sort(fileset("${path.module}/../..", "data/*.pub"))
   ssh_public_keys = {
-    for relpath in local.ssh_key_files :
-    trimsuffix(basename(relpath), ".pub") => trimspace(file("${path.module}/../../${relpath}"))
+    dsst2023 = trimspace(file("${path.module}/../../data/dsst2023.pub"))
+    dustin   = trimspace(file("${path.module}/../../data/dustin.pub"))
   }
-  primary_ssh_key_name = contains(keys(local.ssh_public_keys), "dsst2023") ? "dsst2023" : (
-    length(local.ssh_public_keys) > 0 ? sort(keys(local.ssh_public_keys))[0] : null
-  )
+  primary_ssh_key_name = "dsst2023"
 }
 
 data "aws_vpc" "default" {
@@ -200,7 +197,7 @@ resource "aws_instance" "host" {
   subnet_id                   = data.aws_subnet.selected.id
   vpc_security_group_ids      = [aws_security_group.host.id]
   iam_instance_profile        = aws_iam_instance_profile.host.name
-  key_name                    = local.primary_ssh_key_name != null ? aws_key_pair.host[local.primary_ssh_key_name].key_name : null
+  key_name                    = aws_key_pair.host[local.primary_ssh_key_name].key_name
   associate_public_ip_address = true
   user_data = templatefile("${path.module}/scripts/bootstrap.sh", {
     data_volume_id  = aws_ebs_volume.data.id
@@ -215,6 +212,10 @@ resource "aws_instance" "host" {
     volume_type           = "gp3"
     encrypted             = true
     delete_on_termination = true
+  }
+
+  lifecycle {
+    ignore_changes = [user_data]
   }
 
   tags = merge(local.common_tags, { Name = var.instance_name })

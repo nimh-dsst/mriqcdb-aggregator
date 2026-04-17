@@ -10,7 +10,7 @@ output "data_volume_id" {
 
 output "primary_ssh_key_name" {
   description = "AWS key pair name associated with the instance launch."
-  value       = local.primary_ssh_key_name != null ? aws_key_pair.host[local.primary_ssh_key_name].key_name : null
+  value       = aws_key_pair.host[local.primary_ssh_key_name].key_name
 }
 
 output "public_ip" {

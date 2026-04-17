@@ -14,7 +14,6 @@ output "loader_host_backend_config" {
 bucket       = "${aws_s3_bucket.state.id}"
 key          = "${var.loader_host_state_key}"
 region       = "${var.aws_region}"
-use_lockfile = true
 encrypt      = true
 EOT
 }
