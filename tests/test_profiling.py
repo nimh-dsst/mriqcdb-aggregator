@@ -372,6 +372,12 @@ def test_fastapi_profile_endpoint_returns_expected_payload(
             if row["name"] == "T1w"
         )
         assert "cjv" in t1w_modality["metric_fields"]
+        assert any(
+            metric["field"] == "cjv"
+            and metric["label"] == "Coefficient of joint variation"
+            and metric["family"] == "Artifacts and Contrast"
+            for metric in t1w_modality["metrics"]
+        )
 
         profile_response = client.get(
             "/api/v1/modalities/T1w/profile", params={"view": "exact"}

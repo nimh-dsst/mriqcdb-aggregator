@@ -10,6 +10,7 @@ from sqlalchemy import text
 
 from . import __version__
 from .database import create_database_engine
+from .metrics import metric_descriptors_for_modality
 from .profiling import (
     DatabaseProfiler,
     DuplicateKind,
@@ -88,6 +89,10 @@ def create_app(*, database_url: str | None = None) -> FastAPI:
                         supported_distribution_fields(modality)
                     ),
                     "metric_fields": list(supported_metric_fields(modality)),
+                    "metrics": [
+                        descriptor.to_dict()
+                        for descriptor in metric_descriptors_for_modality(modality)
+                    ],
                     "extra_fields": list(supported_extra_fields(modality)),
                 }
                 for modality in supported_modalities()
