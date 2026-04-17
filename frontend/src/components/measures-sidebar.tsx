@@ -52,10 +52,12 @@ export function MeasuresSidebar({
   groups,
   collapseVersion = 0,
   onSelectAll,
+  forceExpandAll = false,
 }: {
   groups: readonly MeasureGroup[]
   collapseVersion?: number
   onSelectAll?: () => void
+  forceExpandAll?: boolean
 }) {
   const [openItems, setOpenItems] = React.useState<Record<string, boolean>>({})
 
@@ -65,12 +67,14 @@ export function MeasuresSidebar({
       for (const group of groups) {
         for (const item of group.items) {
           next[`${group.title}:${item.title}`] =
-            current[`${group.title}:${item.title}`] ?? Boolean(item.isActive)
+            forceExpandAll
+              ? true
+              : (current[`${group.title}:${item.title}`] ?? Boolean(item.isActive))
         }
       }
       return next
     })
-  }, [groups])
+  }, [forceExpandAll, groups])
 
   React.useEffect(() => {
     setOpenItems((current) => {

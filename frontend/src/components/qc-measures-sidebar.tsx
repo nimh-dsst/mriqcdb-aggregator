@@ -101,6 +101,7 @@ export function AppSidebar({
       <MeasuresSidebar
         groups={groups}
         onSelectAll={onSelectAllVisible}
+        forceExpandAll={query.trim().length > 0}
       />
       <SidebarRail />
     </Sidebar>
