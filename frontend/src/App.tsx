@@ -148,6 +148,9 @@ function App() {
   }, [catalogState, selectedModality])
 
   const activeUploadedReport = uploadedReports?.modalities[activeModality] ?? null
+  const canShowUploadedData = Boolean(activeUploadedReport)
+  const effectiveShowUploadedData = showUploadedData && canShowUploadedData
+  const effectiveView: ViewId = effectiveShowUploadedData ? "raw" : selectedView
 
   useEffect(() => {
     if (catalogState.status !== "ready" || !showGlobalData) {
@@ -156,7 +159,7 @@ function App() {
 
     let cancelled = false
 
-    void fetchMetricSummaries(activeModality, selectedView).then(
+    void fetchMetricSummaries(activeModality, effectiveView).then(
       (nextSummaries) => {
         if (!cancelled) {
           setRemoteSummaries(nextSummaries)
@@ -178,7 +181,7 @@ function App() {
     return () => {
       cancelled = true
     }
-  }, [activeModality, catalogState, selectedView, showGlobalData])
+  }, [activeModality, catalogState, effectiveView, showGlobalData])
 
   const selectedMetrics = useMemo(() => {
     if (catalogState.status !== "ready") {
@@ -220,14 +223,14 @@ function App() {
     if (selectedMetrics.length) {
       params.set("metrics", selectedMetrics.join(","))
     }
-    params.set("view", selectedView)
+    params.set("view", effectiveView)
     if (query.trim()) {
       params.set("q", query.trim())
     }
 
     const nextUrl = `${window.location.pathname}?${params.toString()}`
     window.history.replaceState(null, "", nextUrl)
-  }, [activeModality, query, selectedMetrics, selectedView])
+  }, [activeModality, effectiveView, query, selectedMetrics])
 
   useEffect(() => {
     const handlePopState = () => {
@@ -263,8 +266,6 @@ function App() {
     () => Object.keys(uploadedReports?.modalities ?? {}).length,
     [uploadedReports]
   )
-  const canShowUploadedData = Boolean(activeUploadedReport)
-  const effectiveShowUploadedData = showUploadedData && canShowUploadedData
 
   const summaries =
     showGlobalData || !canShowUploadedData
@@ -559,9 +560,9 @@ function App() {
                   </span>
                 ) : null}
                 <ViewSwitcher
-                  selectedView={selectedView}
+                  selectedView={effectiveView}
                   onSelectView={(view) =>
-                    setSelectedView(activeUploadedReport && effectiveShowUploadedData ? "raw" : view)
+                    setSelectedView(effectiveShowUploadedData ? "raw" : view)
                   }
                 />
               </div>
@@ -581,12 +582,12 @@ function App() {
               <div className={cn("grid gap-5", getGridClassName(selectedMetricDescriptors.length))}>
                 {selectedMetricDescriptors.map((descriptor) => (
                   <MetricHistogramCard
-                    key={`${activeModality}:${descriptor.field}:${selectedView}`}
+                    key={`${activeModality}:${descriptor.field}:${effectiveView}`}
                     modality={activeModality}
                     metric={descriptor.field}
                     metricLabel={descriptor.label}
                     metricDescription={describeMetric(descriptor)}
-                    selectedView={selectedView}
+                    selectedView={effectiveView}
                     uploadedDistribution={activeDistributions[descriptor.field] ?? null}
                     showGlobal={showGlobalData}
                     showUploaded={effectiveShowUploadedData}
