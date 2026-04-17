@@ -7,3 +7,10 @@ __pycache__/
 .env
 data/
 docs/temp/
+.coverage
+.terraform/
+*.tfstate
+*.tfstate.*
+crash.log
+*.tfvars
+tfplan

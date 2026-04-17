@@ -1,0 +1,18 @@
+[Unit]
+Description=MRIQC Aggregator compose stack
+Requires=docker.service
+After=docker.service network-online.target
+Wants=network-online.target
+RequiresMountsFor=/data /opt/mriqc-aggregator
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+WorkingDirectory=/opt/mriqc-aggregator
+Environment=COMPOSE_PROJECT_NAME=mriqc-aggregator
+ExecStart=/usr/bin/docker compose -f compose.yaml -f compose.prod.yaml up --build -d --wait --remove-orphans
+ExecStop=/usr/bin/docker compose -f compose.yaml -f compose.prod.yaml down
+TimeoutStartSec=0
+
+[Install]
+WantedBy=multi-user.target

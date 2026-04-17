@@ -40,6 +40,45 @@ That starts a local PostgreSQL instance with Docker Compose and initializes the
 current SQLAlchemy schema, then loads a sampled raw run into `t1w`, `t2w`, and
 `bold` using idempotent `source_api_id` upserts.
 
+## Containerized API Stack
+
+```bash
+cp .env.example .env
+pixi run stack-up
+```
+
+That builds and starts:
+
+1. `postgres` on `localhost:${POSTGRES_PORT:-5432}`
+2. `api` on `http://127.0.0.1:${API_PORT:-8000}/docs`
+
+The API container initializes the current SQLAlchemy schema on startup before
+serving requests. The database remains accessible from the host via the same
+`MRIQC_DATABASE_URL` in `.env`, so you can still run `pixi run db-load` and
+`pixi run db-profile` against the compose-managed Postgres instance.
+
+Local development uses `compose.yaml` plus the automatically loaded
+`compose.override.yaml`. That keeps the dev stack simple:
+
+1. `postgres` is published directly for host-side tooling
+2. `api` is published directly with the default Uvicorn runtime
+3. `nginx` is not part of the local stack by default
+
+For the production shape, use the explicit production override:
+
+```bash
+docker compose -f compose.yaml -f compose.prod.yaml up --build -d
+```
+
+That changes the runtime to:
+
+1. `postgres` persisted at `POSTGRES_DATA_DIR` when set
+2. `api` running Gunicorn inside the app container
+3. `nginx` publishing `80/443` and proxying to the app container
+
+The production override keeps `postgres` and `api` reachable only on
+`127.0.0.1` from the host, while public traffic goes through `nginx`.
+
 See [docs/erd.md](docs/erd.md) for the current and proposed normalized entity model.
 See [docs/ingestion.md](docs/ingestion.md) for the raw ingestion workflow.
 See [docs/backend.md](docs/backend.md) for the profiling workflow and FastAPI read layer.
