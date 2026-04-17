@@ -12,8 +12,12 @@ from psycopg import sql
 def _postgres_settings() -> dict[str, str]:
     return {
         "host": os.environ.get("TEST_POSTGRES_HOST", "127.0.0.1"),
-        "port": os.environ.get("TEST_POSTGRES_PORT", os.environ.get("POSTGRES_PORT", "5432")),
-        "user": os.environ.get("TEST_POSTGRES_USER", os.environ.get("POSTGRES_USER", "mriqc")),
+        "port": os.environ.get(
+            "TEST_POSTGRES_PORT", os.environ.get("POSTGRES_PORT", "5432")
+        ),
+        "user": os.environ.get(
+            "TEST_POSTGRES_USER", os.environ.get("POSTGRES_USER", "mriqc")
+        ),
         "password": os.environ.get(
             "TEST_POSTGRES_PASSWORD",
             os.environ.get("POSTGRES_PASSWORD", "mriqc"),

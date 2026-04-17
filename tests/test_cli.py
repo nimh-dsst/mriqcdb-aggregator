@@ -17,13 +17,18 @@ def test_main_dispatches_pull_representative(
         called.update(kwargs)
         return FakeLayout()
 
-    monkeypatch.setattr(cli, "pull_representative_sample", fake_pull_representative_sample)
+    monkeypatch.setattr(
+        cli, "pull_representative_sample", fake_pull_representative_sample
+    )
 
     exit_code = cli.main(["pull-representative", "--output-root", str(tmp_path)])
 
     assert exit_code == 0
     assert called["output_root"] == tmp_path
-    assert capsys.readouterr().out.strip() == f"Representative sample written to {FakeLayout.root}"
+    assert (
+        capsys.readouterr().out.strip()
+        == f"Representative sample written to {FakeLayout.root}"
+    )
 
 
 def test_main_dispatches_load_raw_run(monkeypatch, capsys) -> None:

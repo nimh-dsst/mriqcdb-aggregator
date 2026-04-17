@@ -67,9 +67,7 @@ def append_jsonl(path: Path, rows: Iterable[dict[str, Any]]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("a", encoding="utf-8") as handle:
         for row in rows:
-            handle.write(
-                json.dumps(row, sort_keys=True, default=_json_default) + "\n"
-            )
+            handle.write(json.dumps(row, sort_keys=True, default=_json_default) + "\n")
 
 
 def _json_default(value: Any) -> Any:
