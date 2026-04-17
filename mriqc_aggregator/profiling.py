@@ -12,8 +12,8 @@ from sqlalchemy import Select, String, Text, case, func, or_, select
 from sqlalchemy.orm import Session, sessionmaker
 
 from .database import create_session_factory
+from .metrics import supported_metric_fields
 from .models import BoldRecord, T1wRecord, T2wRecord
-from .parsing import BOLD_TOP_LEVEL_FIELDS, STRUCTURAL_TOP_LEVEL_FIELDS
 from .storage import make_run_id, write_json
 
 
@@ -104,12 +104,6 @@ EXTRA_FIELDS = {
     ),
 }
 
-QC_METRIC_FIELDS = {
-    "T1w": STRUCTURAL_TOP_LEVEL_FIELDS,
-    "T2w": STRUCTURAL_TOP_LEVEL_FIELDS,
-    "bold": BOLD_TOP_LEVEL_FIELDS,
-}
-
 DUPLICATE_SAMPLE_FIELDS = (
     "source_api_id",
     "source_created_at",
@@ -163,11 +157,6 @@ def supported_distribution_fields(modality: str) -> tuple[str, ...]:
 def supported_extra_fields(modality: str) -> tuple[str, ...]:
     _model_for_modality(modality)
     return EXTRA_FIELDS[modality]
-
-
-def supported_metric_fields(modality: str) -> tuple[str, ...]:
-    _model_for_modality(modality)
-    return QC_METRIC_FIELDS[modality]
 
 
 def _model_for_modality(

@@ -51,6 +51,45 @@ jobs:
       - name: Run frontend lint
         run: npm --prefix frontend run lint
 
+  frontend-e2e:
+    name: Frontend E2E
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v5
+
+      - name: Set up Pixi
+        uses: prefix-dev/setup-pixi@v0.9.3
+        with:
+          pixi-version: v0.67.0
+          cache: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: "22"
+
+      - name: Install frontend dependencies
+        run: npm --prefix frontend install
+
+      - name: Install Playwright browsers
+        run: npm --prefix frontend exec -- playwright install --with-deps chromium
+
+      - name: Run frontend end-to-end tests
+        run: npm --prefix frontend run test:e2e
+
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            frontend/playwright-report
+            frontend/test-results
+          if-no-files-found: ignore
+
   compose-smoke:
     name: Compose Smoke
     runs-on: ubuntu-latest
