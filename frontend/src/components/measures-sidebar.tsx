@@ -9,6 +9,7 @@ import {
   SidebarGroup,
   SidebarGroupContent,
   SidebarGroupLabel,
+  SidebarMenuBadge,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
@@ -19,15 +20,18 @@ import {
 
 type MeasureItem = {
   title: string
-  url: string
+  subtitle?: string
   isActive?: boolean
+  badge?: string
+  onSelect?: () => void
 }
 
 type MeasureCategory = {
   title: string
-  url: string
   isActive?: boolean
+  badge?: string
   items?: MeasureItem[]
+  onSelect?: () => void
 }
 
 type MeasureGroup = {
@@ -65,10 +69,16 @@ export function MeasuresSidebar({
                           {item.items.map((subItem) => (
                             <SidebarMenuSubItem key={subItem.title}>
                               <SidebarMenuSubButton
-                                asChild
                                 isActive={subItem.isActive}
+                                onClick={subItem.onSelect}
+                                className="justify-between gap-3"
                               >
-                                <a href={subItem.url}>{subItem.title}</a>
+                                <span className="truncate">{subItem.title}</span>
+                                {subItem.badge ? (
+                                  <span className="text-[11px] tabular-nums text-sidebar-foreground/70">
+                                    {subItem.badge}
+                                  </span>
+                                ) : null}
                               </SidebarMenuSubButton>
                             </SidebarMenuSubItem>
                           ))}
@@ -76,10 +86,14 @@ export function MeasuresSidebar({
                       </CollapsibleContent>
                     </Collapsible>
                   ) : (
-                    <SidebarMenuButton asChild isActive={item.isActive}>
-                      <a href={item.url}>{item.title}</a>
+                    <SidebarMenuButton
+                      isActive={item.isActive}
+                      onClick={item.onSelect}
+                    >
+                      {item.title}
                     </SidebarMenuButton>
                   )}
+                  {item.badge ? <SidebarMenuBadge>{item.badge}</SidebarMenuBadge> : null}
                 </SidebarMenuItem>
               ))}
             </SidebarMenu>
