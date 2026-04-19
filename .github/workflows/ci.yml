@@ -46,7 +46,7 @@ jobs:
         run: npm --prefix frontend install
 
       - name: Run frontend lint
-        run: pixi run frontend-lint
+        run: npm --prefix frontend run lint
 
   frontend-e2e:
     name: Frontend E2E
