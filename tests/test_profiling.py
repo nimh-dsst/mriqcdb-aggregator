@@ -5,8 +5,10 @@ from pathlib import Path
 
 import pytest
 from fastapi.testclient import TestClient
+from sqlalchemy import create_engine, text
 
 from mriqc_aggregator.app import create_app
+from mriqc_aggregator.canonical_views import refresh_canonical_views
 from mriqc_aggregator.database import create_database_schema
 from mriqc_aggregator.loading import load_raw_run
 from mriqc_aggregator.profiling import (
@@ -429,3 +431,68 @@ def test_fastapi_profile_endpoint_returns_expected_payload(
         assert distribution["quantiles"]["p50"] == pytest.approx(0.4)
         assert distribution["quantiles"]["p99"] == pytest.approx(0.694, abs=1e-3)
         assert sum(bucket["count"] for bucket in distribution["histogram"]) == 3
+
+
+def test_metric_endpoints_ignore_nan_values_in_canonical_views(
+    tmp_path: Path,
+    postgres_database_url: str,
+) -> None:
+    run_root = tmp_path / "runs" / "nan-run"
+    t2w_items = [
+        _t1w_item(
+            source_id="aaaaaaaaaaaaaaaaaaaaaaaa",
+            created="Thu, 08 Jun 2017 05:54:47 GMT",
+            md5sum="11111111111111111111111111111111",
+            manufacturer="Siemens",
+            session_id="session-1",
+            extra_metric="x",
+            metric_overrides={"fber": 0.4},
+        ),
+        _t1w_item(
+            source_id="bbbbbbbbbbbbbbbbbbbbbbbb",
+            created="Thu, 08 Jun 2017 06:54:47 GMT",
+            md5sum="22222222222222222222222222222222",
+            manufacturer="GE",
+            session_id="session-2",
+            extra_metric="y",
+            metric_overrides={"fber": 0.8},
+        ),
+    ]
+    for item in t2w_items:
+        item["bids_meta"]["modality"] = "T2w"
+
+    _write_page(run_root, "T2w", 1, t2w_items)
+    create_database_schema(postgres_database_url)
+    load_raw_run(run_root=run_root, database_url=postgres_database_url, batch_size=100)
+
+    engine = create_engine(postgres_database_url)
+    with engine.begin() as connection:
+        connection.execute(
+            text("update t2w set fber = 'NaN' where source_api_id = :source_api_id"),
+            {"source_api_id": "aaaaaaaaaaaaaaaaaaaaaaaa"},
+        )
+    engine.dispose()
+    refresh_canonical_views(url=postgres_database_url, modalities=["T2w"])
+
+    with TestClient(create_app(database_url=postgres_database_url)) as client:
+        metric_summaries_response = client.get(
+            "/api/v1/modalities/T2w/metrics",
+            params={"view": "series"},
+        )
+        assert metric_summaries_response.status_code == 200
+        metric_summaries = {
+            row["field"]: row for row in metric_summaries_response.json()["metrics"]
+        }
+        assert metric_summaries["fber"]["value_count"] == 1
+        assert metric_summaries["fber"]["mean"] == pytest.approx(0.8)
+
+        metric_distribution_response = client.get(
+            "/api/v1/modalities/T2w/metrics/fber",
+            params={"view": "series", "bins": 6},
+        )
+        assert metric_distribution_response.status_code == 200
+        distribution = metric_distribution_response.json()["distribution"]
+        assert distribution["value_count"] == 1
+        assert distribution["missing_count"] == 1
+        assert distribution["mean"] == pytest.approx(0.8)
+        assert sum(bucket["count"] for bucket in distribution["histogram"]) == 1

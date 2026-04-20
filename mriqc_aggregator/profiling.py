@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import math
 from collections import Counter
 from dataclasses import dataclass
 from datetime import datetime, timezone
@@ -7,7 +8,7 @@ from enum import Enum
 from pathlib import Path
 from typing import Any
 
-from sqlalchemy import Select, String, Text, case, func, or_, select
+from sqlalchemy import Select, String, Text, case, cast, func, or_, select
 from sqlalchemy.orm import Session, sessionmaker
 
 from .canonical_views import canonical_view_table, supports_canonical_views
@@ -277,7 +278,18 @@ def _serialize_value(value: Any) -> Any:
 def _float_or_none(value: Any) -> float | None:
     if value is None:
         return None
-    return float(value)
+    numeric_value = float(value)
+    if not math.isfinite(numeric_value):
+        return None
+    return numeric_value
+
+
+def _finite_metric_value_condition(session: Session, column: Any) -> Any:
+    condition = column.is_not(None)
+    if session.get_bind().dialect.name == "postgresql":
+        text_value = func.lower(cast(column, Text))
+        condition = condition & ~text_value.in_(("nan", "infinity", "-infinity"))
+    return condition
 
 
 class DatabaseProfiler:
@@ -624,12 +636,21 @@ class DatabaseProfiler:
         expressions: list[Any] = [func.count().label("row_count")]
         for field_name in supported_metric_fields(modality):
             column = base.c[field_name]
+            finite_value = _finite_metric_value_condition(session, column)
             expressions.extend(
                 [
-                    func.count(column).label(f"{field_name}__value_count"),
-                    func.min(column).label(f"{field_name}__min"),
-                    func.max(column).label(f"{field_name}__max"),
-                    func.avg(column).label(f"{field_name}__mean"),
+                    func.count(column)
+                    .filter(finite_value)
+                    .label(f"{field_name}__value_count"),
+                    func.min(case((finite_value, column), else_=None)).label(
+                        f"{field_name}__min"
+                    ),
+                    func.max(case((finite_value, column), else_=None)).label(
+                        f"{field_name}__max"
+                    ),
+                    func.avg(case((finite_value, column), else_=None)).label(
+                        f"{field_name}__mean"
+                    ),
                 ]
             )
         row = session.execute(select(*expressions)).one()
@@ -662,24 +683,33 @@ class DatabaseProfiler:
         bins: int,
     ) -> dict[str, Any]:
         column = base.c[field_name]
+        finite_value = _finite_metric_value_condition(session, column)
+        row_count = int(
+            session.execute(select(func.count()).select_from(base)).scalar_one() or 0
+        )
+        valid_values = (
+            select(column.label("value"))
+            .select_from(base)
+            .where(finite_value)
+            .subquery(f"{field_name}_valid_values")
+        )
+        value_column = valid_values.c.value
         row = session.execute(
             select(
-                func.count().label("row_count"),
-                func.count(column).label("value_count"),
-                func.min(column).label("min"),
-                func.max(column).label("max"),
-                func.avg(column).label("mean"),
-                func.stddev_pop(column).label("stddev"),
-                func.percentile_cont(0.01).within_group(column).label("p01"),
-                func.percentile_cont(0.05).within_group(column).label("p05"),
-                func.percentile_cont(0.25).within_group(column).label("p25"),
-                func.percentile_cont(0.50).within_group(column).label("p50"),
-                func.percentile_cont(0.75).within_group(column).label("p75"),
-                func.percentile_cont(0.95).within_group(column).label("p95"),
-                func.percentile_cont(0.99).within_group(column).label("p99"),
-            ).select_from(base)
+                func.count(value_column).label("value_count"),
+                func.min(value_column).label("min"),
+                func.max(value_column).label("max"),
+                func.avg(value_column).label("mean"),
+                func.stddev_pop(value_column).label("stddev"),
+                func.percentile_cont(0.01).within_group(value_column).label("p01"),
+                func.percentile_cont(0.05).within_group(value_column).label("p05"),
+                func.percentile_cont(0.25).within_group(value_column).label("p25"),
+                func.percentile_cont(0.50).within_group(value_column).label("p50"),
+                func.percentile_cont(0.75).within_group(value_column).label("p75"),
+                func.percentile_cont(0.95).within_group(value_column).label("p95"),
+                func.percentile_cont(0.99).within_group(value_column).label("p99"),
+            ).select_from(valid_values)
         ).one()
-        row_count = int(row._mapping["row_count"] or 0)
         value_count = int(row._mapping["value_count"] or 0)
         missing_count = row_count - value_count
         min_value = _float_or_none(row._mapping["min"])
@@ -722,16 +752,15 @@ class DatabaseProfiler:
             assert max_value is not None
             bin_width = (max_value - min_value) / bins
             bucket_index = case(
-                (column >= max_value, bins - 1),
-                else_=func.floor((column - min_value) / bin_width),
+                (value_column >= max_value, bins - 1),
+                else_=func.floor((value_column - min_value) / bin_width),
             ).label("bucket_index")
             bucket_rows = session.execute(
                 select(
                     bucket_index,
                     func.count().label("bucket_count"),
                 )
-                .select_from(base)
-                .where(column.is_not(None))
+                .select_from(valid_values)
                 .group_by(bucket_index)
                 .order_by(bucket_index)
             ).all()
