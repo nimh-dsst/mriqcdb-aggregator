@@ -5,6 +5,7 @@ from enum import Enum
 from typing import Any
 
 from sqlalchemy import (
+    BigInteger,
     Boolean,
     DateTime,
     Enum as SQLEnum,
@@ -148,7 +149,7 @@ class CommonBidsMixin:
     flip_angle: Mapped[int | None] = mapped_column(Integer)
     gradient_set_type: Mapped[str | None] = mapped_column(String(128))
     hardcopy_device_software_version: Mapped[str | None] = mapped_column(String(64))
-    imaging_frequency: Mapped[int | None] = mapped_column(Integer)
+    imaging_frequency: Mapped[int | None] = mapped_column(BigInteger)
     in_plane_phase_encoding_direction: Mapped[str | None] = mapped_column(String(32))
     institution_address: Mapped[str | None] = mapped_column(Text)
     institution_name: Mapped[str | None] = mapped_column(String(255))
