@@ -283,6 +283,18 @@ def parse_datetime(value: str | None) -> Any:
         return parsedate_to_datetime(value)
 
 
+NULLABLE_NONFINITE_FIELDS = frozenset(
+    {
+        "qi_1",
+        "tpm_overlap_gm",
+        "tpm_overlap_wm",
+        "aqi",
+        "gsr_x",
+        "gsr_y",
+    }
+)
+
+
 def _coerce_finite(value: Any) -> Any:
     if isinstance(value, dict) and "$numberDouble" in value:
         return None
@@ -401,7 +413,10 @@ def parse_observation(
     )
     for field_name in top_level_fields:
         if field_name in payload:
-            values[field_name] = _coerce_finite(payload[field_name])
+            value = payload[field_name]
+            if field_name in NULLABLE_NONFINITE_FIELDS:
+                value = _coerce_finite(value)
+            values[field_name] = value
 
     if model is BoldRecord:
         for source_key, target_key in RATING_FIELD_MAP.items():
