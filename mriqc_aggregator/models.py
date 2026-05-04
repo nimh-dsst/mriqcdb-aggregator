@@ -126,8 +126,8 @@ class SourceRecordMixin:
 
 
 class CommonBidsMixin:
-    subject_id: Mapped[str] = mapped_column(String(64), nullable=False)
-    session_id: Mapped[str | None] = mapped_column(String(64))
+    subject_id: Mapped[str] = mapped_column(String(128), nullable=False)
+    session_id: Mapped[str | None] = mapped_column(String(128))
     run_id: Mapped[str | None] = mapped_column(String(64))
     acq_id: Mapped[str | None] = mapped_column(String(64))
     task_id: Mapped[str | None] = mapped_column(String(128))
