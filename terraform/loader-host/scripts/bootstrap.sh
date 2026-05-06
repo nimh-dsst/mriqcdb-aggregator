@@ -44,6 +44,17 @@ printf '%s\n' "$SSH_PUBLIC_KEYS" > /home/admin/.ssh/authorized_keys
 chown admin:admin /home/admin/.ssh/authorized_keys
 chmod 0600 /home/admin/.ssh/authorized_keys
 
+install -d -m 0755 /etc/ssh/sshd_config.d
+cat >/etc/ssh/sshd_config.d/99-key-only.conf <<'EOF'
+PasswordAuthentication no
+KbdInteractiveAuthentication no
+ChallengeResponseAuthentication no
+PubkeyAuthentication yes
+PermitRootLogin no
+EOF
+sshd -t
+systemctl reload ssh
+
 for attempt in $(seq 1 60); do
   DATA_DEVICE="$(lsblk -ndo PATH,SERIAL | awk -v serial="$DATA_DEVICE_SERIAL" '$2 == serial { print $1; exit }')"
   if [ -n "$DATA_DEVICE" ]; then
@@ -68,7 +79,8 @@ fi
 mount -a
 
 mkdir -p /data/postgres /data/nginx/certs
-chown -R admin:admin "$REPO_DIR" /data
+chown -R admin:admin "$REPO_DIR"
+chown admin:admin /data /data/nginx /data/nginx/certs
 
 if [ ! -d "$REPO_DIR/.git" ]; then
   rm -rf "$REPO_DIR"

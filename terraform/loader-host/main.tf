@@ -34,8 +34,8 @@ locals {
   web_ports           = [80, 443]
   allowed_cidr_blocks = toset(var.allowed_ingress_cidr_blocks)
   ssh_public_keys = {
-    dsst2023 = trimspace(file("${path.module}/../../data/dsst2023.pub"))
-    dustin   = trimspace(file("${path.module}/../../data/dustin.pub"))
+    dsst2023 = trimspace(file("${path.module}/keys/dsst2023.pub"))
+    dustin   = trimspace(file("${path.module}/keys/dustin.pub"))
   }
   primary_ssh_key_name = "dsst2023"
 }

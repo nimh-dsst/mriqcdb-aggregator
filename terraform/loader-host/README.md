@@ -10,7 +10,7 @@ MRIQC Aggregator production compose stack.
 - One IAM role and instance profile for the host
 - One persistent EBS volume mounted at `/data`
 - One Elastic IP by default
-- Two AWS key pairs imported from `data/dsst2023.pub` and `data/dustin.pub`
+- Two AWS key pairs imported from tracked public keys in `keys/`
 
 The EBS volume keeps the compose data across instance replacement. A full
 `tofu destroy` will still delete that volume unless you snapshot or protect it
@@ -47,7 +47,7 @@ place.
 - Region: `us-east-1`
 - Network: default VPC unless overridden
 - Subnet: first public subnet in that VPC that supports the chosen instance type
-- Instance type: `t3.large`
+- Instance type: `t3.small`
 - Root volume: `64 GiB`
 - Data volume: `300 GiB`
 - Repo URL: `https://github.com/nimh-dsst/mriqc-aggregator.git`
@@ -62,8 +62,11 @@ The Terraform stack imports exactly these two public keys:
 - imported as an AWS key pair
 - written to `/home/admin/.ssh/authorized_keys`
 
-`data/dsst2023.pub` is always used as the EC2 launch key pair.
-`data/dustin.pub` is also authorized on the host.
+`keys/dsst2023.pub` is always used as the EC2 launch key pair.
+`keys/dustin.pub` is also authorized on the host.
+
+Only public keys are stored in the repository. Private keys must stay on
+operator machines.
 
 ## Backend bootstrap
 
@@ -104,14 +107,83 @@ tofu init -migrate-state -backend-config=prod.s3.tfbackend
 OpenTofu will copy the existing local state into S3. Once the migration
 completes, `terraform.tfstate` should no longer be the source of truth.
 
+## Current DSST deployment
+
+The current production host is managed in DSST AWS using a remote S3 backend.
+The exact backend configuration and deployment-specific variable values are not
+committed to this repository. Keep them in untracked files such as
+`prod.s3.tfbackend` and `prod.tfvars`, or in secure deployment notes.
+
+Remote state records the AWS objects already managed by this stack after an
+apply. It does not replace normal input variables on a fresh workstation. An
+operator still needs backend settings so OpenTofu can find the state, plus any
+input variables required to select the intended VPC, subnet, and Elastic IP
+behavior. If `vpc_id` and `public_subnet_id` are omitted, the module uses the
+account default VPC and the first compatible public subnet it can find.
+
+The production DNS names are `mriqcdb-aggregator.site` and
+`www.mriqcdb-aggregator.site`; point them at the Elastic IP reported by the
+remote state or `tofu output`.
+
+The state backend already exists. Do not run `tofu init -migrate-state` for
+normal production changes; use `-reconfigure` so a new workstation points at
+the existing remote state.
+
+From any host with OpenTofu and AWS credentials that can read and write the
+DSST state backend and manage the EC2 resources:
+
+```bash
+cd terraform/loader-host
+
+# Optional, if your AWS credentials are selected by profile.
+export AWS_PROFILE=your-dsst-profile
+
+tofu init -reconfigure -backend-config=prod.s3.tfbackend
+tofu state list
+tofu output instance_id
+tofu output public_ip
+
+tofu plan -var-file=prod.tfvars
+```
+
+Confirm the state outputs identify the current DSST host and Elastic IP before
+running `plan` or `apply`. If state points at retired resources, stop and fix
+the backend config; a wrong backend can make OpenTofu plan to recreate deleted
+infrastructure.
+
+If the plan is expected, apply with the same variables:
+
+```bash
+tofu apply -var-file=prod.tfvars
+```
+
+The production `prod.tfvars` should include only deployment-specific choices
+that differ from module defaults. For example:
+
+```hcl
+create_eip = true
+allowed_ingress_cidr_blocks = ["0.0.0.0/0"]
+
+# Omit these to use the account default VPC/subnet.
+# vpc_id           = "..."
+# public_subnet_id = "..."
+```
+
+Using a separate `TF_DATA_DIR` is optional, but helpful if the same checkout has
+been initialized against another backend:
+
+```bash
+export TF_DATA_DIR=/tmp/mriqc-aggregator-tofu-dsst
+```
+
 ## How to use it
 
 From this directory:
 
 ```bash
 tofu init -backend-config=prod.s3.tfbackend
-tofu plan
-tofu apply
+tofu plan -var-file=prod.tfvars
+tofu apply -var-file=prod.tfvars
 ```
 
 If you need to test a branch before merge, override `repo_ref`:
@@ -155,6 +227,8 @@ After apply, Terraform prints:
 - `tofu apply` can still replace the instance if other immutable settings
   change; the separate `/data` volume is meant to preserve compose data across
   that replacement
+- The bootstrap configures SSH for public-key-only access and disables root
+  login.
 - `tofu destroy` removes the whole stack, including the persistent volume
 
 ## Notes
@@ -162,4 +236,4 @@ After apply, Terraform prints:
 - This directory uses a partial `s3` backend configuration. Keep the real
   `*.s3.tfbackend` file out of git and pass it to `tofu init`.
 - The current production deployment can be updated in place for size changes,
-  such as `t3.xlarge` to `t3.large`, without changing the Elastic IP.
+  such as `t3.large` to `t3.small`, without changing the Elastic IP.

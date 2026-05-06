@@ -40,6 +40,59 @@ docker exec mriqc-aggregator-postgres-1 \
   -c "select 'bold', count(*) from bold union all select 't1w', count(*) from t1w union all select 't2w', count(*) from t2w order by 1;"
 ```
 
+## Infrastructure Changes
+
+The EC2 host is managed by the OpenTofu stack in
+`terraform/loader-host`. Current production state is stored in the DSST AWS
+remote S3 backend. The real backend config and deployment variable files stay
+out of git.
+
+See `terraform/loader-host/README.md` for the exact `tofu init`, `plan`, and
+`apply` workflow that can be run from any workstation with valid DSST AWS
+credentials.
+
+Before changing instance settings, confirm the plan does not destroy
+`aws_ebs_volume.data`. That volume backs `/data/postgres`, `/data/dump`, and
+`/data/nginx/certs`.
+
+## TLS Certificates
+
+TLS is handled on the host with Certbot and Let's Encrypt for
+`mriqcdb-aggregator.site` and `www.mriqcdb-aggregator.site`.
+
+The nginx container reads certificate files from:
+
+```text
+/data/nginx/certs/fullchain.pem
+/data/nginx/certs/privkey.pem
+```
+
+Certbot stores the canonical lineage under:
+
+```text
+/etc/letsencrypt/live/mriqcdb-aggregator.site/
+```
+
+Renewal is driven by the system `certbot.timer`. Because renewal uses the
+standalone HTTP-01 challenge, host hooks briefly stop the nginx container before
+renewal and start it afterward. The deploy hook copies renewed certificate
+material into `/data/nginx/certs` and restarts nginx.
+
+If the EC2 instance is replaced, `/data/nginx/certs` persists with the current
+certificate files, but the Certbot package, renewal lineage, and renewal hooks
+live on the root volume. Recreate them on the replacement host before the
+certificate nears expiry.
+
+Useful certificate checks:
+
+```bash
+sudo certbot certificates
+sudo systemctl status --no-pager certbot.timer
+sudo certbot renew --dry-run --cert-name mriqcdb-aggregator.site
+openssl s_client -connect mriqcdb-aggregator.site:443 -servername mriqcdb-aggregator.site </dev/null \
+  | openssl x509 -noout -subject -issuer -dates -ext subjectAltName
+```
+
 ## Performance Notes
 
 The dashboard now serves `exact` and `series` from PostgreSQL materialized
