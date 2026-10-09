@@ -18,3 +18,9 @@ docs/temp/
 crash.log
 *.tfvars
 tfplan
+
+# tool state and local scratch (not project content)
+.codex/
+uv.lock
+rewrite/scratchpad/
+rewrite/rewrite/

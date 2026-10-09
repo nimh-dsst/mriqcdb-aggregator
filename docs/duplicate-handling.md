@@ -249,6 +249,8 @@ For debugging duplicate behavior:
 
 Likely next improvements:
 
+- evaluate and implement the proposed
+  [K4 BOLD canonicalization policy](k4-bold-canonicalization.md)
 - make dedupe mode explicit in the frontend contract, potentially renaming
   `view` to `dedupe_mode`
 - add visibility into the exact identity tuple used for a series group
