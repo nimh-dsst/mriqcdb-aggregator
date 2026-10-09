@@ -8,6 +8,7 @@ import type { MetricAxis } from './histogram';
 import {
   baseConfig,
   batlowRange,
+  countRange,
   FILLS_CONTAINER,
   LIGHT_THEME,
   OTHER_COLOR,
@@ -239,7 +240,7 @@ function densityChartData(
   const contours = series.length > 1 ? contourRows(series) : [];
   const hexagons = hexRows(series, opts.cells);
   const colorType = opts.colorScale ?? 'log';
-  const colorScale = { type: colorType, range: batlowRange(8), clamp: true,
+  const colorScale = { type: colorType, range: countRange(8, theme), clamp: true,
     ...(opts.colorDomain && opts.colorDomain !== 'auto' ? { domain: [...opts.colorDomain] } : colorType === 'log' ? { domainMin: 1 } : { zero: true }) };
   const colors = series.map((item) => item.color);
   const brush = opts.brush
@@ -325,7 +326,8 @@ function densityChartData(
       type: "quantitative",
       title: `Count (${colorType})`,
       scale: colorScale,
-      legend: { gradientLength: 110 },
+      // The colour bar runs the chart's height instead of a fixed stub.
+      legend: { gradientLength: { expr: "max(60, height - 40)" } },
     },
     tooltip: [
       { field: "count", type: "quantitative", title: "Count" },
@@ -362,7 +364,9 @@ function densityChartData(
     },
   };
 
-  if (series.length > 3) {
+  // Any split gets small multiples: overlaid contours of sparse groups are
+  // unreadable, side-by-side heatmaps are not.
+  if (series.length > 1) {
     const panelRows = [
       ...allGrid.map((row) => ({ ...row, kind: "grid" })),
       ...contours.map((row) => ({ ...row, kind: "contour" })),
@@ -381,31 +385,21 @@ function densityChartData(
         facet: { field: "seriesId", type: "nominal", sort: series.map((item) => item.id), title: null,
           header: { labelExpr: `(${JSON.stringify(Object.fromEntries(series.map(item => [item.id,item.name])))})[datum.value]` } },
         columns: 2,
+        usermeta: { facets: series.length },
         spec: {
-          width: 180,
-          height: 150,
-          resolve: { scale: { color: 'independent' } },
+          width: 260,
+          height: 170,
+          // One shared colour scale and no contours: small multiples are read
+          // against each other, and contours on a few dozen scans are squiggles.
           layer: [
             {
               params,
               transform: [{ filter: "datum.kind === 'grid'" }],
               mark: { type: "rect", clip: true },
-              encoding: densityEncoding,
+              // The one colour bar runs the height of the whole grid of plots.
+              encoding: { ...densityEncoding, color: { ...densityEncoding.color,
+                legend: { gradientLength: { expr: `max(60, ${Math.ceil(series.length / 2)} * (child_height + 40) - 60)` } } } },
             },
-            {
-              transform: [{ filter: "datum.kind === 'contour'" }],
-              mark: contourLayer.mark,
-              encoding: contourLayer.encoding,
-            },
-            ...(opts.showPoints
-              ? [
-                  {
-                    transform: [{ filter: "datum.kind === 'point'" }],
-                    mark: pointLayer.mark,
-                    encoding: pointLayer.encoding,
-                  },
-                ]
-              : []),
           ],
         },
         ...chartConfig(theme),

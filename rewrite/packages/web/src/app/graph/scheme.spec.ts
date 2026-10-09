@@ -70,7 +70,6 @@ describe("panel form scheme", () => {
     expect(formsFor(acquisitionDate, tsnr)).toEqual([
       "heatmap",
       "scatter",
-      "hexbin",
       "clusters",
       "band",
       "lines",
@@ -78,7 +77,6 @@ describe("panel form scheme", () => {
     expect(formsFor(snr, tsnr)).toEqual([
       "heatmap",
       "scatter",
-      "hexbin",
       "clusters",
       "band",
       "lines",
@@ -138,7 +136,7 @@ describe("panel form scheme", () => {
   it.each([snr, acquisitionDate])("rejects disabled forms without changing the axes on %s", x => {
     const initial = withPanel(x);
     // Counts over time may be a band (spread of daily counts); a metric x may not.
-    const disabled = ['heatmap', 'scatter', 'hexbin', 'clusters', ...(x === acquisitionDate ? [] : ['band' as const]), 'lines'] as const;
+    const disabled = ['heatmap', 'scatter', 'clusters', ...(x === acquisitionDate ? [] : ['band' as const]), 'lines'] as const;
     for (const form of disabled) {
       expect(reduce(initial, { t: 'setPanelForm', id: firstPanel(initial).id, form })).toBe(initial);
       expect(reduce(initial, { t: 'patchPanel', id: firstPanel(initial).id, patch: { form } })).toBe(initial);

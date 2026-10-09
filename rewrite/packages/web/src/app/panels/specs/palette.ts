@@ -147,6 +147,17 @@ export function batlowRange(count: number): readonly string[] {
   return Array.from({ length: n }, (_, i) => BATLOW_SAMPLES[Math.round(i * 199 / (n - 1))]);
 }
 
+/**
+ * Batlow for a count scale on this theme. Its darkest navy is nearly the dark
+ * surface itself, so on dark the scale starts a fifth of the way in and the
+ * sparsest cells stay visible.
+ */
+export function countRange(count: number, theme: { mode: 'light' | 'dark' }): readonly string[] {
+  if (theme.mode === 'light') return batlowRange(count);
+  const n = Math.max(2, Math.trunc(count));
+  return Array.from({ length: n }, (_, i) => BATLOW_SAMPLES[Math.round(40 + i * 159 / (n - 1))]);
+}
+
 export interface ChartTheme {
   mode: 'light' | 'dark';
   surface: string; surface2: string; rule: string;
@@ -167,8 +178,8 @@ export const LIGHT_THEME: ChartTheme = {
 export const DARK_THEME: ChartTheme = {
   mode: 'dark', surface: '#1c222c', surface2: '#252d3a', rule: '#2d3645',
   labelInk: '#9aa5b8', mutedInk: '#939fb2', medianColor: '#e8ecf2',
-  highlight: '#ffd54f', highlightInk: '#2b2000', populationColor: '#009aed',
-  categories: ['#009aed', '#009e73', '#1d729d', '#d55e00', '#c976a4', '#a26f00'],
+  highlight: '#ffd54f', highlightInk: '#2b2000', populationColor: '#4f8cc0',
+  categories: ['#56b4e9', '#009e73', '#1d729d', '#d55e00', '#c976a4', '#a26f00'],
 };
 
 /** Translate a palette slot, leaving non-categorical (e.g. ordinal) colours intact. */

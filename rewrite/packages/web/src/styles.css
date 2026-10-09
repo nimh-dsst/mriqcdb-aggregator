@@ -9,7 +9,7 @@
 .panel-box[data-panel-form="matrix"] [data-testid="analysis-note"], .panel-box .correlation-pairs { order: 3; flex: none; }
 .panel-box .stat-row-container { order: 1; flex: none; margin-top: 0; margin-bottom: 12px; }
 .metric-title { text-align: left; cursor: pointer; }
-.metric-pencil { display: inline-block; margin-left: 8px; vertical-align: middle; opacity: 0; }
+.metric-pencil { flex: none; opacity: 0.45; }
 .metric-title:hover .metric-pencil, .metric-title:focus-visible .metric-pencil { opacity: 1; }
 .metric-popover { display: flex; flex-direction: column; gap: 8px; width: 420px; max-width: calc(100vw - 32px); max-height: 85dvh; overflow-y: auto; padding: 16px; border: 1px solid var(--border); border-radius: 6px; background: var(--surface); color: var(--ink); }
 .chart-form-toggle { display: flex; align-self: end; margin-bottom: 4px; border-radius: 6px; }
@@ -60,6 +60,7 @@ app-panel-card:hover .panel-resize-handle, app-panel-card:focus-within .panel-re
   /* State. Amber marks what the user did; it never encodes data. */
   --color-highlight: var(--highlight);
   --color-highlight-soft: var(--highlight-soft);
+  --color-highlight-soft-ink: var(--highlight-soft-ink);
   --color-highlight-ink: var(--highlight-ink);
 
   /* The single-series mark colour, so a swatch in the chrome can match a bar */
@@ -104,6 +105,8 @@ app-panel-card:hover .panel-resize-handle, app-panel-card:focus-within .panel-re
   --highlight: #ffca28;
   --highlight-soft: #fff6d9;
   --highlight-ink: #5c4300;
+  /* Text on --highlight-soft. */
+  --highlight-soft-ink: #5c4300;
   --series-1: #0072b2;
   --radius: var(--radius-card);
 
@@ -123,8 +126,9 @@ app-panel-card:hover .panel-resize-handle, app-panel-card:focus-within .panel-re
     --ink-2: #9aa5b8;
     --ink-3: #939fb2;
     --highlight: #ffd54f;
-    --highlight-soft: #ffd54f;
+    --highlight-soft: #3b3320;
     --highlight-ink: #2b2000;
+    --highlight-soft-ink: #ffe08a;
     --series-1: #009aed;
     --danger: #ff998a;
     --action-ink: #ffd54f;
@@ -142,8 +146,9 @@ app-panel-card:hover .panel-resize-handle, app-panel-card:focus-within .panel-re
   --ink-2: #9aa5b8;
   --ink-3: #939fb2;
   --highlight: #ffd54f;
-  --highlight-soft: #ffd54f;
+  --highlight-soft: #3b3320;
   --highlight-ink: #2b2000;
+  --highlight-soft-ink: #ffe08a;
   --series-1: #009aed;
   --danger: #ff998a;
   --action-ink: #ffd54f;
@@ -604,7 +609,7 @@ body {
 
 .mat-mdc-option.mdc-list-item--selected {
   background: var(--highlight-soft) !important;
-  color: var(--highlight-ink) !important;
+  color: var(--highlight-soft-ink) !important;
 }
 
 .mat-pseudo-checkbox-checked,
@@ -714,7 +719,8 @@ body {
   background: var(--surface);
   color: var(--ink);
 }
-.column-drawer app-column-picker { display: block; height: 100%; }
+.column-drawer { display: flex; flex-direction: column; gap: 12px; }
+.column-drawer app-column-picker { display: block; flex: 1; min-height: 0; }
 .column-picker { display: flex; flex-direction: column; height: 100%; gap: 12px; min-height: 0; }
 .column-picker-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex: 0 0 48px; min-width: 0; white-space: nowrap; }
 .column-picker-toolbar > .btn { flex-shrink: 0; }

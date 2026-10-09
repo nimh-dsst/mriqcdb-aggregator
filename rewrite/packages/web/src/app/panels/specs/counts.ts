@@ -20,7 +20,9 @@ export function countsSpec(axis: MetricAxis, form: 'line' | 'area', series: read
         stack: form === 'line' ? null : stackedShare ? 'normalize' : layout === 'stacked' ? 'zero' : null,
         axis: share ? { format: '.0%' } : {}, scale: share ? { domain: [0, 1] } : axis.yMode === 'logCount' ? { type: 'log', clamp: true } : {} },
       color: { field: 'cohort', type: 'nominal', scale: { domain: series.map(s => s.id), range: series.map(s => s.color) }, legend: null },
-      order: { field: 'value', type: 'quantitative' },
+      // A line uses `order` to sort its points. On an area it groups instead,
+      // making every bin its own one-point area: an empty chart.
+      ...(form === 'line' ? { order: { field: 'value', type: 'quantitative' } } : {}),
       tooltip: [{ field: 'label', title: 'Series' }, { ...continuousX(axis, 'lo'), title: axis.label },
         { field: 'count', type: 'quantitative', title: axis.countTitle }],
     },

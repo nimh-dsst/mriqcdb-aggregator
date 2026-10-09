@@ -78,6 +78,29 @@ export const VEGA_EMBED = new InjectionToken<() => Promise<EmbedFn>>('mriqc.vega
   factory: () => async () => (await import('vega-embed')).default,
 });
 
+/**
+ * Vega-Lite gives facet cells a fixed size. Small multiples that declare
+ * `usermeta.facets` get their cell size from the container instead, through
+ * the compiled `child_width` / `child_height` signals, leaving room for the
+ * y axis, the colour legend, the headers and the x axis.
+ */
+function fitFacets(view: EmbeddedView, spec: unknown, container: HTMLElement): void {
+  const meta = (spec as { usermeta?: { facets?: unknown }; columns?: unknown } | null);
+  const facets = Number(meta?.usermeta?.facets), columns = Number(meta?.columns);
+  if (!view.signal || !(facets > 0) || !(columns > 0)) return;
+  const rows = Math.ceil(facets / columns), gap = 20;
+  // The host shrinks to the canvas it holds; the slot around it is the room there is.
+  const slot = container.parentElement ?? container;
+  const width = (slot.clientWidth - 60 - 110 - gap * (columns - 1)) / columns;
+  const height = (slot.clientHeight - 50 - rows * 20 - gap * (rows - 1)) / rows;
+  try {
+    view.signal('child_width', Math.max(120, Math.floor(width)));
+    view.signal('child_height', Math.max(90, Math.floor(height)));
+  } catch {
+    // Not a faceted view after all.
+  }
+}
+
 interface EmbeddedView {
   addEventListener?(name: string, handler: (event: unknown, item: { datum?: Record<string, unknown> } | null) => void): unknown;
   finalize(): void;
@@ -86,6 +109,7 @@ interface EmbeddedView {
   resize?(): unknown;
   width?(value: number): unknown;
   height?(value: number): unknown;
+  signal?(name: string, value: number): unknown;
   addSignalListener(name: string, handler: (name: string, value: unknown) => void): unknown;
 }
 
@@ -307,6 +331,7 @@ export class VegaViewDirective {
       const spec = this.appVegaView()?.spec as { width?: unknown; height?: unknown } | null;
       if (spec?.width === 'container') view.width?.(container.clientWidth);
       if (spec?.height === 'container') view.height?.(container.clientHeight);
+      fitFacets(view, this.appVegaView()?.spec, container);
       view.resize();
       void view.runAsync().catch(() => undefined).finally(() => { this.axisBands?.refresh(); this.updating--; });
     });

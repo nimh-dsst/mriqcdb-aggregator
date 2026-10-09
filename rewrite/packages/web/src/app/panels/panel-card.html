@@ -12,7 +12,7 @@
     <header class="flex min-h-12 min-w-0 items-center gap-1 px-4 pt-3 pb-1">
       <button
         type="button"
-        class="metric-title min-w-0 flex-1 text-left text-title font-semibold text-ink"
+        class="metric-title inline-flex min-w-0 flex-1 items-center gap-2 text-left text-title font-semibold text-ink"
         data-testid="metric-title" [title]="view()?.title ?? panel.x" aria-haspopup="dialog" [attr.aria-expanded]="columnPickerOpen()"
         cdkOverlayOrigin
         #columnOrigin="cdkOverlayOrigin"
@@ -49,6 +49,8 @@
         class="inline-flex min-h-9 min-w-9 items-center justify-center text-ink-2"
         aria-label="Panel options"
         [matMenuTriggerFor]="optionsMenu"
+        #optionsTrigger="matMenuTrigger"
+        #optionsButton
       >
         <lucide-icon name="sliders-horizontal" [size]="15" aria-hidden="true" />
       </button>
@@ -73,6 +75,25 @@
         (detach)="columnPickerOpen.set(false)"
       >
         <div class="column-drawer" data-testid="metric-popover" role="dialog" aria-modal="true" aria-label="Choose column" cdkTrapFocus [cdkTrapFocusAutoCapture]="true">
+          <app-compare-input
+            [studyFormReason]="studyCapabilityReason()"
+            [series]="panel.series"
+            [legend]="panel.series.length ? legend() : []"
+            [isolated]="isolatedId()"
+            (isolatedChange)="isolatedId.set($event)"
+            [fields]="fields()"
+            [groups]="groups()"
+            [fieldValues]="fieldValues()"
+            [studyReady]="studyReady()"
+            [dateRange]="dateRange()"
+            (added)="addSeries($event)"
+            (removed)="removeSeries($event)"
+            (groupRemoved)="removeGroup($event)"
+            (splitApplied)="applySplit($event)"
+            [metrics]="metrics()"
+            (newGroup)="createGroup()"
+            (groupAction)="groupAction($event)"
+          />
           <app-column-picker
             [metrics]="metrics()"
             [fields]="fields()"
@@ -99,34 +120,63 @@
     </header>
 
     <div class="panel-controls min-w-0 gap-2 px-4 py-2">
-      <app-compare-input
-        [studyFormReason]="studyCapabilityReason()"
-        [series]="panel.series"
-        [legend]="panel.series.length ? legend() : []"
-        [isolated]="isolatedId()"
-        (isolatedChange)="isolatedId.set($event)"
-        [fields]="fields()"
-        [groups]="groups()"
-        [fieldValues]="fieldValues()"
-        [studyReady]="studyReady()"
-        [dateRange]="dateRange()"
-        (added)="addSeries($event)"
-        (removed)="removeSeries($event)"
-        (groupRemoved)="removeGroup($event)"
-        (splitApplied)="applySplit($event)"
-        [metrics]="metrics()"
-        (newGroup)="createGroup()"
-        (groupAction)="groupAction($event)"
-      />
+      <div class="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1 text-caption" role="group" aria-label="Legend" data-testid="panel-legend">
+        @for (item of legend(); track item.id) {
+          <button type="button" class="inline-flex min-h-8 items-center gap-1.5 text-ink"
+            [class.opacity-50]="isolatedId() !== null && isolatedId() !== item.id"
+            [attr.aria-pressed]="isolatedId() === item.id"
+            (click)="isolatedId.set(isolatedId() === item.id ? null : item.id)" (dblclick)="isolatedId.set(null)">
+            <span class="inline-block size-2.5 rounded-full" [style.background]="item.color" aria-hidden="true"></span>
+            {{ item.name }}
+            @if (item.n !== null) { <span class="text-ink-2">{{ item.n | number }}</span> }
+          </button>
+        }
+        <button type="button" class="inline-flex min-h-8 items-center gap-1 text-ink-2 hover:text-ink" (click)="toggleColumnPicker()" data-testid="edit-groups"
+          [attr.aria-label]="legend().length ? 'Edit groups' : 'Compare'" [title]="legend().length ? 'Edit groups' : 'Compare'">
+          <lucide-icon [name]="legend().length ? 'pencil' : 'plus'" [size]="13" aria-hidden="true" />
+          @if (!legend().length) { Compare }
+        </button>
+      </div>
 
       <div class="panel-form flex min-h-9 min-w-0 items-center gap-1">
+        @if (view()?.stats || view()?.comparison || view()?.analysisRows?.length) {
+          <button type="button" class="inline-flex min-h-9 items-center gap-1 rounded border border-border px-2 text-caption"
+            [class.text-ink-2]="!statsOpen()" [attr.aria-pressed]="statsOpen()" (click)="statsOpen.set(!statsOpen())" data-testid="stats-toggle">
+            <lucide-icon name="table-2" [size]="14" aria-hidden="true" /> Stats
+          </button>
+        }
+        @if (panel.form === 'clusters') {
+          <div class="inline-flex min-h-9 items-center rounded border border-border text-caption" role="group" aria-label="Number of clusters">
+            <button type="button" class="min-h-9 min-w-8 text-ink-2 disabled:opacity-40" aria-label="Fewer clusters"
+              [disabled]="(panel.options.k ?? 3) <= 2" (click)="setClusters((panel.options.k ?? 3) - 1)">−</button>
+            <span class="min-w-4 text-center text-ink tabular-nums">{{ panel.options.k ?? 3 }}</span>
+            <button type="button" class="min-h-9 min-w-8 text-ink-2 disabled:opacity-40" aria-label="More clusters"
+              [disabled]="(panel.options.k ?? 3) >= 6" (click)="setClusters((panel.options.k ?? 3) + 1)">+</button>
+            <span class="pr-2 text-ink-2">clusters</span>
+          </div>
+        }
+        @if (panel.form === 'heatmap' || panel.form === 'hexbin') {
+          <div class="inline-flex min-h-9 items-center rounded border border-border text-caption" role="group" aria-label="Cells per axis">
+            @for (cells of cellOptions; track cells) {
+              <button type="button" class="min-h-9 px-2 disabled:opacity-40"
+                [disabled]="cells > maxCells() && (panel.options.cells ?? 60) !== cells"
+                [title]="cells > maxCells() ? 'Too few scans to fill ' + cells + ' cells per axis' : ''"
+                [class.bg-highlight-soft]="(panel.options.cells ?? 60) === cells"
+                [class.text-highlight-soft-ink]="(panel.options.cells ?? 60) === cells"
+                [class.text-ink-2]="(panel.options.cells ?? 60) !== cells"
+                [attr.aria-pressed]="(panel.options.cells ?? 60) === cells"
+                (click)="setCells(cells)">{{ cells }}</button>
+            }
+            <span class="pr-2 text-ink-2">cells</span>
+          </div>
+        }
         @if (binsVisible()) {
           @if (timeX()) {
             <div class="inline-flex min-h-9 items-center rounded border border-border text-caption" role="group" aria-label="Bin size">
               @for (unit of granularities; track unit.value) {
                 <button type="button" class="min-h-9 px-2"
                   [class.bg-highlight-soft]="panel.options.granularity === unit.value"
-                  [class.text-highlight-ink]="panel.options.granularity === unit.value"
+                  [class.text-highlight-soft-ink]="panel.options.granularity === unit.value"
                   [class.text-ink-2]="panel.options.granularity !== unit.value"
                   [attr.aria-pressed]="panel.options.granularity === unit.value"
                   (click)="setGranularity(unit.value)">{{ unit.label }}</button>
@@ -136,8 +186,8 @@
             <div class="inline-flex min-h-9 items-center rounded border border-border text-control text-ink" role="group" aria-label="Bins">
               <button type="button" class="min-h-9 min-w-8 text-ink-2" aria-label="Fewer bins" (click)="stepBins(-1)">−</button>
               <input class="w-12 bg-transparent text-center outline-none" type="number" aria-label="Bins"
-                [min]="minBins" [max]="maxBins" [value]="panel.options.bins" (change)="changeNumberOption($event, 'bins')" />
-              <button type="button" class="min-h-9 min-w-8 text-ink-2" aria-label="More bins" (click)="stepBins(1)">+</button>
+                [min]="minBins" [max]="hardMaxBins" [value]="panel.options.bins" (change)="changeNumberOption($event, 'bins')" />
+              <button type="button" class="min-h-9 min-w-8 text-ink-2 disabled:opacity-40" aria-label="More bins" [disabled]="panel.options.bins >= maxBins()" (click)="stepBins(1)">+</button>
               <span class="pr-2 text-caption text-ink-2">bins</span>
             </div>
           }
@@ -182,28 +232,6 @@
         </mat-select>
       </div>
     </div>
-
-    @if (panel.form === 'band' || panel.form === 'lines') {
-      <div class="flex items-center gap-2 border-b border-border p-2">
-        <label class="text-caption text-ink-2" for="median-band-metric-{{ panel.id }}">
-          Value
-        </label>
-        <mat-select
-          class="min-w-40 rounded border border-border px-2 py-1 text-control text-ink"
-          aria-label="Second column"
-          [value]="panel.y"
-          (selectionChange)="changeY($event.value)"
-        >
-          @if (timeX() && panel.form === 'band') {
-            <mat-option [value]="null">Scan count</mat-option>
-          }
-          <mat-option value="created_at" [disabled]="panel.x === 'created_at'">Upload time</mat-option>
-          @for (metric of metrics(); track metric.id) {
-            <mat-option [value]="metric.id" [disabled]="panel.x === metric.id">{{ metric.shortLabel || metric.label }}</mat-option>
-          }
-        </mat-select>
-      </div>
-    }
 
     @if (panel.form === 'matrix') {
       <section class="space-y-2 border-b border-border p-2" title="Metric correlations">
@@ -255,12 +283,17 @@
 
     <mat-menu #optionsMenu="matMenu" class="panel-options-menu">
       <div class="panel-settings" data-testid="panel-settings" (click)="$event.stopPropagation()" cdkTrapFocus [cdkTrapFocusAutoCapture]="true" (keydown)="$event.key !== 'Escape' && $event.stopPropagation()">
-        @if (panel.form === 'heatmap' || panel.form === 'hexbin') {
-          <label appSettingRow class="setting-row"><span>Cells</span>
-            <select aria-label="Cells" [value]="panel.options.cells ?? 60" (change)="changeNumberOption($event, 'cells')">
-              <option value="30">30 per axis</option><option value="60">60 per axis</option><option value="120">120 per axis</option>
-            </select>
-          </label>
+        @if (panel.form !== 'table' && panel.form !== 'matrix') {
+          <div class="flex items-center justify-between gap-3 py-1" role="group" aria-label="Axis options">
+            <span>Axes</span>
+            <span class="flex gap-1">
+              <button type="button" class="btn btn-quiet" (click)="optionsTrigger.closeMenu(); openElementOptions('x', optionsButton)">X…</button>
+              <button type="button" class="btn btn-quiet" (click)="optionsTrigger.closeMenu(); openElementOptions('y', optionsButton)">Y…</button>
+              @if (panel.y && ['heatmap', 'hexbin'].includes(panel.form)) {
+                <button type="button" class="btn btn-quiet" (click)="optionsTrigger.closeMenu(); openElementOptions('color', optionsButton)">Colour…</button>
+              }
+            </span>
+          </div>
         }
         @if (panel.form === 'band' || panel.form === 'lines') {
           <label appSettingRow class="setting-row"><span>Quantiles</span>
@@ -306,7 +339,7 @@
               <button role="menuitem" class="context-action" (click)="copyCardLink(); closeContext()">Copy link to this card</button>
             </div>
           } @else {
-            <app-element-controls [options]="panel.options" [axis]="target" [countAxis]="target === 'y' && !panel.y"
+            <app-element-controls [options]="panel.options" [axis]="target" [rangeMemory]="rangeMemory" [countAxis]="target === 'y' && !panel.y"
               [unit]="contextUnit(target)"
               [colorDefault]="panel.form === 'matrix' ? 'linear' : 'log'" (changed)="patch({options: $event})" />
           }
@@ -321,13 +354,7 @@
         </label>
       }
       <div class="flex min-h-0 min-w-0 flex-1 flex-col px-4">
-        <p class="flex-none pb-2 text-caption text-ink-2">
-          @if (panelView.subtitle) { <span data-testid="panel-shown">{{ panelView.subtitle }}</span> }
-          @if (panelView.n !== null) { <span class="tnum" data-testid="panel-count">{{ panelView.n | number }} {{ panelView.countLabel }}</span> }
-          @for (note of panelView.notes; track note) { <span data-testid="panel-note">&#160;· {{ note }}</span> }
-          @if (panelView.clipChip; as clip) { <span class="chip chip-quiet ml-1" data-testid="panel-clip">{{ clip }}</span> }
-        </p>
-        @if (panelView.stats; as stats) {
+        @if (statsOpen() && panelView.stats; as stats) {
           <div class="stat-row-container flex-none border-t border-border">
             <div class="stat-row py-3" data-testid="panel-stats">
               @for (stat of stats; track stat.label) {
@@ -376,7 +403,7 @@
         }
 
         </div>
-        @if (panelView.comparison || panelView.analysisRows?.length) {
+        @if (statsOpen() && (panelView.comparison || panelView.analysisRows?.length)) {
         <div class="min-h-0 shrink overflow-auto" style="flex: 0 1 auto" tabindex="0" role="region" [attr.aria-label]="panelView.title + ' series statistics'">
           @if (panelView.comparison; as comparison) {
             <table class="w-full whitespace-nowrap text-left text-[12px] leading-6 tabular-nums [&_tr]:h-6 [&_th]:px-1 [&_td]:px-1" data-testid="comparison-table">
@@ -432,14 +459,21 @@
 
         </div>
         }
-        @if (panelView.analysisNote) { <p class="flex-none pt-2 text-caption text-ink-2" data-testid="analysis-note">{{ panelView.analysisNote }}</p> }
+        @if ((statsOpen() || !panelView.analysisRows?.length) && panelView.analysisNote) { <p class="flex-none pt-2 text-caption text-ink-2" data-testid="analysis-note">{{ panelView.analysisNote }}</p> }
         @if (panelView.correlationPairs?.length) {
           <details class="correlation-pairs flex-none text-caption"><summary>Inspect a metric pair</summary>
             <div class="flex max-h-32 flex-wrap gap-2 overflow-auto py-2">@for (pair of panelView.correlationPairs; track pair.label) { <button type="button" class="btn" (click)="onCell(pair)">{{ pair.label }}</button> }</div>
           </details>
         }
       </div>
-      <p class="flex-none truncate px-4 py-3 text-caption leading-4 text-ink-2" [title]="panelView.meaning" data-testid="panel-meaning">{{ panelView.meaning }}</p>
+      <div class="flex flex-none items-baseline gap-3 px-4 py-3 text-caption leading-4 text-ink-2">
+        <p class="mr-auto">
+          @if (panelView.subtitle) { <span data-testid="panel-shown">{{ panelView.subtitle }}</span> }
+          @if (panelView.n !== null) { <span class="tnum cursor-help" data-testid="panel-count" tabindex="0" [title]="(panelView.n | number) + ' ' + panelView.countLabel" [attr.aria-label]="(panelView.n | number) + ' ' + panelView.countLabel">{{ panelView.n | number }}</span> }
+          @for (note of panelView.notes; track note) { <span data-testid="panel-note">&#160;· {{ note }}</span> }
+          @if (panelView.clipChip; as clip) { <span class="chip chip-quiet ml-1" data-testid="panel-clip">{{ clip }}</span> }
+        </p>
+      </div>
     } @else {
       <p class="p-3 text-caption text-ink-2">Loading panel…</p>
     }

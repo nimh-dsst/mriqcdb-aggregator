@@ -32,7 +32,7 @@ import { canStack } from '../graph/panels';
 import { axisType, FORM_INFO, panelFormAvailability } from '../graph/panel-shapes';
 import { MAX_BINS, MIN_BINS, parseGroupCohortId, type Form, type Panel } from '../graph/state';
 
-import { ElementControls } from './element-controls';
+import { ElementControls, type NumericRange } from './element-controls';
 import { SettingRow } from './setting-row';
 import type { DashboardLayout } from '../graph/layout';
 import { encodeUrlState, urlState } from '../graph/url';
@@ -114,6 +114,9 @@ const dimmedSpec = (spec: unknown, isolatedId: string | null): unknown => {
   return copy;
 };
 
+const BIN_STOPS = [10, 20, 30, 40, 60, 80, 100, 150, 200];
+const SOFT_MAX_BINS = 100;
+
 @Component({
   selector: 'app-panel-card',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -134,11 +137,9 @@ const dimmedSpec = (spec: unknown, isolatedId: string | null): unknown => {
   styles: `
     :host { container-type: inline-size; display: block; min-width: 0; }
     .form-select { min-width: 130px; min-height: 36px; display: inline-flex; align-items: center; }
-    .panel-controls { display: grid; grid-template-columns: minmax(0, 1fr) auto; }
-    @container (max-width: 480px) {
-      .panel-controls { grid-template-columns: 1fr; }
-      .panel-form { justify-self: start; }
-    }
+    .panel-controls { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; }
+    .panel-controls > :first-child { flex: 1 1 12rem; }
+    .panel-form { margin-left: auto; flex-wrap: wrap; justify-content: flex-end; }
   `,
 })
 export class PanelCard {
@@ -197,6 +198,13 @@ export class PanelCard {
   private showContext(target: 'x' | 'y' | 'color' | 'body', x: number, y: number): void {
     this.contextPosition.set({ x: Math.max(0, Math.min(x, window.innerWidth - 320)), y: Math.max(0, Math.min(y, window.innerHeight - 260)) });
     this.contextTarget.set(target);
+  }
+
+  /** The axis menus from the settings menu, for anyone who never hovers an axis. */
+  openElementOptions(target: 'x' | 'y' | 'color', opener: HTMLElement): void {
+    this.contextOpener = opener;
+    const rect = opener.getBoundingClientRect();
+    this.showContext(target, rect.right - 320, rect.bottom + 4);
   }
 
   openElementContext(event: Event): void {
@@ -421,7 +429,23 @@ export class PanelCard {
   }
 
   readonly minBins = MIN_BINS;
-  readonly maxBins = MAX_BINS;
+  /**
+   * More bins than the data can fill just draws noise: about 2√n bins for a
+   * histogram, √n cells per heatmap axis, rounded up to the next stop. The
+   * stepper also stops at SOFT_MAX_BINS; typing can still go to MAX_BINS.
+   */
+  readonly statsOpen = signal(false);
+  readonly rangeMemory = new Map<string, NumericRange>();
+  readonly hardMaxBins = MAX_BINS;
+  readonly maxBins = computed(() => {
+    const n = this.view()?.n;
+    if (!n) return SOFT_MAX_BINS;
+    return Math.max(MIN_BINS, Math.min(SOFT_MAX_BINS, BIN_STOPS.find(stop => stop >= 2 * Math.sqrt(n)) ?? MAX_BINS));
+  });
+  readonly maxCells = computed(() => {
+    const n = this.view()?.n;
+    return n ? Math.max(this.cellOptions[0], Math.sqrt(n)) : Infinity;
+  });
   readonly granularities = [
     { value: 'day', label: 'Day' },
     { value: 'week', label: 'Week' },
@@ -435,6 +459,19 @@ export class PanelCard {
     return form !== undefined && ['histogram', 'line', 'area', 'band', 'lines'].includes(form) && (this.timeX() || this.numericX());
   });
 
+  readonly cellOptions = [30, 60, 120] as const;
+
+  /** Six is as many as the palette tells apart; more fold into "Other". */
+  setClusters(k: number): void {
+    const panel = this.panel();
+    if (panel) this.patch({ options: { ...panel.options, k: Math.max(2, Math.min(6, k)) } });
+  }
+
+  setCells(cells: 30 | 60 | 120): void {
+    const panel = this.panel();
+    if (panel) this.patch({ options: { ...panel.options, cells } });
+  }
+
   setGranularity(granularity: 'day' | 'week' | 'month' | 'year'): void {
     const panel = this.panel();
     if (panel) this.patch({ options: { ...panel.options, granularity } });
@@ -444,11 +481,10 @@ export class PanelCard {
   stepBins(direction: 1 | -1): void {
     const panel = this.panel();
     if (!panel) return;
-    const stops = [10, 20, 30, 40, 60, 80, 100, 150, 200];
     const current = panel.options.bins;
     const bins = direction > 0
-      ? stops.find(stop => stop > current) ?? MAX_BINS
-      : [...stops].reverse().find(stop => stop < current) ?? MIN_BINS;
+      ? Math.min(BIN_STOPS.find(stop => stop > current) ?? MAX_BINS, this.maxBins())
+      : [...BIN_STOPS].reverse().find(stop => stop < current) ?? MIN_BINS;
     this.patch({ options: { ...panel.options, bins } });
   }
 

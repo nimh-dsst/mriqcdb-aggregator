@@ -28,7 +28,7 @@ type RangeMode = 'auto' | 'custom';
           <span>Count mode</span>
           <select aria-label="Count mode" [value]="countMode()" (change)="onCountModeChange($event)">
             <option value="count">Count</option>
-            <option value="share">Share</option>
+            <option value="share">Share (% of group)</option>
             <option value="logCount">Log count</option>
           </select>
         </label>
@@ -152,6 +152,8 @@ export class ElementControls {
   readonly countAxis = input(false);
   readonly colorDefault = input<Extract<ColourScale, 'linear' | 'log'>>('log');
   readonly changed = output<Partial<PanelOptions>>();
+  /** Each axis's custom range per scale type, kept by the card across menu openings. */
+  readonly rangeMemory = input<Map<string, NumericRange>>(new Map());
 
   readonly rangeMode = signal<RangeMode>('auto');
   readonly lowerBound = signal('');
@@ -187,11 +189,7 @@ export class ElementControls {
     const value = this.selectValue(event);
     if (this.axis() === 'color') {
       if (value === 'linear' || value === 'log' || value === 'sqrt') {
-        const range = this.currentRange();
-        if (value === 'log' && range !== 'auto' && (range[0] <= 0 || range[1] <= 0)) {
-          return;
-        }
-        this.changed.emit({colorScale: value});
+        this.changed.emit({colorScale: value, ...this.swapRange(value)});
       }
       return;
     }
@@ -200,16 +198,17 @@ export class ElementControls {
       return;
     }
     if (this.countAxis() && this.axis() === 'y') {
-      this.changed.emit({ yScale: value, ...(this.options().yMode === 'logCount' && value !== 'log' ? { yMode: 'count' as const } : {}) });
+      this.changed.emit({ yScale: value, ...this.swapRange(value), ...(this.options().yMode === 'logCount' && value !== 'log' ? { yMode: 'count' as const } : {}) });
       return;
     }
-    this.changed.emit(this.axis() === 'x' ? {xScale: value} : {yScale: value});
+    this.changed.emit({ ...(this.axis() === 'x' ? {xScale: value} : {yScale: value}), ...this.swapRange(value) });
   }
 
   onCountModeChange(event: Event): void {
     const value = this.selectValue(event);
     if (value === 'count' || value === 'share' || value === 'logCount') {
-      this.changed.emit({ yMode: value, yScale: value === 'logCount' ? 'log' : 'linear' });
+      const yScale = value === 'logCount' ? 'log' : 'linear';
+      this.changed.emit({ yMode: value, yScale, ...(yScale !== this.scale() ? this.swapRange(yScale) : {}) });
     }
   }
 
@@ -262,6 +261,17 @@ export class ElementControls {
       return options.colorDomain ?? 'auto';
     }
     return this.axis() === 'x' ? options.xRange : options.yRange;
+  }
+
+  /**
+   * A range set on one scale rarely fits another (a log axis cannot start at
+   * 0), so switching scale stores this scale's range and brings back the one
+   * last used with the new scale, or auto.
+   */
+  private swapRange(next: string): Partial<PanelOptions> {
+    const memory = this.rangeMemory();
+    memory.set(`${this.axis()}:${this.scale()}`, this.currentRange());
+    return this.rangePatch(memory.get(`${this.axis()}:${next}`) ?? 'auto');
   }
 
   private rangePatch(range: NumericRange): Partial<PanelOptions> {

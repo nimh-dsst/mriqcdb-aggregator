@@ -16,8 +16,8 @@ describe('study contour rendering', () => {
       const view = new View(parse(spec), { renderer: 'none' });
       try {
         await view.runAsync();
-        expect(view.data(count > 3 ? 'density-panels' : 'density-grid').length).toBeGreaterThan(0);
-        if (count > 1) expect((chart.datasets['density-contours'] as { seriesId: string }[]).some(row => row.seriesId === 'study')).toBe(true);
+        expect(view.data(count > 1 ? 'density-panels' : 'density-grid').length).toBeGreaterThan(0);
+        if (count > 1) expect((chart.datasets['density-panels'] as { seriesId: string }[]).some(row => row.seriesId === 'study')).toBe(true);
       } finally { view.finalize(); }
     });
   }

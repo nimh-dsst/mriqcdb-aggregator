@@ -168,8 +168,7 @@ describe('PanelCard', () => {
 
   it.each([
     ['histogram', ['Clip', 'Follow brushed range']],
-    ['heatmap', ['Cells', 'Clip', 'Follow brushed range']],
-    ['hexbin', ['Cells', 'Clip', 'Follow brushed range']],
+    ['heatmap', ['Clip', 'Follow brushed range']],
     ['band', ['Quantiles', 'Clip', 'Follow brushed range']],
   ] as const)('keeps only the applicable options in a single nontruncating column: %s', async (form, labels) => {
     const fixture = create(makePanel({ form, y: form === 'histogram' ? null : asColumnId('fd_mean') }));
@@ -203,10 +202,10 @@ describe('PanelCard', () => {
   });
 
   it.each([
-    [makePanel(), ['Histogram', 'Line', 'Area', 'Density', 'ECDF', 'Box', 'Table', 'Heatmap', 'Scatter', 'Hexbin', 'Clusters', 'Band', 'Lines']],
+    [makePanel(), ['Histogram', 'Line', 'Area', 'Density', 'ECDF', 'Box', 'Table', 'Heatmap', 'Scatter', 'Clusters', 'Band', 'Lines']],
     [
       makePanel({ x: 'created_at', form: 'line' }),
-      ['Histogram', 'Line', 'Area', 'Density', 'ECDF', 'Box', 'Table', 'Heatmap', 'Scatter', 'Hexbin', 'Clusters', 'Band', 'Lines'],
+      ['Histogram', 'Line', 'Area', 'Density', 'ECDF', 'Box', 'Table', 'Heatmap', 'Scatter', 'Clusters', 'Band', 'Lines'],
     ],
     [
       makePanel({ x: asColumnId('manufacturer'), form: 'bars' }),
@@ -214,7 +213,7 @@ describe('PanelCard', () => {
     ],
     [
       makePanel({ y: asColumnId('efc'), form: 'heatmap' }),
-      ['Heatmap', 'Scatter', 'Hexbin', 'Clusters', 'Band', 'Lines'],
+      ['Heatmap', 'Scatter', 'Clusters', 'Band', 'Lines'],
     ],
     [
       makePanel({ form: 'matrix' }),
@@ -222,7 +221,7 @@ describe('PanelCard', () => {
     ],
     [
       makePanel({ x: 'created_at', y: asColumnId('fd_mean'), form: 'band' }),
-      ['Heatmap', 'Scatter', 'Hexbin', 'Clusters', 'Band', 'Lines'],
+      ['Heatmap', 'Scatter', 'Clusters', 'Band', 'Lines'],
     ],
   ])('shows the fixed-order visible %s form options', (panel, expectedLabels) => {
     const optionLabels = formOptionLabels(panel);
@@ -234,8 +233,8 @@ describe('PanelCard', () => {
     const options = Array.from(TestBed.inject(OverlayContainer).getContainerElement().querySelectorAll('mat-option'));
     const singleContinuous = panel.y === null && (panel.x === 'snr' || panel.x === 'created_at') && panel.form !== 'matrix';
     options.forEach((option, index) => {
-      // Band (index 11) stays enabled for counts over time.
-      const disabled = singleContinuous && index >= 7 && !(panel.x === 'created_at' && index === 11);
+      // Band (index 10) stays enabled for counts over time.
+      const disabled = singleContinuous && index >= 7 && !(panel.x === 'created_at' && index === 10);
       expect(option.getAttribute('aria-disabled')).toBe(String(disabled));
       expect(option.querySelector('.form-option-hint')?.textContent?.trim() === 'add a second column').toBe(disabled);
       if (disabled) expect(option.getAttribute('aria-label')).toContain('add a second column');
@@ -322,7 +321,7 @@ describe('PanelCard', () => {
   it('isolates a legend series and resets it on double click', () => {
     const fixture = create(makePanel({ series: [{ kind: 'population' }] }));
     const legend = fixture.nativeElement.querySelector(
-      'app-compare-input',
+      '[data-testid="panel-legend"]',
     ) as HTMLElement;
     const firstChip = legend.querySelector('button[aria-pressed]') as HTMLButtonElement;
 

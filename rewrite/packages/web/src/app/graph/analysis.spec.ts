@@ -58,7 +58,7 @@ describe('analysis axes', () => {
     const next = reduce(state({ x: 'created_at', form: 'histogram' }), { t: 'setPanelAxis', id: 'p1', axis: 'y', value: second });
     expect(next.panels[0].y).toBe('tsnr'); expect(next.panels[0].form).toBe('band');
   });
-  it.each(['heatmap','scatter','hexbin','clusters'] as const)('round-trips %s and seeded options', chart => {
+  it.each(['heatmap','scatter','clusters'] as const)('round-trips %s and seeded options', chart => {
     const source = urlState(state({ y: second, form: chart, options: { ...defaultPanelOptions(), k: 3, seed: 19, sampleSize: 20000, showPoints: true } }));
     expect(decodeUrlState(encodeUrlState(source))).toEqual(source);
   });

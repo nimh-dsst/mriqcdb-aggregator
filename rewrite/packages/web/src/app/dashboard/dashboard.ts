@@ -54,6 +54,17 @@ interface RemovedPanel {
   layout?: DashboardLayout;
 }
 
+type AddMode = 'guided' | 'columns';
+const ADD_MODE_KEY = 'mriqc.addPanelMode';
+function readAddMode(): AddMode | null {
+  try {
+    const value = localStorage.getItem(ADD_MODE_KEY);
+    return value === 'guided' || value === 'columns' ? value : null;
+  } catch {
+    return null;
+  }
+}
+
 @Component({
   selector: 'app-dashboard',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -77,6 +88,12 @@ export class Dashboard {
   protected readonly panels = toSignal(this.graph.panels$, { initialValue: [] });
   protected readonly chrome = toSignal(this.graph.chrome$);
   protected readonly addOpen = signal(false);
+  /** Guided (questions) or columns, remembered per browser; null until first asked. */
+  protected readonly addMode = signal<AddMode | null>(readAddMode());
+  protected setAddMode(mode: AddMode): void {
+    this.addMode.set(mode);
+    try { localStorage.setItem(ADD_MODE_KEY, mode); } catch { /* Storage may be blocked. */ }
+  }
   protected readonly metrics = computed(() => metricsFor(this.chrome()?.modality ?? 'bold'));
   protected readonly fields = computed(() => fieldsFor(this.chrome()?.modality ?? 'bold', this.chrome()?.view ?? 'raw', 'group'));
   protected addMetric(metric: string): void {

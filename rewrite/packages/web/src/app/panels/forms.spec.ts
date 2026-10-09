@@ -16,8 +16,8 @@ describe('mark forms', () => {
   it.each([
     [asColumnId('snr'), null, ['histogram', 'line', 'area', 'density', 'ecdf', 'box', 'table'], ['Histogram', 'Line', 'Area', 'Density', 'ECDF', 'Box', 'Table']],
     ['created_at', null, ['histogram', 'line', 'area', 'density', 'ecdf', 'box', 'table', 'band'], ['Histogram', 'Line', 'Area', 'Density', 'ECDF', 'Box', 'Table', 'Band']],
-    ['created_at', asColumnId('fd_mean'), ['heatmap', 'scatter', 'hexbin', 'clusters', 'band', 'lines'], ['Heatmap', 'Scatter', 'Hexbin', 'Clusters', 'Band', 'Lines']],
-    [asColumnId('snr'), asColumnId('fd_mean'), ['heatmap', 'scatter', 'hexbin', 'clusters', 'band', 'lines'], ['Heatmap', 'Scatter', 'Hexbin', 'Clusters', 'Band', 'Lines']],
+    ['created_at', asColumnId('fd_mean'), ['heatmap', 'scatter', 'clusters', 'band', 'lines'], ['Heatmap', 'Scatter', 'Clusters', 'Band', 'Lines']],
+    [asColumnId('snr'), asColumnId('fd_mean'), ['heatmap', 'scatter', 'clusters', 'band', 'lines'], ['Heatmap', 'Scatter', 'Clusters', 'Band', 'Lines']],
     [asColumnId('manufacturer'), null, ['bars', 'share'], ['Bars', 'Share']],
     [[asColumnId('snr'), asColumnId('fd_mean')], null, ['matrix'], ['Matrix']],
   ] as const)('has the exact ordered row and default for %s / %s', (x, y, ids, names) => {

@@ -333,7 +333,7 @@ export function panelView(state: State, id: PanelId, theme: ChartTheme = LIGHT_T
     return derived;
   }
   const cohorts = panelCohorts(state, panel);
-  const colors = cohorts.map((cohort, index) => cohort.name === 'Other' ? OTHER_COLOR : theme.categories[index % 6]);
+  const colors = cohorts.map(cohort => cohort.name === 'Other' ? OTHER_COLOR : theme.categories[cohort.color % 6]);
   const series = cohorts.map((cohort, index) => ({ id: cohort.id, label: cohort.name, color: colors[index] }));
   const metric = metricDef(state, panel.x), category = fieldDef(state, panel.x as ColumnId);
   const axis = { ...axisFor(state, panel), theme };

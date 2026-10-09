@@ -112,7 +112,9 @@ try {
   await page.keyboard.press('Escape');
   await page.getByTestId('add-panel').click();
   const drawer = page.getByTestId('add-panel-picker');
-  await drawer.getByText('Or pick the columns yourself').click();
+  const prompt = drawer.getByTestId('add-mode-prompt');
+  if (await prompt.isVisible().catch(() => false)) await drawer.getByText("No, I'll pick columns").click();
+  else if (await drawer.getByTestId('guided-toggle').isChecked()) await drawer.getByTestId('guided-toggle').uncheck();
   await drawer.locator('[data-column-id="fd_mean"]').click();
   await drawer.locator('[data-column-id="tsnr"]').click();
   await page.screenshot({ path: resolve(screenshots, 'codex-laneQ-drawer-pair.png') });

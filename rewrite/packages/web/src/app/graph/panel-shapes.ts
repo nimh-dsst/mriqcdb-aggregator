@@ -26,6 +26,13 @@ export type FormAvailability = {
 
 const SECOND_COLUMN_REASON = 'add a second column';
 
+/**
+ * Kept in FORM_ORDER so link tokens stay put, offered nowhere. Hexbin binned a
+ * point sample on a linear grid; the heatmap counts every scan. Old links
+ * fall back to the default form, which for two metrics is the heatmap.
+ */
+const RETIRED: ReadonlySet<Form> = new Set<Form>(['hexbin']);
+
 /** The one axis-to-form rule used by the reducer, dropdown and dispatcher. */
 export function formAvailability(
   x: ColumnRef | readonly MetricId[],
@@ -47,7 +54,8 @@ export function formAvailability(
       : new Set<Form>();
 
   return FORM_ORDER.map((form): FormAvailability =>
-    enabled.has(form)
+    RETIRED.has(form) ? { form, state: 'hidden' }
+    : enabled.has(form)
       ? { form, state: 'enabled' }
       : disabled.has(form)
         ? { form, state: 'disabled', reason: SECOND_COLUMN_REASON }

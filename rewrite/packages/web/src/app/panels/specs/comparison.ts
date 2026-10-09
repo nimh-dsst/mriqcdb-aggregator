@@ -264,7 +264,7 @@ export function overlaidDensitySpec(
         type: 'quantitative',
         stack: null,
         title: axis.yMode && axis.yMode !== 'share' ? `${axis.countTitle} (smoothed)` : densityAxisTitle(axis.countTitle),
-        axis: axis.yMode && axis.yMode !== 'share' ? {} : { format: '.0%' },
+        axis: axis.yMode && axis.yMode !== 'share' ? {} : { format: '.1%' },
         ...(axis.yMode && axis.yMode !== 'share' ? { field: 'count' } : {}),
         ...(axis.yMode === 'logCount' ? { scale: { type: 'log', clamp: true } } : {}),
       },

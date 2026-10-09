@@ -27,7 +27,7 @@ describe('study series across the scheme', () => {
       }
     });
   }
-  for (const form of ['heatmap', 'scatter', 'hexbin', 'clusters', 'band', 'lines'] as const) {
+  for (const form of ['heatmap', 'scatter', 'clusters', 'band', 'lines'] as const) {
     it(`plans local two-axis ${form}`, () => {
       for (const x of [fd, asColumnId('created_at')]) {
         const p = panel({ x, y: tsnr, form }), s = state(p);

@@ -36,8 +36,9 @@ describe('six-bit URL scalars', () => {
       ...formsFor('created_at', metric), ...formsFor(metric, asColumnId('fd_mean')),
       ...formsFor(asColumnId('manufacturer'), null), ...formsFor([], null),
     ]).has(form));
-    expect(CHART_TOKENS.values).toEqual(forms);
-    forms.forEach((form, index) => {
+    // Retired forms keep their token so old links still decode.
+    expect(CHART_TOKENS.values.filter(form => form !== 'hexbin')).toEqual(forms);
+    CHART_TOKENS.values.forEach((form, index) => {
       expect(CHART_TOKENS.code.get(form)).toBe(ALPHABET[index]);
       expect(roundTrip(tokenCodec(CHART_TOKENS), form)).toBe(form);
     });

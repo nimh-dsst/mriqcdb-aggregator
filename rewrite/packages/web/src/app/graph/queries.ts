@@ -89,7 +89,8 @@ export function panelCohorts(state: State, panel: Panel): readonly ResolvedSerie
     }
     const id = descriptor.kind === 'population' ? 'all' : descriptor.kind === 'study' ? 'study' : descriptor.id;
     const cohort = cohortById(state, id);
-    if (cohort) out.push({ ...cohort, color: out.length, descriptorKey });
+    // A saved group keeps the colour picked for it; the rest take their slot.
+    if (cohort) out.push({ ...cohort, color: descriptor.kind === 'cohort' ? cohort.color : out.length, descriptorKey });
   }
   return out;
 }

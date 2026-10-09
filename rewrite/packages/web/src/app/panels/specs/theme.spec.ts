@@ -14,7 +14,7 @@ describe('chart themes', () => {
     const spec = histogramSpec({ ...axis, theme: DARK_THEME }) as any;
     expect(spec.config.axis.labelColor).toBe('#9aa5b8');
     expect(spec.config.axis.gridColor).toBe('#2d3645');
-    expect(spec.mark.color).toBe('#009aed');
+    expect(spec.mark.color).toBe('#4f8cc0');
     expect(spec.params[0].select.mark.fill).toBe('#ffd54f');
     const box = boxSpec({ ...axis, theme: DARK_THEME }, 'Group') as any;
     expect(box.layer[3].mark.color).toBe('#e8ecf2');

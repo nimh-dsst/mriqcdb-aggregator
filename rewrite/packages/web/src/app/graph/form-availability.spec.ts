@@ -3,7 +3,7 @@ import { asColumnId } from '@mriqc/shared';
 import type { Form, MetricId } from './state';
 import { FORM_ORDER, formAvailability, formsFor } from './panel-shapes';
 
-const pairForms = ['heatmap', 'scatter', 'hexbin', 'clusters', 'band', 'lines'] as const satisfies readonly Form[];
+const pairForms = ['heatmap', 'scatter', 'clusters', 'band', 'lines'] as const satisfies readonly Form[];
 const numericForms = ['histogram', 'line', 'area', 'density', 'ecdf', 'box', 'table'] as const satisfies readonly Form[];
 const fdMean = asColumnId('fd_mean');
 const tsnr = asColumnId('tsnr');

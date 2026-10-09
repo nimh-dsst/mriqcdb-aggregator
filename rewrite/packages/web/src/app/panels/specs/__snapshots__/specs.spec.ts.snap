@@ -1212,7 +1212,7 @@ exports[`chart specs > overlaidDensity > matches its snapshot 1`] = `
     },
     "y": {
       "axis": {
-        "format": ".0%",
+        "format": ".1%",
       },
       "field": "share",
       "stack": null,

@@ -62,7 +62,7 @@ describe('ElementControls', () => {
 
     await selectValue(scale, 'symlog');
 
-    expect(changes).toEqual([{xScale: 'symlog'}]);
+    expect(changes).toEqual([{xScale: 'symlog', xRange: 'auto'}]);
   });
 
   it('offers coordinate scales and dispatches the y scale', async () => {
@@ -73,14 +73,14 @@ describe('ElementControls', () => {
 
     await selectValue(scale, 'log');
 
-    expect(changes).toEqual([{yScale: 'log'}]);
+    expect(changes).toEqual([{yScale: 'log', yRange: 'auto'}]);
   });
 
   it('offers count modes and dispatches the selected y mode', async () => {
     await render('y', true);
 
     const countMode = selects()[0];
-    expect(optionLabels(countMode)).toEqual(['Count', 'Share', 'Log count']);
+    expect(optionLabels(countMode)).toEqual(['Count', 'Share (% of group)', 'Log count']);
 
     await selectValue(countMode, 'share');
 
@@ -97,7 +97,7 @@ describe('ElementControls', () => {
 
     await selectValue(scale, 'sqrt');
 
-    expect(changes).toEqual([{colorScale: 'sqrt'}]);
+    expect(changes).toEqual([{colorScale: 'sqrt', colorDomain: 'auto'}]);
   });
 
   it('keeps an incomplete custom x range local, then emits it and an auto reset', async () => {

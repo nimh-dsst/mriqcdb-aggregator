@@ -225,7 +225,7 @@ export class TrpcApi implements Api {
 
   density2d(query: Density2dQuery): Observable<Density2dResult> {
     return abortable((signal) => this.client.density2d.query({
-      ...scope(query), x: query.x, y: query.y, bins: query.bins,
+      ...scope(query), x: query.x, y: query.y, grid: query.grid, bins: query.bins,
       clip: query.clip, range: query.range, sampleSize: query.sampleSize, seed: query.seed,
     }, { signal }));
   }

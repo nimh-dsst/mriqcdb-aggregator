@@ -14,7 +14,7 @@ describe('continuous form query contracts', () => {
     expect(queries[0]).toMatchObject({proc:'binnedSummary',x:'fd_mean',y:'tsnr',bins:40});
     expect(queries.some(q=>q.proc==='density2d')).toBe(false);
   });
-  it.each(['heatmap','scatter','hexbin','clusters'] as const)('requests paired upload dates for %s', form => {
+  it.each(['heatmap','scatter','clusters'] as const)('requests paired upload dates for %s', form => {
     const s=reduce(state(),{t:'patchPanel',id:'p5',patch:{y:asColumnId('tsnr'),form}});
     expect(panelQueries(s,s.panels[4])[0]).toMatchObject({proc:'density2d',x:'created_at',y:'tsnr'});
   });

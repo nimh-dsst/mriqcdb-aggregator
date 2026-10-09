@@ -347,17 +347,28 @@ export class MockApi implements Api {
     const key = queryKey(query);
     const values = (VALUES[query.group] ?? ['A', 'B', 'C']).slice(0, 5);
     const random = prng(hash(key));
-    const step = query.granularity === 'year' ? 12 : query.granularity === 'month' ? 1 : 1;
     const buckets: CoverageBucket[] = [];
     const scale = scaleFor(query) / 400;
-    for (let month = 0; month < 120; month += step) {
-      const date = new Date(Date.UTC(2015, month, 1));
-      const growth = 0.3 + month / 90;
+    // Ten years of uploads, cut at the requested granularity. A month's worth
+    // is spread over its days, so finer bins don't all land on the 1st.
+    const DAY = 86_400_000, start = Date.UTC(2015, 0, 1), end = Date.UTC(2025, 0, 1);
+    const periods: number[] = [];
+    for (let time = start; time < end;) {
+      periods.push(time);
+      const date = new Date(time);
+      time = query.granularity === 'year' ? Date.UTC(date.getUTCFullYear() + 1, 0, 1)
+        : query.granularity === 'month' ? Date.UTC(date.getUTCFullYear(), date.getUTCMonth() + 1, 1)
+        : time + (query.granularity === 'week' ? 7 : 1) * DAY;
+    }
+    for (const [index, time] of periods.entries()) {
+      const next = periods[index + 1] ?? end;
+      const months = (next - time) / (30.44 * DAY);
+      const growth = 0.3 + (time - start) / (90 * 30.44 * DAY);
       for (const value of values) {
         buckets.push({
-          start: date.toISOString().slice(0, 10),
+          start: new Date(time).toISOString().slice(0, 10),
           group: value,
-          n: Math.max(0, Math.round(scale * growth * (0.4 + random()) * step)),
+          n: Math.max(0, Math.round(scale * growth * (0.4 + random()) * months)),
         });
       }
     }

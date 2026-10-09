@@ -346,7 +346,7 @@
            one carries a visible ring rather than only a hue, which is the
            relief a colour-only indicator owes. -->
       <div class="flex flex-wrap items-center gap-2" role="radiogroup" aria-label="Cohort colour">
-        @for (hex of palette; track hex; let i = $index) {
+        @for (hex of palette(); track hex; let i = $index) {
           <button
             type="button"
             role="radio"

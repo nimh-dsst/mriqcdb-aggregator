@@ -64,6 +64,8 @@ import {
   type ControlsValue,
 } from './controls-form';
 import { CATEGORY_PALETTE, cohortColor } from '../panels/specs';
+import { DARK_THEME } from '../panels/specs/palette';
+import { Theme } from './theme';
 import { cohortAutoName, uniqueCohortName } from '../graph/cohort-name';
 import { mintCohortId, nextCohortColor } from '../graph/cohorts';
 import { unitNoun } from '../view/text';
@@ -257,7 +259,9 @@ export class CohortEditor {
 
   protected deleteGroup(id: string): void { this.graph.dispatch({ t: 'removeCohort', id }); }
   protected readonly color = signal(0);
-  protected readonly palette = CATEGORY_PALETTE;
+  private readonly theme = inject(Theme);
+  /** The swatches in the colours the charts will actually draw. */
+  protected readonly palette = computed(() => this.theme.mode() === 'dark' ? DARK_THEME.categories : CATEGORY_PALETTE);
   protected readonly swatch = cohortColor;
 
   /** Where the fields came from. First control, because it overwrites the rest. */
