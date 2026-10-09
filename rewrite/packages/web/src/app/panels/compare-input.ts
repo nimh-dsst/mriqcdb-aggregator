@@ -11,6 +11,7 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { fieldValueLabel, isNoneValue, NONE_FILTER_VALUE, type FieldDef } from '@mriqc/shared';
 import { LucideAngularModule, Plus, X } from 'lucide-angular';
+import { splitValues } from '../graph/numeric-split';
 
 import {
   type Series,
@@ -77,7 +78,7 @@ const shiftIsoYear = (value: string, years: number): string => {
                 <button mat-menu-item (click)="isolatedChange.emit(item.id)">Isolate</button>
                 <button mat-menu-item (click)="isolatedChange.emit(null)">Reset</button>
                 @if (item.descriptorKey) {
-                  <button mat-menu-item (click)="removed.emit(item.descriptorKey)">Remove</button>
+                  <button mat-menu-item (click)="removeChip(item)">Remove</button>
                 }
                 @if (canSaveGroup(item.descriptorKey)) {
                   <button mat-menu-item (click)="groupAction.emit({ id: item.id, action: 'save' })">Save as group…</button>
@@ -103,7 +104,7 @@ const shiftIsoYear = (value: string, years: number): string => {
                   type="button"
                   class="inline-flex min-h-9 min-w-9 shrink-0 items-center justify-center text-ink-2"
                   [attr.aria-label]="'Remove comparison ' + item.name"
-                  (click)="removed.emit(item.descriptorKey)"
+                  (click)="removeChip(item)"
                 >
                   <lucide-icon [img]="xIcon" [size]="14" aria-hidden="true" />
                 </button>
@@ -214,9 +215,27 @@ const shiftIsoYear = (value: string, years: number): string => {
           }
         </section>
       }
+      @if (splitEditorOpen()) {
+        <section class="space-y-2 rounded border border-border bg-surface p-2">
+          <label>Numeric field
+            <select aria-label="Split field" [value]="splitField()" (change)="splitField.set($any($event.target).value)">
+              @for (field of numericFields(); track field.id) { <option [value]="field.id">{{ field.label }}</option> }
+            </select>
+          </label>
+          <label>Cut points <input aria-label="Cut points" placeholder="e.g. 1, 2, 3" [value]="cutPoints()" (input)="cutPoints.set($any($event.target).value)" /></label>
+          <button type="button" (click)="addSplit()" [disabled]="!splitCandidate()">Split</button>
+          <button type="button" (click)="splitEditorOpen.set(false)">Cancel</button>
+        </section>
+      }
     </div>
 
     <mat-menu #comparisonMenu="matMenu">
+      @if (grouping(); as selectedGrouping) {
+        <div class="px-3 py-1 text-caption text-ink-2">{{ fieldLabel(selectedGrouping.field) }} groups</div>
+        @for (entry of fieldValues()[selectedGrouping.field] || []; track valueKey(entry.value)) {
+          <button mat-menu-item [disabled]="groupSelected(valueKey(entry.value)) || !!groupReason(valueKey(entry.value))" [title]="groupReason(valueKey(entry.value)) || ''" (click)="addGroup(valueKey(entry.value))">{{ valueLabel(entry) }}</button>
+        }
+      }
       <div class="px-3 py-1 text-caption text-ink-2">By field</div>
       @for (field of fieldOptions(); track field.id) {
         @let fieldCandidate = fieldSeries(field);
@@ -236,6 +255,7 @@ const shiftIsoYear = (value: string, years: number): string => {
       }
 
       <button mat-menu-item (click)="openValuesEditor()">Chosen values…</button>
+      @if (numericFields().length) { <button mat-menu-item (click)="openSplitEditor()">Split at…</button> }
 
       <div class="px-3 py-1 text-caption text-ink-2">Against</div>
       @let populationCandidate = populationSeries();
@@ -380,6 +400,40 @@ export class CompareInput {
 
   readonly added = output<Series>();
   readonly removed = output<string>();
+  readonly replaced = output<Series>();
+  readonly splitEditorOpen = signal(false);
+  readonly splitField = signal('');
+  readonly cutPoints = signal('');
+  readonly numericFields = computed(() => this.fields().filter(field => field.kind === 'numeric'));
+  openSplitEditor(): void { this.splitField.set(this.numericFields()[0]?.id ?? ''); this.cutPoints.set(''); this.splitEditorOpen.set(true); }
+  splitCandidate(): Series | null {
+    const field = this.numericFields().find(field => field.id === this.splitField());
+    const cuts = this.cutPoints().trim().split(/[ ,]+/).map(Number);
+    const values = this.cutPoints().trim() && cuts.every(Number.isFinite) ? splitValues(cuts) : [];
+    return field && values.length ? { kind: 'values', field: field.id, values } : null;
+  }
+  addSplit(): void { const candidate = this.splitCandidate(); if (candidate) { this.replaced.emit(candidate); this.splitEditorOpen.set(false); } }
+  readonly grouping = computed(() => this.series().find(item => item.kind === 'field' || item.kind === 'values'));
+  removeChip(item: {id: string; descriptorKey?: string}): void {
+    if (!item.descriptorKey) return;
+    this.removed.emit(item.id.startsWith('g\u0000') ? item.id : item.descriptorKey);
+  }
+  groupSelected(value: string): boolean {
+    const group = this.grouping();
+    return group?.kind === 'field' || (group?.kind === 'values' && group.values.some(selected => {
+      if (selected === value) return true;
+      if (!selected.startsWith('other:')) return false;
+      try { return (JSON.parse(selected.slice(6)) as unknown[]).some(item => String(item) === value); } catch { return false; }
+    }));
+  }
+  groupReason(value: string): string | null {
+    const group = this.grouping();
+    return group?.kind === 'values' ? this.disabledReason({ ...group, values: [...group.values, value] }) : null;
+  }
+  addGroup(value: string): void {
+    const group = this.grouping();
+    if (group?.kind === 'values' && !group.values.includes(value)) this.replaced.emit({ ...group, values: [...group.values, value] });
+  }
   readonly isolatedChange = output<string | null>();
   readonly newGroup = output<void>();
   readonly groupAction = output<{ id: string; action: 'save' | 'only' }>();
@@ -459,7 +513,8 @@ export class CompareInput {
 
   disabledReason(candidate: Series): string | null {
     if (candidate.kind === 'study' && this.studyReady() && this.studyFormReason()) return this.studyFormReason();
-    const reason = seriesDisabledReason(this.series(), candidate, this.context());
+    const existing = candidate.kind === 'values' ? this.series().filter(item => !('field' in item) || item.field !== candidate.field) : this.series();
+    const reason = seriesDisabledReason(existing, candidate, this.context());
     if (reason) return reason;
     const study = candidate.kind === 'study' || (candidate.kind === 'cohort' && this.groups().find(group => group.id === candidate.id)?.source === 'study');
     return study ? this.studyFormReason() : null;
@@ -562,7 +617,8 @@ export class CompareInput {
 
   addCandidate(candidate: Series): void {
     if (this.disabledReason(candidate) === null) {
-      this.added.emit(candidate);
+      if (candidate.kind === 'values' && this.grouping()) this.replaced.emit(candidate);
+      else this.added.emit(candidate);
     }
   }
 

@@ -18,17 +18,19 @@ describe('time-summary projection', () => {
     for (const x of ['created_at', 'fd_mean']) {
       for (const quantiles of ['quartiles', 'tails'] as const) {
         let state = reduce(INITIAL_STATE, { t: 'hydrate', url: defaultDashboard() });
-        state = reduce(state, { t: 'patchPanel', id: 'p1', patch: { x: asColumnId(x), y: asColumnId('tsnr'), form, options: { quantiles } } });
+        state = reduce(state, { t: 'patchPanel', id: 'p1', patch: { x: asColumnId(x), y: asColumnId('tsnr'), form: 'band', options: { quantiles, fill: form } } });
         const panel = state.panels[0];
         const result = { xKind: x === 'created_at' ? 'time' : 'metric', yKind: 'metric' as const, range: [0, 10000], buckets: [
           { ...bucket('2024-01-01', null, 3), quantiles: { p05: 1, p25: 2, p50: 3, p75: 4, p95: 5 } },
         ] };
-        state = { ...state, datasets: Object.fromEntries(panelQueries(state, panel).filter(query => query.proc === 'binnedSummary').map(query => [queryKey(query), { status: 'ready' as const, version: 'v', result }])) };
+        const summary = { n: 30, min: 1, max: 5, mean: 3, stddev: 1, quantiles: { p01: 1, p05: 1, p25: 2, p50: 3, p75: 4, p95: 5, p99: 5 }, histogram: { lo: 1, hi: 5, width: 1, counts: [5, 10, 10, 5] } };
+        state = { ...state, datasets: Object.fromEntries(panelQueries(state, panel).map(query => [queryKey(query), { status: 'ready' as const, version: 'v', result: query.proc === 'distribution' ? summary : result }])) };
         const view = panelView(state, 'p1')!;
         expect(view.title).toBe(x === 'created_at' ? 'tSNR over time' : 'tSNR vs FD mean');
         const [lower, upper] = quantiles === 'quartiles' ? ['Q1', 'Q3'] : ['p05', 'p95'];
-        expect(view.analysisHeaders).toEqual(['n', `First ${lower}`, 'First median', `First ${upper}`, `Last ${lower}`, 'Last median', `Last ${upper}`, 'Median change']);
-        expect(view.analysisRows?.[0].cells).toEqual(quantiles === 'quartiles' ? ['30', '2', '3', '4', '2', '3', '4', '0'] : ['30', '1', '3', '5', '1', '3', '5', '0']);
+        expect(view.analysisRows).toEqual([]);
+        expect(view.stats?.find(stat => stat.label === 'MEDIAN')?.value).toBe('3');
+        expect(view.stats?.find(stat => stat.label === '5TH PCT')?.value).toBe('1');
         expect(view.meaning).toContain(lower);
         expect(view.meaning).toContain(upper);
       }
@@ -38,11 +40,11 @@ describe('time-summary projection', () => {
   it.each(['band', 'lines'] as const)('dispatches %s through time summaries and its own marks', form => {
     let state = reduce(INITIAL_STATE, { t: 'hydrate', url: defaultDashboard() });
     state = reduce(state, { t: 'setPanelAxis', id: 'p5', axis: 'y', value: asColumnId('fd_mean') });
-    state = reduce(state, { t: 'setPanelForm', id: 'p5', form });
+    state = reduce(state, { t: 'patchPanel', id: 'p5', patch: { form: 'band', options: { fill: form } } });
     const panel = state.panels[4];
     const queries = panelQueries(state, panel);
-    expect(queries.map(query => query.proc)).toEqual(['binnedSummary']);
-    const datasets = Object.fromEntries(queries.map(query => [queryKey(query), {
+    expect(queries.map(query => query.proc)).toEqual(['binnedSummary', 'distribution']);
+    const datasets = Object.fromEntries(queries.filter(query => query.proc === 'binnedSummary').map(query => [queryKey(query), {
       status: 'ready' as const, version: 'v', result: { xKind: "time" as const, yKind: 'metric' as const, range: [0,10000] as [number,number], buckets: [bucket('2024-01-01', null, 0.3)] },
     }]));
     const view = panelView({ ...state, dataVersion: 'v', datasets }, 'p5')!;
@@ -81,9 +83,9 @@ describe('time-summary projection', () => {
     state = reduce(state, { t: 'patchPanel', id: 'p5', patch: { y: asColumnId('fd_mean'),form:'band',series:[{kind:'field',field:asColumnId('manufacturer')}] } });
     const panel = state.panels[4];
     const queries=panelQueries(state,panel);
-    expect(queries).toHaveLength(7);
+    expect(queries.filter(query => query.proc === 'binnedSummary')).toHaveLength(7);
     expect(queries[5]).toMatchObject({proc:'binnedSummary',filters:[{field:'manufacturer',op:'in',values:['Vendor5','Vendor6','Vendor7']}]});
-    state={...state,dataVersion:'v',datasets:Object.fromEntries(queries.map((query,i)=>[queryKey(query),{status:'ready' as const,version:'v',result:{buckets:[bucket('2024-01-01',null,i===5?6:i,i===6?612:i===5?222:80-i)]}}]))};
+    state={...state,dataVersion:'v',datasets:Object.fromEntries(queries.filter(query => query.proc === 'binnedSummary').map((query,i)=>[queryKey(query),{status:'ready' as const,version:'v',result:{xKind:'time',yKind:'metric',range:[0,10000],buckets:[bucket('2024-01-01',null,i===5?6:i,i===6?612:i===5?222:80-i)]}}]))};
     const view = timePanelView(state, panel, LIGHT_THEME);
     expect(view.analysisRows).toHaveLength(6);
     expect(view.analysisRows?.at(-1)).toMatchObject({ name: 'Other', color: OTHER_COLOR, cells: ['222', '6', '6', '6', '6', '6', '6', '0'] });

@@ -10,6 +10,9 @@ import { seriesKey, seriesLabel, type Series } from './series';
 import { CURRENT_COHORT, DENSITY_BINS, groupCohortId, type Cohort, type Panel, type State } from './state';
 import { correlationMetrics } from './correlation-options';
 import { timeGroups } from './time-groups';
+import { isColumnY } from './state';
+import { splitFilter, splitLabel } from './numeric-split';
+import { ySummaryQuery } from './y-summary';
 
 export const CATALOG_KEY: QueryKey = queryKey({ source: 'population', proc: 'catalog' });
 export function effectiveSelection(state: State, panel: Panel): readonly Selection[] {
@@ -27,7 +30,7 @@ export function studyFormReason(panel: Panel, state: State): string | null {
     return available.length < 2 ? 'your file needs at least two metrics in this set' : null;
   }
   if ((panel.x === 'created_at' || panel.y === 'created_at') && !columns.includes('created_at')) return 'your file has no upload time';
-  for (const column of [panel.x, panel.y]) {
+  for (const column of [panel.x, ...(isColumnY(panel.y) ? [panel.y] : [])]) {
     if (column && !columns.includes(column)) return `your file has no ${column} column`;
   }
   return null;
@@ -54,6 +57,20 @@ export function panelCohorts(state: State, panel: Panel): readonly ResolvedSerie
         entries.find(entry => String(wire(entry.value)) === value) ?? { value, n: 0 }) : ranked.slice(0, 5);
       for (const entry of selected) {
         const value = wire(entry.value);
+        const interval = descriptor.kind === 'values' && typeof value === 'string' ? splitFilter(descriptor.field, value) : null;
+        if (interval) {
+          out.push({ ...base, id: groupCohortId(descriptor.field, String(value)), name: splitLabel(String(value)), color: out.length,
+            filters: [...base.filters, interval], descriptorKey });
+          continue;
+        }
+        if (descriptor.kind === 'values' && typeof value === 'string' && value.startsWith('other:')) {
+          let values: (string | number | boolean)[] = [];
+          try { values = JSON.parse(value.slice(6)); } catch { continue; }
+          if (!Array.isArray(values) || !values.every(item => ['string', 'number', 'boolean'].includes(typeof item))) continue;
+          out.push({ ...base, id: groupCohortId(descriptor.field, value), name: 'Other', color: 6,
+            filters: [...base.filters, { field: descriptor.field, op: 'in', values }], descriptorKey });
+          continue;
+        }
         out.push({ ...base, id: groupCohortId(descriptor.field, String(value)),
           name: fieldValueLabel(String(descriptor.field), entry.value), color: out.length,
           filters: [...base.filters, { field: descriptor.field, op: 'in', values: [value] }], descriptorKey });
@@ -209,7 +226,13 @@ export function scopedQuery(state: State, panel: Panel, cohort: Cohort, proc: Qu
   const scoped = { source: cohort.source, modality: state.global.modality, view: cohort.view, filters: cohort.filters, selections: cohort.selections };
   switch (proc) {
     case 'distribution': return cohortQuery(state, panel, cohort, panel.options.xRange === 'auto' ? undefined : panel.options.xRange);
-    case 'groupedSummary': return cohort.source === 'study' ? null : { ...scoped, proc, metric: asColumnId('size_x'), group: panel.x as ColumnId };
+    case 'groupedSummary': {
+      if (panel.y === 'created_at') {
+        const coverage = scopedQuery(state, { ...panel, options: { ...panel.options, granularity: 'day' } }, cohort, 'coverage');
+        return coverage?.source === 'study' && coverage.proc === 'coverage' ? { ...coverage, countsOnly: false } : coverage;
+      }
+      return cohort.source === 'study' && !isColumnY(panel.y) ? null : { ...scoped, proc, metric: isColumnY(panel.y) ? panel.y as ColumnId : asColumnId('size_x'), group: panel.x as ColumnId };
+    }
     case 'coverage': {
       if (cohort.source === 'study') return { ...scoped, source: 'study', proc,
         group: axisType(panel.x) === 'categorical' ? panel.x as ColumnId : asColumnId('created_at'),
@@ -220,7 +243,7 @@ export function scopedQuery(state: State, panel: Panel, cohort: Cohort, proc: Qu
       return group ? { ...scoped, source: 'population', proc, group, granularity: panel.options.granularity,
         filters: coverageFilters(cohort.filters, panel) } : null;
     }
-    case 'binnedSummary': return panel.y ? { ...scoped, proc, x: panel.x, y: panel.y,
+    case 'binnedSummary': return isColumnY(panel.y) ? { ...scoped, proc, x: panel.x, y: panel.y,
       bins: panel.x === 'created_at' ? panel.options.granularity : panel.options.bins,
       ...(panel.options.xRange !== 'auto' ? { range: [...panel.options.xRange] as [number, number] } : {}),
       filters: panel.x === 'created_at' ? coverageFilters(cohort.filters, panel) : cohort.filters } : null;
@@ -231,7 +254,7 @@ export function scopedQuery(state: State, panel: Panel, cohort: Cohort, proc: Qu
         columns: (state.study.columns ?? state.study.metrics).map(asColumnId),
         filters: panel.x === 'created_at' ? coverageFilters(cohort.filters, panel) : cohort.filters,
       } : null;
-    case 'density2d': return panel.y ? { ...scoped, proc, x: panel.x as ColumnId, y: panel.y, grid: panel.options.cells ?? 60, bins: 120, clip: panel.options.clip,
+    case 'density2d': return isColumnY(panel.y) ? { ...scoped, proc, x: panel.x as ColumnId, y: panel.y as ColumnId, grid: panel.options.cells ?? 60, bins: 120, clip: panel.options.clip,
       sampleSize: panel.form === 'clusters' ? panel.options.sampleSize ?? 20000 : 2000, seed: panel.options.seed ?? 42 } : null;
     case 'correlation': {
       let metrics = correlationMetrics(panel, state.global.modality);
@@ -259,9 +282,10 @@ export function panelQueries(state: State, panel: Panel): readonly Query[] {
     ];
   }
   if (panel.form === 'matrix') return cohorts.flatMap(cohort => { const q = query(cohort, 'correlation'); return q ? [q] : []; });
-  if (panel.y) return [
-    ...(panel.form === 'band' || panel.form === 'lines' ? binnedQueries(state, panel) : densityQueries(state, panel)),
-    ...(axisType(panel.x) === 'numeric' ? [cohortQuery(state, panel, panelCohort(state, panel))] : []),
+  if (isColumnY(panel.y)) return [
+    ...(panel.form === 'box' ? [] : axisType(panel.x) === 'categorical' ? cohorts.flatMap(cohort => { const q = query(cohort, 'groupedSummary'); return q ? [q] : []; })
+      : ['heatmap', 'hexbin', 'scatter', 'clusters'].includes(panel.form) ? densityQueries(state, panel) : binnedQueries(state, panel)),
+    ...[...cohorts, ...(groupingSeries(panel) ? [panelCohort(state, panel)] : [])].map(cohort => ySummaryQuery(state, panel, cohort)),
   ];
   if (axisType(panel.x) === 'time' || axisType(panel.x) === 'categorical') {
     const proc = axisType(panel.x) === 'categorical' ? 'groupedSummary' : 'coverage';

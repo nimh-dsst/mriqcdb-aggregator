@@ -20,9 +20,7 @@ describe("graph series", () => {
       seriesDisabledReason([grouping], { kind: "population" }, {
         fieldCount: () => 5,
       }),
-    ).toBe(
-      "Six coloured series plus Other maximum. Remove a comparison or choose fewer values.",
-    );
+    ).toBeNull();
   });
 
   it("permits two chosen values alongside the whole population", () => {

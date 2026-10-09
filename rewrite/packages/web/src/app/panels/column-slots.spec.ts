@@ -54,14 +54,14 @@ describe('drawer slots', () => {
       .toMatchObject({ x: nextX, y: oldY, focused: 'x' });
   });
 
-  it('only accepts numeric Y values with a continuous X', () => {
+  it('accepts continuous Y values with categorical X', () => {
     const categoricalX = reduceDrawerSlots(EMPTY_DRAWER_SLOTS, {
       type: 'pick',
       column: discrete('group'),
     });
 
     expect(reduceDrawerSlots(categoricalX, { type: 'pick', column: continuous('metric') }))
-      .toMatchObject({ x: continuous('metric'), y: null });
+      .toMatchObject({ x: categoricalX.x, y: continuous('metric') });
   });
 
   it('clears a focused slot and swaps only when X is numeric', () => {

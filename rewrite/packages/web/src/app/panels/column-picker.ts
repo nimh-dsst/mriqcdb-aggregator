@@ -14,7 +14,7 @@ import {
 import type { FieldDef, MetricDef } from '@mriqc/shared';
 import { asColumnId } from '@mriqc/shared';
 import { Graph } from '../graph/graph';
-import type { Form } from '../graph/state';
+import type { Form, Aggregate } from '../graph/state';
 import { canSwapDrawerSlots, reduceDrawerSlots, type DrawerSlots, type DrawerSlotsAction } from './column-slots';
 
 type ColumnSource = 'field' | 'metric' | 'time';
@@ -176,9 +176,9 @@ let nextColumnPickerId = 0;
               <label class="slot-target">
                 <span>{{ slot === 'x' ? 'X' : 'Y' }}</span>
                 <input type="text" autocomplete="off"
-                [attr.aria-label]="slot === 'x' ? 'X slot' : 'Y slot (optional)'"
+                [attr.aria-label]="slot === 'x' ? 'X slot' : 'Y slot'"
                 [attr.cdkFocusInitial]="focusY() && slot === 'y' ? '' : null"
-                [value]="editingSlot() === slot ? query() : slots()[slot]?.label || ''"
+                [value]="editingSlot() === slot ? query() : slots()[slot]?.label || (slot === 'y' ? (quantity() === 'share' ? 'Share' : 'Count') : '')"
                 placeholder="Choose a column"
                 (focus)="focusSlot(slot)" (click)="focusSlot(slot)"
                 (input)="searchSlot(slot, $event)" (keydown)="slotKey(slot, $event)" />
@@ -190,6 +190,15 @@ let nextColumnPickerId = 0;
             </div>
           }
           <button type="button" class="btn btn-quiet" aria-label="Swap X and Y" [disabled]="!canSwap()" (click)="slotAction({ type: 'swap' })">⇄</button>
+          @if (slots().y) {
+            <label class="text-caption">Aggregate
+              <select aria-label="Aggregate" [value]="selectedAggregate()" (change)="changeAggregate($event)">
+                @for (value of aggregates; track value) {
+                  <option [value]="value" [disabled]="unavailableAggregate(value)" [title]="unavailableAggregate(value) ? 'not available for this aggregate' : ''">{{ value }}{{ unavailableAggregate(value) ? ' — not available for this aggregate' : '' }}</option>
+                }
+              </select>
+            </label>
+          }
         @if (!panelId()) {
           <button type="button" class="btn" [disabled]="!slots().x" (click)="commit($event)">Create panel</button>
         }
@@ -227,6 +236,12 @@ let nextColumnPickerId = 0;
         </nav>
       }
       <div class="column-picker-columns" aria-label="Columns" tabindex="-1" (keydown)="paneKey('columns', $event)">
+      @if (drawer() && slots().focused === 'y') {
+        <div class="column-picker-rows" aria-label="Y quantity">
+          <button type="button" class="column-picker-row" (click)="chooseQuantity('count')">Count</button>
+          <button type="button" class="column-picker-row" (click)="chooseQuantity('share')">Share</button>
+        </div>
+      }
       @if (visibleGroups().length === 0) {
         <p class="text-caption text-ink-2">No columns match your search.</p>
       }
@@ -283,7 +298,7 @@ let nextColumnPickerId = 0;
             <p>Unit: category</p>
           }
           <ng-content />
-        <p class="text-caption">Choose X and optionally a continuous Y{{ panelId() ? '.' : ', then create the panel. Hold Shift when creating to keep this drawer open.' }}</p>
+        <p class="text-caption">Choose X and Y{{ panelId() ? '.' : ', then create the panel. Hold Shift when creating to keep this drawer open.' }}</p>
         </aside>
       }
       </div>
@@ -313,6 +328,23 @@ export class ColumnPicker {
   readonly pendingForm = input<Form | null>(null);
   readonly panelId = input<string | null>(null);
   readonly y = input<string | null>(null);
+  readonly aggregate = input<Aggregate>('median');
+  readonly selectedAggregate = signal<Aggregate>('median');
+  readonly quantity = signal<'count' | 'share'>('count');
+  readonly aggregates: readonly Aggregate[] = ['median', 'mean', 'sum', 'min', 'max', 'p05', 'p25', 'p50', 'p75', 'p95'];
+  unavailableAggregate(value: Aggregate): boolean {
+    if (value === 'sum') return true;
+    return ['min', 'max'].includes(value) && !(this.slots().x?.source === 'field' && this.slots().y?.source === 'metric');
+  }
+  changeAggregate(event: Event): void {
+    this.selectedAggregate.set((event.target as HTMLSelectElement).value as Aggregate);
+    this.applyLive();
+  }
+  chooseQuantity(value: 'count' | 'share'): void {
+    this.quantity.set(value);
+    this.slots.update(slots => ({ ...slots, y: null, focused: 'y' }));
+    this.applyLive();
+  }
   readonly closed = output<void>();
   readonly preview = signal<string | null>(null);
   readonly slotNames = ['x', 'y'] as const;
@@ -335,6 +367,8 @@ export class ColumnPicker {
         return column ? this.slotColumn(column) : null;
       };
       const first = this.initializedPanel !== this.panelId();
+      this.quantity.set(this.y() === 'share' ? 'share' : 'count');
+      this.selectedAggregate.set(this.aggregate());
       const focusChanged = this.previousFocusY !== this.focusY();
       this.slots.set({ x: this.panelId() ? find(this.selected()) : null, y: this.panelId() ? find(this.y()) : null,
         focused: first || focusChanged ? (this.focusY() ? 'y' : 'x') : untracked(this.slots).focused });
@@ -351,6 +385,7 @@ export class ColumnPicker {
   }
 
   slotAction(action: DrawerSlotsAction<ColumnPickerColumn & { isNumeric: boolean; isContinuous: boolean }>): void {
+    if (action.type === 'clear' && action.slot === 'y') this.quantity.set('count');
     this.slots.update(slots => reduceDrawerSlots(slots, action));
     if (action.type !== 'focus') {
       this.query.set('');
@@ -361,7 +396,7 @@ export class ColumnPicker {
 
   readonly query = signal('');
   readonly groups = computed(() =>
-    columnGroups(this.metrics(), this.drawer() && this.slots().focused === 'y' && this.slots().x?.isContinuous ? [] : this.fields(), this.query()),
+    columnGroups(this.metrics(), this.drawer() && this.slots().focused === 'y' ? [] : this.fields(), this.query()),
   );
   readonly families = computed(() => columnGroups(this.metrics(), this.fields(), ''));
   readonly selectedFamily = signal('Time');
@@ -478,8 +513,8 @@ export class ColumnPicker {
     const { x: column, y: second } = this.slots();
     if (!column) return;
     const x = asColumnId(column.id);
-    const y = column.source === 'field' || !second || second.id === column.id ? null : asColumnId(second.id);
-    this.injector.get(Graph).dispatch({ t: 'addPanel', x, y });
+    const y = !second || second.id === column.id ? this.quantity() : asColumnId(second.id);
+    this.injector.get(Graph).dispatch({ t: 'addPanel', x, y, aggregate: this.selectedAggregate() });
     if (!event?.shiftKey) this.closed.emit();
     else this.slots.set({ x: null, y: null, focused: 'x' });
   }
@@ -490,9 +525,9 @@ export class ColumnPicker {
     const { x: column, y: second } = this.slots();
     if (!column) return;
     const x = asColumnId(column.id);
-    const y = column.source === 'field' || !second || second.id === column.id ? null : asColumnId(second.id);
+    const y = !second || second.id === column.id ? this.quantity() : asColumnId(second.id);
     const form = this.pendingForm();
-    this.injector.get(Graph).dispatch({ t: 'patchPanel', id, patch: { x, y, ...(form && y ? { form } : {}) } });
+    this.injector.get(Graph).dispatch({ t: 'patchPanel', id, patch: { x, y, aggregate: this.selectedAggregate(), ...(form && second ? { form } : {}) } });
   }
 
   pick(column: ColumnPickerColumn, event?: MouseEvent): void {

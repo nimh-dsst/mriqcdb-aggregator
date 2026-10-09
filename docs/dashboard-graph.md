@@ -1025,9 +1025,9 @@ payloads are:
 | `setPanelAxis` | `id`, `axis`, `value`; keeps the form when still valid |
 | `setPanelForm` | `id`, `form`; validates through `formsFor` |
 | `addPanelSeries` | `id`, `series`; validates descriptor, mixing and cap |
-| `removePanelSeries` | `id`, `key`; removes the stable descriptor key |
+| `removePanelSeries` | `id`, `key`; a descriptor key removes it; a rendered group id retains the other groups as a values series |
 | `addGroupToPanels` | `id`, optional `panelIds`; adds a saved group where capacity permits |
-| `patchPanel` | `id`, `patch`; normalizes axes, forms, options and series |
+| `patchPanel` | `id`, `patch`; sets `x`, `y` (Count/Share/column), `aggregate`, form, options or series; changing `options.fill` selects Band or Lines within Band |
 | `addCohort` / `updateCohort` / `removeCohort` | saved-group storage; deletion also prunes references |
 | `requestPage` | `id`, `cursor`; extends Table's ephemeral page chain |
 
@@ -1064,3 +1064,14 @@ Scroll behavior is part of the same URL integration:
   population, and traverses Back twice. It checks URL/history, restored
   controls, and component identity. Recorded scrollY values were 900 before,
   900 after Form, 900 after adding the series, and 900 after each Back.
+
+
+### Grammar commands (2026-10-09)
+
+`addPanel` accepts x, y (default Count), aggregate (default median), form and
+series. The drawer uses `patchPanel` for live X/Y and aggregate edits.
+`setPanelOptions`/`patchPanel.options` retain scale and range commands, including
+`yMode: 'logCount'`; Count/Share updates also synchronize the panel's y quantity.
+`removePanelSeries` accepts either the descriptor key or a rendered group id.
+Adding back a group, choosing values or setting numeric cut points dispatches
+one `patchPanel.series` replacement, preserving undo as one operation.

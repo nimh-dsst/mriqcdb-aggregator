@@ -61,7 +61,7 @@ import { decodeUrlState, encodeUrlState, urlState } from './url';
 function panel(overrides: Partial<Panel> = {}): Panel {
   return {
     id: 'p1',
-    y: null,
+    y: 'count', aggregate: 'median',
     x: asColumnId('fd_mean'),
     form: 'histogram',
     series: [],
@@ -133,7 +133,7 @@ describe('study cohort', () => {
   it('is derived only while a study is ready and plans local-source comparison queries', () => {
     expect(studyCohort(fixture())).toBeNull();
     const comparison = panel({
-      y: null,
+      y: 'count', aggregate: 'median',
       form: 'histogram',
       series: [{ kind: 'study' as const }],
     });
@@ -196,7 +196,7 @@ describe('needed', () => {
     // reducer reverts such a panel, but the projection has to be total for the
     // instant before it does.
     const comparison = panel({
-      y: null,
+      y: 'count', aggregate: 'median',
       form: 'histogram',
       series: [],
     });
@@ -207,7 +207,7 @@ describe('needed', () => {
 
   it('asks for one distribution per cohort, with no range, in step one', () => {
     const comparison = panel({
-      y: null,
+      y: 'count', aggregate: 'median',
       form: 'histogram',
       series: [{ kind: 'population' as const }],
     });
@@ -234,7 +234,7 @@ describe('needed', () => {
     // cohorts, one request -- which is the same rule that makes two panels
     // comparing the same cohort share an entry.
     const comparison = panel({
-      y: null,
+      y: 'count', aggregate: 'median',
       form: 'histogram',
       series: [{ kind: 'population' as const }],
     });
@@ -362,7 +362,7 @@ describe('panelQueries', () => {
 
   it('applies card-local coverage windows without losing other cohort filters', () => {
     const coverage = panel({
-      y: null,
+      y: 'count', aggregate: 'median',
       x: 'created_at',
       form: 'area',
       series: [{ kind: 'field' as const, field: asColumnId('manufacturer') }],
@@ -393,7 +393,7 @@ describe('panelQueries', () => {
   });
 
   it('keeps the earlier pages of a sample panel on screen', () => {
-    const sample = panel({ y: null, form: 'table', x: asColumnId('fd_mean') });
+    const sample = panel({ y: 'count', aggregate: 'median', form: 'table', x: asColumnId('fd_mean') });
     const first = fixture({ panels: [sample] });
     const paged = reduce(first, { t: 'requestPage', id: 'p1', cursor: 'page-2' });
     const keys = panelKeys(paged, paged.panels[0]);
@@ -413,7 +413,7 @@ describe('panelQueries', () => {
   });
 
   it('gives the sample panel every exportable column', () => {
-    const sample = panel({ y: null, form: 'table', x: asColumnId('fd_mean') });
+    const sample = panel({ y: 'count', aggregate: 'median', form: 'table', x: asColumnId('fd_mean') });
     const query = panelQueries(fixture({ panels: [sample] }), sample)[0];
     expect(query.proc).toBe('sample');
     expect(query).toMatchObject({ cursor: null });
@@ -601,7 +601,7 @@ describe('panelView', () => {
 
   it('changes specKey when coverage axis options change', () => {
     const coverage = panel({
-      y: null,
+      y: 'count', aggregate: 'median',
       x: 'created_at',
       form: 'histogram',
       series: [{ kind: 'field' as const, field: asColumnId('manufacturer') }],
@@ -611,7 +611,7 @@ describe('panelView', () => {
       fixture({
         panels: [
           panel({
-            y: null,
+            y: 'count', aggregate: 'median',
             x: 'created_at',
             form: 'histogram',
             series: [{ kind: 'field' as const, field: asColumnId('manufacturer') }],
@@ -647,7 +647,7 @@ describe('significant', () => {
 describe('panel stats', () => {
   const key = () => panelKeys(fixture(), panel())[0];
 
-  it('projects the summary the chart is already drawing, with the metric unit', () => {
+  it('projects Count totals without inheriting the X metric unit', () => {
     // `spacing_x` is one of the few metrics the catalog gives a unit.
     const inMillimetres = panel({ x: asColumnId('spacing_x') });
     const spacingKey = panelKeys(fixture(), inMillimetres)[0];
@@ -659,21 +659,13 @@ describe('panel stats', () => {
     // The fixture is on the raw view, so its rows are uploads.
     expect(stats?.map((s) => s.label)).toEqual([
       'UPLOADS',
-      'MEAN',
-      'SD',
-      '5TH PCT',
-      'MEDIAN',
-      '95TH PCT',
-      'MIN',
-      'MAX',
     ]);
     // Every abbreviation carries its own sentence; the row itself stays a row.
     expect(stats?.every((stat) => stat.title.length > 0)).toBe(true);
-    expect(stats?.[0].title).toBe('How many uploads had a value for this metric.');
+    expect(stats?.[0].title).toBe('Total count in this dashboard.');
     // 300 records is a count, not a measurement, so it carries no unit.
     expect(stats?.[0].value).toBe('300');
-    expect(stats?.[1].value).toBe('0.4 mm');
-    expect(stats?.[4].value).toBe('0.4 mm');
+    expect(stats).toHaveLength(1);
   });
 
   it('has no stats until the result arrives, and none for a grouped panel', () => {
@@ -699,7 +691,7 @@ describe('panel stats', () => {
     expect(panelView(fixture(), 'p1')?.countLabel).toBe('BOLD uploads with a value');
     resetPanelViewMemo();
     const coverage = panel({
-      y: null,
+      y: 'count', aggregate: 'median',
       form: 'histogram',
       x: 'created_at',
       series: [{ kind: 'field' as const, field: asColumnId('manufacturer') }],
@@ -726,12 +718,12 @@ describe('urlState', () => {
 
   it('excludes cursors, so paging does not rewrite the URL', () => {
     const paged = reduce(
-      fixture({ panels: [panel({ y: null, form: 'table', x: asColumnId('fd_mean') })] }),
+      fixture({ panels: [panel({ y: 'count', aggregate: 'median', form: 'table', x: asColumnId('fd_mean') })] }),
       { t: 'requestPage', id: 'p1', cursor: 'page-2' },
     );
     expect(encodeUrlState(urlState(paged))).toBe(
       encodeUrlState(
-        urlState(fixture({ panels: [panel({ y: null, form: 'table', x: asColumnId('fd_mean') })] })),
+        urlState(fixture({ panels: [panel({ y: 'count', aggregate: 'median', form: 'table', x: asColumnId('fd_mean') })] })),
       ),
     );
   });
@@ -968,7 +960,7 @@ describe('clipChip', () => {
   });
 
   it('says nothing on a panel whose rows the clip does not narrow', () => {
-    const coverage = panel({ y: null, x: 'created_at', series: [{ kind: 'field' as const, field: asColumnId('manufacturer') }] });
+    const coverage = panel({ y: 'count', aggregate: 'median', x: 'created_at', series: [{ kind: 'field' as const, field: asColumnId('manufacturer') }] });
     expect(clipChip('none', null, coverage)).toBeNull();
   });
 });
@@ -1063,7 +1055,7 @@ describe('panelMeaning', () => {
   it('says what a grouped chart compares', () => {
     const grouped = {
       ...base,
-      y: null,
+      y: 'count', aggregate: 'median',
       form: 'box' as const,
       groupLabel: 'Manufacturer', cohortCount: 2,
     };
@@ -1161,7 +1153,7 @@ describe('panelNotes', () => {
   it('leaves the clip to its own chip, so an untouched card carries no note', () => {
     const state = fixture();
     expect(panelNotes(state, state.panels[0])).toEqual([]);
-    const coverage = panel({ y: null, x: 'created_at', series: [{ kind: 'field' as const, field: asColumnId('manufacturer') }] });
+    const coverage = panel({ y: 'count', aggregate: 'median', x: 'created_at', series: [{ kind: 'field' as const, field: asColumnId('manufacturer') }] });
     expect(panelNotes(fixture({ panels: [coverage] }), coverage)).toEqual([]);
   });
 
@@ -1182,15 +1174,15 @@ describe('panelView help and totals', () => {
   });
 
   it('has no help for a panel with no metric', () => {
-    const coverage = panel({ y: null, x: 'created_at', series: [{ kind: 'field' as const, field: asColumnId('manufacturer') }] });
+    const coverage = panel({ y: 'count', aggregate: 'median', x: 'created_at', series: [{ kind: 'field' as const, field: asColumnId('manufacturer') }] });
     expect(panelView(fixture({ panels: [coverage] }), 'p1')?.metricHelp).toBeNull();
   });
 
   it('gives a sample panel a "showing N of M" subtitle off the coverage total', () => {
-    const sample = panel({ id: 'p1', y: null, x: asColumnId('fd_mean'), form: 'table' });
+    const sample = panel({ id: 'p1', y: 'count', aggregate: 'median', x: asColumnId('fd_mean'), form: 'table' });
     const coverage = panel({
       id: 'p2',
-      y: null,
+      y: 'count', aggregate: 'median',
       x: 'created_at',
       form: 'histogram',
       series: [{ kind: 'field' as const, field: asColumnId('manufacturer') }],
@@ -1209,7 +1201,7 @@ describe('panelView help and totals', () => {
   });
 
   it('falls back to the rows it has when nothing on the board knows the total', () => {
-    const sample = panel({ id: 'p1', y: null, x: asColumnId('fd_mean'), form: 'table' });
+    const sample = panel({ id: 'p1', y: 'count', aggregate: 'median', x: asColumnId('fd_mean'), form: 'table' });
     const base = fixture({ panels: [sample] });
     const key = panelKeys(base, sample)[0];
     const state = fixture({
@@ -1311,7 +1303,7 @@ function cohort(id: string, name: string, overrides: Partial<Cohort> = {}): Coho
 
 /** A two-cohort comparison panel over `fd_mean`. */
 function comparisonPanel(cohorts: readonly string[] = ['current', 'all']): Panel {
-  return panel({ y: null, form: 'histogram', series: cohorts.filter(id => id !== 'current').map(id => id === 'all' ? { kind: 'population' as const } : id === 'study' ? { kind: 'study' as const } : { kind: 'cohort' as const, id }) });
+  return panel({ y: 'count', aggregate: 'median', form: 'histogram', series: cohorts.filter(id => id !== 'current').map(id => id === 'all' ? { kind: 'population' as const } : id === 'study' ? { kind: 'study' as const } : { kind: 'cohort' as const, id }) });
 }
 
 /** A state whose datasets answer every key the panel asks for, with `make`. */
@@ -1535,7 +1527,7 @@ describe('the two-step fetch', () => {
     // ECDF would be a lie about what is on screen.
     expect(view?.status.kind).toBe('ready');
     expect(view?.partial).toBe(true);
-    expect(view?.comparison?.rows).toHaveLength(2);
+    expect(view?.analysisRows).toHaveLength(2);
     expect(view?.cohorts?.map((c) => c.n)).toEqual([400, 90]);
     // No bars yet: the shared-range histograms have not landed.
     expect(view?.datasets['cohorts']).toEqual([]);
@@ -1746,7 +1738,7 @@ describe('split groups as cohorts', () => {
     // has no metric, so 'Compare selected' there is a control that can do
     // nothing: the reducer refuses it, silently.
     const coverage = panelView(
-      split({ y: null, x: 'created_at', form: 'histogram' }),
+      split({ y: 'count', aggregate: 'median', x: 'created_at', form: 'histogram' }),
       'p1',
     );
     expect(coverage?.splitCohorts).toEqual([]);

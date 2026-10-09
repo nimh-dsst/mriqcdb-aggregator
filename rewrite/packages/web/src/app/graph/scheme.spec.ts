@@ -26,6 +26,7 @@ const panel = (
   id: "panel",
   x,
   y,
+  aggregate: "median",
   form,
   series: [],
   options: defaultPanelOptions(),
@@ -48,7 +49,7 @@ describe("panel form scheme", () => {
     expect(axisType(manufacturer)).toBe("categorical");
     expect(axisType(metricAxis)).toBe("metrics");
 
-    expect(formsFor(snr, null)).toEqual([
+    expect(formsFor(snr, 'count')).toEqual([
       "histogram",
       "line",
       "area",
@@ -56,8 +57,9 @@ describe("panel form scheme", () => {
       "ecdf",
       "box",
       "table",
+      "band",
     ]);
-    expect(formsFor(acquisitionDate, null)).toEqual([
+    expect(formsFor(acquisitionDate, 'count')).toEqual([
       "histogram",
       "line",
       "area",
@@ -65,32 +67,34 @@ describe("panel form scheme", () => {
       "ecdf",
       "box",
       "table",
+      "band",
     ]);
     expect(formsFor(acquisitionDate, tsnr)).toEqual([
+      "histogram", "line", "area", "density", "ecdf", "box", "table",
       "heatmap",
       "scatter",
       "hexbin",
       "clusters",
       "band",
-      "lines",
     ]);
     expect(formsFor(snr, tsnr)).toEqual([
+      "histogram", "line", "area", "density", "ecdf", "box", "table",
       "heatmap",
       "scatter",
       "hexbin",
       "clusters",
       "band",
-      "lines",
     ]);
-    expect(formsFor(manufacturer, null)).toEqual([
+    expect(formsFor(manufacturer, 'count')).toEqual([
+      "box", "table",
       "bars",
       "share",
     ]);
-    expect(formsFor(metricAxis, null)).toEqual(["matrix"]);
+    expect(formsFor(metricAxis, 'count')).toEqual(["matrix"]);
   });
 
   it("derives panel forms and rejects forms that do not fit its axes", () => {
-    const oneNumeric = panel(snr, null, "box");
+    const oneNumeric = panel(snr, 'count', "box");
     const twoNumeric = panel(snr, tsnr, "heatmap");
 
     expect(panelForms(oneNumeric)).toEqual([
@@ -101,11 +105,12 @@ describe("panel form scheme", () => {
       "ecdf",
       "box",
       "table",
+      "band",
     ]);
     expect(validForm(oneNumeric)).toBe(oneNumeric);
     expect(validForm(twoNumeric)).toBe(twoNumeric);
     expect(validForm(panel(snr, tsnr, "ecdf"))).toMatchObject({
-      form: "heatmap",
+      form: "ecdf",
     });
   });
 
@@ -129,14 +134,14 @@ describe("panel form scheme", () => {
     expect(firstPanel(ecdf).form).toBe("ecdf");
     expect(firstPanel(paired).form).toBe("heatmap");
     expect(firstPanel(categorical)).toMatchObject({
-      y: null,
+      y: tsnr, aggregate: 'median',
       form: "bars",
     });
   });
 
   it.each([snr, acquisitionDate])("rejects disabled forms without changing the axes on %s", x => {
     const initial = withPanel(x);
-    for (const form of ['heatmap', 'scatter', 'hexbin', 'clusters', 'band', 'lines'] as const) {
+    for (const form of ['heatmap', 'scatter', 'hexbin', 'clusters'] as const) {
       expect(reduce(initial, { t: 'setPanelForm', id: firstPanel(initial).id, form })).toBe(initial);
       expect(reduce(initial, { t: 'patchPanel', id: firstPanel(initial).id, patch: { form } })).toBe(initial);
     }
@@ -224,8 +229,8 @@ describe("panel form scheme", () => {
     expect(firstPanel(compared).series).toHaveLength(2);
     expect(firstPanel(secondGrouping).series).toHaveLength(1);
     expect(noticeOf(secondGrouping)).toMatch(/one grouping/i);
-    expect(firstPanel(capped).series).toHaveLength(1);
-    expect(noticeOf(capped)).toMatch(/Six coloured series plus Other maximum/i);
+    expect(firstPanel(capped).series).toHaveLength(2);
+    expect(noticeOf(capped)).toBeNull();
   });
 
   it("refuses a missing study and normalizes an axis patch", () => {
@@ -246,7 +251,7 @@ describe("panel form scheme", () => {
     expect(noticeOf(missingStudy)).toMatch(/study/i);
     expect(firstPanel(patched)).toMatchObject({
       x: manufacturer,
-      y: null,
+      y: tsnr, aggregate: 'median',
       form: "bars",
     });
   });

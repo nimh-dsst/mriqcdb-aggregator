@@ -192,7 +192,6 @@ export function panelMeaning(input: MeaningInput): string {
   if (input.form === 'table') return `The individual ${unit} behind these charts, most recent first.`;
   if (input.x === 'created_at') {
     if (input.form === 'band') return `${metric} over upload time: median and middle half${across}.`;
-    if (input.form === 'lines') return `${metric} over upload time: 5th, 50th and 95th percentiles${across}.`;
     if (input.form === 'ecdf') return `Cumulative share of ${unit} uploaded by each date${across}.`;
     if (input.form === 'density') return `Smoothed ${unit} counts per ${input.granularity}${across}.`;
     if (input.form === 'box') return `Spread of upload dates, approximated from ${input.granularity} counts${across}.`;

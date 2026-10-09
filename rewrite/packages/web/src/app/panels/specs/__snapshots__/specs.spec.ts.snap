@@ -560,6 +560,7 @@ exports[`chart specs > density > matches its snapshot 1`] = `
       "field": "value",
       "scale": {
         "nice": true,
+        "type": "linear",
         "zero": false,
       },
       "title": "Mean framewise displacement (mm)",
@@ -570,6 +571,11 @@ exports[`chart specs > density > matches its snapshot 1`] = `
         "format": ".0%",
       },
       "field": "share",
+      "scale": {
+        "nice": true,
+        "type": "linear",
+        "zero": false,
+      },
       "title": "Share of scans (smoothed)",
       "type": "quantitative",
     },
@@ -680,6 +686,7 @@ exports[`chart specs > ecdf > matches its snapshot 1`] = `
       "field": "value",
       "scale": {
         "nice": true,
+        "type": "linear",
         "zero": false,
       },
       "title": "Mean framewise displacement (mm)",
@@ -695,6 +702,9 @@ exports[`chart specs > ecdf > matches its snapshot 1`] = `
           0,
           1,
         ],
+        "nice": true,
+        "type": "linear",
+        "zero": false,
       },
       "title": "Cumulative share",
       "type": "quantitative",
@@ -824,6 +834,7 @@ exports[`chart specs > facetedEcdf > matches its snapshot 1`] = `
         "field": "value",
         "scale": {
           "nice": true,
+          "type": "linear",
           "zero": false,
         },
         "title": "Mean framewise displacement (mm)",
@@ -839,6 +850,9 @@ exports[`chart specs > facetedEcdf > matches its snapshot 1`] = `
             0,
             1,
           ],
+          "nice": true,
+          "type": "linear",
+          "zero": false,
         },
         "title": "Cumulative share",
         "type": "quantitative",
@@ -951,6 +965,7 @@ exports[`chart specs > facetedHistogram > matches its snapshot 1`] = `
         "field": "lo",
         "scale": {
           "nice": true,
+          "type": "linear",
           "zero": false,
         },
         "title": "Mean framewise displacement (mm)",
@@ -961,6 +976,11 @@ exports[`chart specs > facetedHistogram > matches its snapshot 1`] = `
       },
       "y": {
         "field": "count",
+        "scale": {
+          "nice": true,
+          "type": "linear",
+          "zero": false,
+        },
         "title": "Scans",
         "type": "quantitative",
       },
@@ -1047,6 +1067,7 @@ exports[`chart specs > histogram > matches its snapshot 1`] = `
       "field": "lo",
       "scale": {
         "nice": true,
+        "type": "linear",
         "zero": false,
       },
       "title": "Mean framewise displacement (mm)",
@@ -1057,6 +1078,11 @@ exports[`chart specs > histogram > matches its snapshot 1`] = `
     },
     "y": {
       "field": "count",
+      "scale": {
+        "nice": true,
+        "type": "linear",
+        "zero": false,
+      },
       "title": "Scans",
       "type": "quantitative",
     },

@@ -9,12 +9,12 @@ import { BitWriter } from './url-tokens';
 describe('quantile options', () => {
   it.each(['band', 'lines'] as const)('preserves both settings through reducer and URL for %s', form => {
     let state = reduce(INITIAL_STATE, { t: 'hydrate', url: defaultDashboard() });
-    state = reduce(state, { t: 'patchPanel', id: 'p1', patch: { y: asColumnId('tsnr'), form } });
+    state = reduce(state, { t: 'patchPanel', id: 'p1', patch: { y: asColumnId('tsnr'), form: 'band', options: { fill: form } } });
     for (const quantiles of ['tails', 'quartiles'] as const) {
       state = reduce(state, { t: 'setPanelOptions', id: 'p1', options: { quantiles } });
       const decoded = decodeUrlState(encodeUrlState(urlState(state)))!;
       const restored = reduce(INITIAL_STATE, { t: 'hydrate', url: decoded });
-      expect(restored.panels[0]).toMatchObject({ form, options: { quantiles } });
+      expect(restored.panels[0]).toMatchObject({ form: 'band', options: { quantiles, fill: form } });
     }
   });
 
@@ -56,6 +56,6 @@ describe('quantile options', () => {
     let state = reduce(INITIAL_STATE, { t: 'hydrate', url: defaultDashboard() });
     state = reduce(state, { t: 'patchPanel', id: 'p1', patch: { x: asColumnId('manufacturer') } });
     state = reduce(state, { t: 'patchPanel', id: 'p1', patch: { y: asColumnId('created_at') } });
-    expect(state.panels[0]).toMatchObject({ x: 'manufacturer', y: null, form: 'bars' });
+    expect(state.panels[0]).toMatchObject({ x: 'manufacturer', y: 'created_at', aggregate: 'median', form: 'bars' });
   });
 });

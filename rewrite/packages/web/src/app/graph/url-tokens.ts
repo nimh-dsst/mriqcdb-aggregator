@@ -3,7 +3,7 @@ import { MODALITIES, VIEWS, getAuthoredCatalog } from '@mriqc/shared';
 import { formsFor } from './panel-shapes';
 import { MAX_BINS, MIN_BINS, defaultPanelOptions } from './state';
 
-export const URL_VERSION = '1';
+export const URL_VERSION = '2';
 export const ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_';
 export const MAX_PARAM_LENGTH = 4096;
 export const MAX_PANELS = 50;
@@ -159,12 +159,12 @@ export const COLUMN_TOKENS = tokenTable([
 export const MODALITY_TOKENS = tokenTable(MODALITIES);
 export const VIEW_TOKENS = tokenTable(VIEWS);
 export const CHART_TOKENS = tokenTable([
-  ...formsFor(METRIC_TOKENS.values[0] as import('./state').MetricId, null),
-  ...formsFor('created_at', null),
+  ...formsFor(METRIC_TOKENS.values[0] as import('./state').MetricId, 'count'),
+  ...formsFor('created_at', 'count'),
   ...formsFor('created_at', METRIC_TOKENS.values[0] as import('./state').MetricId),
   ...formsFor(METRIC_TOKENS.values[0] as import('./state').MetricId, METRIC_TOKENS.values[1] as import('./state').MetricId),
-  ...formsFor(authored.fields.find(field => field.kind === 'categorical')!.id, null),
-  ...formsFor([], null),
+  ...formsFor(authored.fields.find(field => field.kind === 'categorical')!.id, 'count'),
+  ...formsFor([], 'count'),
 ]);
 export const CLIP_TOKENS = tokenTable(['p01p99', 'p05p95', 'none']);
 export const GRANULARITY_TOKENS = tokenTable(['day', 'week', 'month', 'year']);

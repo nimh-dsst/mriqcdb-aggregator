@@ -369,3 +369,20 @@ Table and row-count forms are disabled with an explanation: the existing
 StudyApi supports distribution, groupedSummary, timeSummary, density2d and
 correlation, but no sample or coverage procedure. Changing an existing study
 comparison to one of those forms retains the descriptor and shows a note.
+
+
+## Implementation notes: individually editable groups (2026-10-09)
+
+The Compare input renders field groups as individual chips, including Other.
+Removing a rendered group converts its field descriptor to a values descriptor
+containing the remaining groups; removing Other removes only the pooled tail.
+The + menu lists the selected field's values for adding groups back, and
+Chosen values edits that field's selection. Other retains its exact pooled
+values when a neighboring group is removed.
+
+Numeric fields offer Split at. Cut points produce a values descriptor with
+encoded intervals. Query expansion turns those intervals into ordinary numeric
+range filters; upper edges use the preceding representable number so adjacent
+bins do not count the cut-point value twice. This uses existing server filters
+and does not require a numeric-split procedure. Chips and selected values,
+including numeric intervals, survive URL round trips.

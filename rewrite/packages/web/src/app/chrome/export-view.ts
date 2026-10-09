@@ -15,7 +15,7 @@ export function exportView(state: State) {
   const metrics = metricsFor(modality);
   const panels = state.exportPanelId ? state.panels.filter(panel => panel.id === state.exportPanelId) : state.panels;
   const visible = new Set(panels.flatMap<string>(panel => [
-    ...(panel.form === 'matrix' ? correlationMetrics(panel, modality) : [panel.x, ...(panel.y ? [panel.y] : [])]),
+    ...(panel.form === 'matrix' ? correlationMetrics(panel, modality) : [panel.x, ...(panel.y !== 'count' && panel.y !== 'share' ? [panel.y] : [])]),
     ...panel.series.flatMap(series => 'field' in series ? [series.field] : []),
   ]));
   const defaults = new Set(['id', 'created_at', 'manufacturer', ...visible]);

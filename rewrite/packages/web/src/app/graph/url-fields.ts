@@ -5,7 +5,7 @@
  */
 import { canonicalViewFor, viewsFor, type Modality } from '@mriqc/shared';
 import { defaultDashboard } from './reducer';
-import { formsFor, panelForms } from './panel-shapes';
+import { defaultForm, panelForms } from './panel-shapes';
 import { deriveLayout, type DashboardLayout } from './layout';
 import {
   defaultPanelOptions,
@@ -20,6 +20,7 @@ import {
   BitReader,
   BitWriter,
   tokenCodec,
+  tokenTable,
   textCodec,
   enumeration,
   unsigned,
@@ -161,6 +162,20 @@ const bool = enumeration([false, true], 1);
 const fieldToken = tokenCodec(FIELD_TOKENS);
 const metricToken = tokenCodec(METRIC_TOKENS);
 const columnToken = tokenCodec(COLUMN_TOKENS);
+const yQuantity: ContextCodec = {
+  write(writer, value, ctx) {
+    const tag = value === 'count' || value == null ? 0 : value === 'share' ? 1 : 2;
+    writer.write(2, tag);
+    if (tag === 2) columnToken.write(writer, value);
+  },
+  read(reader) {
+    const tag = reader.read(2);
+    if (tag === 0) return 'count';
+    if (tag === 1) return 'share';
+    if (tag === 2) return columnToken.read(reader);
+    throw new Error('Invalid Y quantity');
+  },
+};
 const shortText = textCodec(MAX_COHORT_ID_LENGTH);
 const modality = (ctx: Context) => (ctx.root['modality'] ?? 'bold') as Modality;
 const viewCodec: ContextCodec = {
@@ -369,6 +384,7 @@ const series = list(
 
 const optionDefault = (key: keyof PanelOptions) => () => defaultPanelOptions()[key];
 export const EXTRA_OPTION_FIELDS: Schema = [
+  { field: 'fill', codec: enumeration(['band', 'lines'], 1), default: optionDefault('fill') },
   { field: 'colorScale', codec: enumeration(['linear', 'log', 'sqrt']), default: undefined },
   { field: 'colorDomain', codec: pair(roundedNumber), default: 'auto' },
   { field: 'cells', codec: enumeration([30, 60, 120]), default: 60 },
@@ -457,15 +473,16 @@ const defaultPanel = (ctx: Context) =>
 export const PANEL_FIELDS: Schema = [
   { field: 'id', codec: textCodec(MAX_ID_LENGTH), default: (ctx: Context) => defaultPanel(ctx).id },
   { field: 'x', codec: columnToken, default: (ctx: Context) => defaultPanel(ctx).x },
-  { field: 'y', codec: columnToken, default: null },
+  { field: 'y', codec: yQuantity, default: 'count' },
+  { field: 'aggregate', codec: enumeration(['median', 'mean', 'sum', 'min', 'max', 'p05', 'p25', 'p50', 'p75', 'p95']), default: 'median' },
   {
     field: 'form',
     codec: tokenCodec(CHART_TOKENS),
     default: (ctx: Context) =>
-      formsFor(
+      defaultForm(
         (ctx.draft['x'] ?? defaultPanel(ctx).x) as Panel['x'],
-        (ctx.draft['y'] ?? null) as Panel['y'],
-      )[0],
+        (ctx.draft['y'] ?? 'count') as Panel['y'],
+      ),
   },
   { field: 'series', codec: series, default: [] },
   { field: 'options', codec: options, default: () => defaultPanelOptions() },
@@ -573,16 +590,54 @@ export const DASHBOARD_FIELDS: Schema = [
   { field: 'maximizedPanel', codec: reference('panels'), default: undefined },
 ];
 
+// Version 1 had no aggregate/fill fields and encoded Y as an optional column.
+// Keep its presence-bit positions and form tokens intact when reading old links.
+const legacyExtra = EXTRA_OPTION_FIELDS.filter(field => field.field !== 'fill');
+const legacyExtraDefaults = () => Object.fromEntries(legacyExtra.map(field => [field.field, fallback(field, {} as Context)]));
+const legacyOptionsRecord = record(OPTION_FIELDS.map(field => field.field === 'extra'
+  ? { ...field, codec: record(legacyExtra), default: legacyExtraDefaults } : field));
+const legacyOptions: ContextCodec = {
+  write(writer, value, ctx) {
+    legacyOptionsRecord.write(writer, { ...value, extra: Object.fromEntries(legacyExtra.map(field => [field.field, value[field.field] ?? fallback(field, ctx)])) }, ctx);
+  },
+  read(reader, ctx) {
+    const { extra, ...value } = legacyOptionsRecord.read(reader, ctx);
+    return { ...defaultPanelOptions(), ...extra, ...value };
+  },
+};
+const legacyForms = tokenTable(['histogram', 'line', 'area', 'density', 'ecdf', 'box', 'table', 'heatmap', 'scatter', 'hexbin', 'clusters', 'band', 'lines', 'bars', 'share', 'matrix']);
+const legacyPanelRecord = record(PANEL_FIELDS.filter(field => field.field !== 'aggregate').map(field => {
+  if (field.field === 'y') return { ...field, codec: columnToken, default: null };
+  if (field.field === 'options') return { ...field, codec: legacyOptions };
+  if (field.field === 'form') return { ...field, codec: tokenCodec(legacyForms), default: (ctx: Context) => {
+    const x = ctx.draft['x'] ?? defaultPanel(ctx).x;
+    return ctx.draft['y'] ? 'heatmap' : defaultForm(x as Panel['x'], 'count');
+  } };
+  return field;
+}));
+const legacyPanels = list({
+  write: legacyPanelRecord.write,
+  read(reader, ctx) {
+    const panel = legacyPanelRecord.read(reader, ctx);
+    if (!panel.id.length) throw new Error('Empty panel id');
+    const lines = panel.form === 'lines';
+    return { ...panel, y: panel.y ?? (panel.options.yMode === 'share' ? 'share' : 'count'), aggregate: 'median',
+      form: lines ? 'band' : panel.form, options: { ...panel.options, fill: lines ? 'lines' : 'band' } };
+  },
+}, MAX_PANELS);
+export const LEGACY_DASHBOARD_FIELDS: Schema = DASHBOARD_FIELDS.map(field => field.field === 'panels' ? { ...field, codec: legacyPanels } : field);
+
 export function writeUrlRecord(url: UrlState): string {
   const source: RecordValue = {
     ...url.global,
     cohorts: url.cohorts.filter(
       (cohort) => cohort.source !== 'study' && !isDerivedCohort(cohort.id),
     ),
-    panels: url.panels.map(({ id, x, y, form, series, options, reference }) => ({
+    panels: url.panels.map(({ id, x, y, aggregate, form, series, options, reference }) => ({
       id,
       x,
       y,
+      aggregate,
       form,
       series,
       options: Object.fromEntries(Object.entries(options).filter(([key, value]) =>
@@ -605,13 +660,13 @@ export function writeUrlRecord(url: UrlState): string {
   return result;
 }
 
-export function readUrlRecord(text: string): UrlState | null {
+export function readUrlRecord(text: string, legacy = false): UrlState | null {
   try {
     if (!text) return defaultDashboard();
     const reader = new BitReader(text);
     // Top-level fields bind as they are read so later schemas see their context.
     const root: RecordValue = {};
-    const contextual: Schema = DASHBOARD_FIELDS.map((field) => ({
+    const contextual: Schema = (legacy ? LEGACY_DASHBOARD_FIELDS : DASHBOARD_FIELDS).map((field) => ({
       ...field,
       codec: {
         write: field.codec.write,

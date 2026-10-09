@@ -17,7 +17,7 @@ const sample: UrlState = {
   panels: [
     {
       id: 'p1',
-      y: null,
+      y: 'count' as const, aggregate: 'median' as const,
       x: asColumnId('fd_mean'),
       form: 'histogram',
       series: [],
@@ -26,7 +26,7 @@ const sample: UrlState = {
     },
     {
       id: 'p2',
-      y: null,
+      y: 'count' as const, aggregate: 'median' as const,
       x: 'created_at',
       form: 'histogram',
       series: [{ kind: 'field' as const, field: asColumnId('manufacturer') }],
@@ -211,7 +211,7 @@ describe('url', () => {
         panels: [
           {
             id: 'p1',
-            y: null,
+            y: 'count' as const, aggregate: 'median' as const,
             x: asColumnId('fd_mean'),
             form: 'density',
             series: [],
@@ -295,7 +295,7 @@ describe('url', () => {
         panels: [
           ...metrics.map((metric, i) => ({
             id: `p${i + 1}`,
-            y: null,
+            y: 'count' as const, aggregate: 'median' as const,
             x: asColumnId(metric),
             form: 'histogram' as const,
             series: [{ kind: 'cohort' as const, id: 'current' as const }],
@@ -304,7 +304,7 @@ describe('url', () => {
           })),
           {
             id: 'p9',
-            y: null,
+            y: 'count' as const, aggregate: 'median' as const,
             x: asColumnId('fd_mean'),
             form: 'density' as const,
             series: [
@@ -318,7 +318,7 @@ describe('url', () => {
           },
           {
             id: 'p10',
-            y: null,
+            y: 'count' as const, aggregate: 'median' as const,
             x: asColumnId('tsnr'),
             form: 'ecdf' as const,
             series: [{ kind: 'population' as const }, { kind: 'cohort' as const, id: 'c3' }],
@@ -437,7 +437,7 @@ describe('cohorts in the url', () => {
     panels: [
       {
         id: 'p1',
-        y: null,
+        y: 'count' as const, aggregate: 'median' as const,
         x: asColumnId('fd_mean'),
         form: 'histogram',
         series: [

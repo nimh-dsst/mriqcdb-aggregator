@@ -26,7 +26,7 @@ const shared: UrlState = {
   panels: [
     {
       id: 'p1',
-      y: null,
+      y: 'count', aggregate: 'median',
       x: asColumnId('fd_mean'),
       form: 'histogram',
       series: [],
@@ -35,7 +35,7 @@ const shared: UrlState = {
     },
     {
       id: 'p2',
-      y: null,
+      y: 'count', aggregate: 'median',
       x: asColumnId('aor'),
       form: 'ecdf',
       series: [],

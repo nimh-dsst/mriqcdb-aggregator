@@ -159,7 +159,7 @@ export function panelsWithPreferredRows(state: State): readonly LayoutPanel[] { 
 
 /** Preferred size is derived only from the quantity, form, and presence of series. */
 export function preferredSize(panel: LayoutPanel, columnsWide: number): GridPos {
-  const wide = panel.form === 'matrix' || axisType(panel.x) !== 'numeric' || panel.y !== null;
+  const wide = panel.form === 'matrix' || axisType(panel.x) !== 'numeric' || panel.y !== 'count' && panel.y !== 'share';
   const w = wide ? Math.min(12, baseWidth(columnsWide) * 2) : baseWidth(columnsWide);
   // A field expands to up to five groups and Other; chosen values are exact.
   const additional = panel.series.reduce((n, series) => n + (series.kind === 'field' ? 6 : series.kind === 'values' ? new Set(series.values).size : 1), 0);

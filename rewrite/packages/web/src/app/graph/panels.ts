@@ -6,6 +6,8 @@ import { axisType, formsFor, panelFormAvailability, validForm, brushable } from 
 import { normalizeSeries, seriesDisabledReason, seriesKey, type Series } from './series';
 import { FIRST_PAGE, defaultPanelOptions, type ColumnRef, type Panel, type PanelId, type PanelOptions, type State } from './state';
 import { clampBins } from './url-tokens';
+import { isColumnY, parseGroupCohortId } from './state';
+import { defaultForm } from './panel-shapes';
 
 export function seriesContext(state: State) {
   return {
@@ -63,7 +65,7 @@ export function newPanel(state: State, x?: ColumnRef): Panel {
     .filter(n => Number.isSafeInteger(n) && n < Number.MAX_SAFE_INTEGER);
   let n = Math.max(0, ...numbers) + 1;
   while (taken.has('p' + n)) n++;
-  return { id: 'p' + n, x: chosen, y: null, series: [], form: formsFor(chosen, null)[0],
+  return { id: 'p' + n, x: chosen, y: 'count', aggregate: 'median', series: [], form: defaultForm(chosen, 'count'),
     options: defaultPanelOptions(metricsFor(modality).find(metric => metric.id === chosen)?.clipDefault), cursors: FIRST_PAGE };
 }
 
@@ -81,9 +83,9 @@ export function retargetPanels(panels: readonly Panel[], modality: Modality, vie
   };
   return panels.map(panel => {
     const x = retarget(panel.x);
-    const targetY = panel.y === null ? null : retarget(panel.y);
-    const y = targetY === x || axisType(x) === 'categorical' ? null : targetY as Panel['y'];
-    const series = panel.series.filter(item => !('field' in item) || isValidField(modality, view, item.field, 'group'));
+    const targetY = isColumnY(panel.y) ? retarget(panel.y) : panel.y;
+    const y = targetY === x ? 'count' : targetY;
+    const series = panel.series.filter(item => !('field' in item) || isValidField(modality, view, item.field, item.kind === 'values' ? 'filter' : 'group'));
     return validForm({ ...panel, x, y, series, cursors: FIRST_PAGE });
   });
 }
@@ -110,6 +112,7 @@ export function normalizedOptions(panel: Panel, patch: Partial<PanelOptions>, mo
   }
   if (!['count', 'share', 'logCount'].includes(options.yMode)) options.yMode = 'count';
   options.quantiles = options.quantiles === 'tails' ? 'tails' : 'quartiles';
+  options.fill = options.fill === 'lines' ? 'lines' : 'band';
   if (!canStack(panel) || !['stacked', 'stacked100'].includes(options.layout)) options.layout = 'overlaid';
   if (options.coefficient !== undefined) options.coefficient = options.coefficient === 'pearson' ? 'pearson' : 'spearman';
   options.bins = clampBins(options.bins);
@@ -135,15 +138,21 @@ export function patchPanel(state: State, id: PanelId, patch: PanelPatch): State 
     let current = panel;
     const x = patch.x ?? patch.metric;
     if (x !== undefined && validColumn(x, state.global.modality, state.global.view)) {
-      current = { ...current, x, ...(axisType(x) === 'categorical' ? { y: null } : {}) };
+      current = { ...current, x };
       if (x !== panel.x && panel.form === 'matrix') current = { ...current, form: formsFor(x, current.y)[0] };
     }
-    if (patch.y !== undefined && axisType(current.x) !== 'categorical' &&
-        (patch.y === null || patch.y === 'created_at' || isValidMetric(state.global.modality, patch.y))) current = { ...current, y: patch.y };
+    if (patch.y !== undefined &&
+        (patch.y === null || patch.y === 'count' || patch.y === 'share' || patch.y === 'created_at' || isValidMetric(state.global.modality, patch.y))) {
+      current = { ...current, y: patch.y ?? 'count' };
+      const swapping = x === panel.y && current.y === panel.x;
+      if (current.y !== panel.y && !patch.form && !swapping) current = { ...current, form: defaultForm(current.x, current.y) };
+    }
+    if (patch.aggregate && ['median', 'mean', 'sum', 'min', 'max', 'p05', 'p25', 'p50', 'p75', 'p95'].includes(patch.aggregate)) current = { ...current, aggregate: patch.aggregate };
     if (current.x === current.y) { notice = 'Choose two different columns.'; return panel; }
     // A one-slot pick uses the default orientation; explicit axes (including swap) are kept.
-    if (x === undefined && patch.y === 'created_at' && current.y === 'created_at' && panel.y !== 'created_at') {
+    if (x === undefined && patch.y === 'created_at' && current.y === 'created_at' && panel.y !== 'created_at' && axisType(current.x) === 'numeric') {
       current = { ...current, x: 'created_at', y: current.x as Panel['y'] };
+      if (!patch.form) current = { ...current, form: defaultForm(current.x, current.y) };
     }
     const group = patch.split !== undefined ? patch.split : patch.group;
     const requestedSeries = patch.series ?? (group !== undefined ? [
@@ -152,6 +161,11 @@ export function patchPanel(state: State, id: PanelId, patch: PanelPatch): State 
     ] : undefined);
     if (requestedSeries !== undefined) current = { ...current, series: normalizeSeries(requestedSeries, seriesContext(state)) };
     if (patch.options) current = { ...current, options: normalizedOptions(current, patch.options, state.global.modality) };
+    if (!isColumnY(current.y)) {
+      const y = patch.y !== undefined ? current.y : patch.options?.yMode === 'share' ? 'share'
+        : patch.options?.yMode === 'count' || patch.options?.yMode === 'logCount' ? 'count' : current.y;
+      current = { ...current, y, options: { ...current.options, yMode: y === 'share' ? 'share' : current.options.yMode === 'logCount' ? 'logCount' : 'count' } };
+    }
     if (patch.form) {
       // Creating a metric-set quantity is explicit; selecting a form cannot add axes.
       const quantity = patch.form === 'matrix' && patch.options?.metrics
@@ -175,12 +189,22 @@ export function patchPanel(state: State, id: PanelId, patch: PanelPatch): State 
 export function addSeries(state: State, id: PanelId, series: Series): State {
   const panel = state.panels.find(panel => panel.id === id);
   if (!panel) return state;
-  if ('field' in series && !isValidField(state.global.modality, state.global.view, series.field, 'group')) return state;
+  if ('field' in series && !isValidField(state.global.modality, state.global.view, series.field, series.kind === 'values' ? 'filter' : 'group')) return state;
   const reason = seriesDisabledReason(panel.series, series, seriesContext(state));
   return reason ? { ...state, notice: reason } : patchPanel(state, id, { series: [...panel.series, series] });
 }
 
 export function removeSeries(state: State, id: PanelId, key: string): State {
   const panel = state.panels.find(panel => panel.id === id);
+  if (panel) {
+    const group = parseGroupCohortId(key);
+    const resolved = panelCohorts(state, panel).find(cohort => cohort.id === key);
+    if (group && resolved?.descriptorKey) {
+      const remaining = panelCohorts(state, panel).filter(cohort => cohort.descriptorKey === resolved.descriptorKey && cohort.id !== key)
+        .flatMap(cohort => { const value = parseGroupCohortId(cohort.id); return value ? [value.value] : []; });
+      return patchPanel(state, id, { series: panel.series.flatMap(series => seriesKey(series) !== resolved.descriptorKey ? [series]
+        : remaining.length ? [{ kind: 'values' as const, field: asColumnId(group.field), values: remaining }] : []) });
+    }
+  }
   return panel ? patchPanel(state, id, { series: panel.series.filter(series => seriesKey(series) !== key) }) : state;
 }

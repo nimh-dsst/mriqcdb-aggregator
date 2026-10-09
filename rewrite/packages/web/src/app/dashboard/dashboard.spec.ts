@@ -109,7 +109,7 @@ describe('Dashboard with MockApi', () => {
     const card=(fixture.nativeElement as HTMLElement).querySelector('[data-panel-id="p1"]')!;
     card.querySelector<HTMLElement>('[aria-label="Form"] .mat-mdc-select-trigger')!.click();await fixture.whenStable();
     const options=[...document.querySelectorAll<HTMLElement>('mat-option')];
-    expect(options.map(option=>option.querySelector('.font-medium')?.textContent?.trim())).toEqual(['Histogram','Line','Area','Density','ECDF','Box','Table','Heatmap','Scatter','Hexbin','Clusters','Band','Lines']);
+    expect(options.map(option=>option.querySelector('.font-medium')?.textContent?.trim())).toEqual(['Histogram','Line','Area','Density','ECDF','Box','Table','Heatmap','Scatter','Hexbin','Clusters','Band']);
     options[3].click();await fixture.whenStable();
     expect(card.querySelector('[aria-label="Form"] .mat-mdc-select-trigger')!.textContent).toContain('Density');
     expect(card.querySelector('[data-testid="panel-split-selector"]')).toBeNull();
@@ -140,7 +140,7 @@ describe('Dashboard with MockApi', () => {
     const card=(fixture.nativeElement as HTMLElement).querySelector('[data-panel-id="p5"]')!;
     card.querySelector<HTMLElement>('[aria-label="Form"] .mat-mdc-select-trigger')!.click();await fixture.whenStable();
     const options=[...document.querySelectorAll<HTMLElement>('mat-option')];
-    expect(options).toHaveLength(13);expect(options.filter(o=>o.getAttribute('aria-disabled')==='false').map(o=>o.querySelector(".font-medium")?.textContent?.trim())).toEqual(["Histogram","Line","Area","Density","ECDF","Box","Table"]);
+    expect(options).toHaveLength(12);expect(options.filter(o=>o.getAttribute('aria-disabled')==='false').map(o=>o.querySelector(".font-medium")?.textContent?.trim())).toEqual(["Histogram","Line","Area","Density","ECDF","Box","Table","Band"]);
     options[2].click();await fixture.whenStable();
     TestBed.inject(Graph).dispatch({t:'setPanelAxis',id:'p5',axis:'y',value:asColumnId('fd_mean')});
     await fixture.whenStable();
@@ -148,9 +148,9 @@ describe('Dashboard with MockApi', () => {
     card.querySelector<HTMLElement>('[aria-label="Form"] .mat-mdc-select-trigger')!.click();
     await fixture.whenStable();
     const metricOptions=[...document.querySelectorAll<HTMLElement>('mat-option')];
-    expect(metricOptions.map(o=>o.querySelector(".font-medium")?.textContent?.trim())).toEqual(["Heatmap","Scatter","Hexbin","Clusters","Band","Lines"]);
-    metricOptions[5].click(); await fixture.whenStable();
-    expect(card.querySelector('[aria-label="Form"] .mat-mdc-select-trigger')!.textContent).toContain('Lines');
+    expect(metricOptions.map(o=>o.querySelector(".font-medium")?.textContent?.trim())).toEqual(["Histogram","Line","Area","Density","ECDF","Box","Table","Heatmap","Scatter","Hexbin","Clusters","Band"]);
+    metricOptions[11].click(); await fixture.whenStable();
+    expect(card.querySelector('[aria-label="Form"] .mat-mdc-select-trigger')!.textContent).toContain('Band');
   });
 
   it('derives pair and correlation titles from the selected quantity', async () => {
@@ -158,7 +158,7 @@ describe('Dashboard with MockApi', () => {
     graph.dispatch({t:'setPanelAxis',id:'p1',axis:'y',value:asColumnId('tsnr')});await fixture.whenStable();
     const card=(fixture.nativeElement as HTMLElement).querySelector('[data-panel-id="p1"]')!;
     expect(card.querySelector<HTMLButtonElement>('[data-testid="metric-title"]')!.title).toBe('tSNR vs FD mean');
-    graph.dispatch({t:'patchPanel',id:'p1',patch:{y:null,form:'matrix',options:{metrics:[asColumnId('fd_mean'),asColumnId('tsnr')]}}});await fixture.whenStable();
+    graph.dispatch({t:'patchPanel',id:'p1',patch:{y: 'count', aggregate: 'median',form:'matrix',options:{metrics:[asColumnId('fd_mean'),asColumnId('tsnr')]}}});await fixture.whenStable();
     expect(card.querySelector<HTMLButtonElement>('[data-testid="metric-title"]')!.title).toBe('Metric correlations');
     expect(card.querySelector('app-compare-input')).not.toBeNull();
   });
@@ -306,7 +306,7 @@ describe('Dashboard with MockApi', () => {
       panels: [
         {
           id: 'p1',
-          y: null,
+          y: 'count', aggregate: 'median',
           x: asColumnId('fd_mean'),
           form: 'histogram',
           series: [],
@@ -315,7 +315,7 @@ describe('Dashboard with MockApi', () => {
         },
         {
           id: 'p2',
-          y: null,
+          y: 'count', aggregate: 'median',
           x: asColumnId('aor'),
           form: 'histogram',
           series: [],
@@ -366,7 +366,7 @@ describe('Dashboard with MockApi', () => {
     expect(embedded.specs.some(spec => JSON.stringify(spec).includes("temporal"))).toBe(true);
   });
 
-  it('shows the stat row under a distribution chart, with a median inside the range', async () => {
+  it('shows the count quantity in the stat row under a distribution chart', async () => {
     const fixture = TestBed.createComponent(Dashboard);
     await fixture.whenStable();
     await new Promise((resolve) => setTimeout(resolve, MOCK_LATENCY_MS * 4));
@@ -378,23 +378,15 @@ describe('Dashboard with MockApi', () => {
     // parseFloat, not Number: a metric with a unit prints "0.4 mm".
     const figure = (label: string) =>
       parseFloat(stats?.querySelector(`[data-stat="${label}"] span:last-child`)?.textContent?.trim() ?? '');
-    expect(stats?.querySelectorAll('[data-stat]')).toHaveLength(8);
+    expect(stats?.querySelectorAll('[data-stat]')).toHaveLength(1);
     expect([...(stats?.querySelectorAll('[data-stat]') ?? [])].map((c) => c.getAttribute('data-stat'))).toEqual([
       'SCANS',
-      'MEAN',
-      'SD',
-      '5TH PCT',
-      'MEDIAN',
-      '95TH PCT',
-      'MIN',
-      'MAX',
     ]);
     // Every one of those abbreviations carries its own sentence on hover.
     for (const cell of stats?.querySelectorAll('[data-stat] .stat-label') ?? []) {
       expect(cell.getAttribute('title')?.length ?? 0).toBeGreaterThan(0);
     }
-    expect(figure('MIN')).toBeLessThanOrEqual(figure('MEDIAN'));
-    expect(figure('MEDIAN')).toBeLessThanOrEqual(figure('MAX'));
+    expect(figure('SCANS')).toBeGreaterThan(0);
     expect(card?.querySelector('[data-testid="panel-count"]')?.textContent).toContain(
       'scans with a value',
     );
@@ -470,7 +462,7 @@ describe('Dashboard with MockApi', () => {
     await fixture.whenStable();
     let state!: State;
     const subscription = TestBed.inject(Graph).state$.subscribe(value => state = value);
-    expect(state.panels.at(-1)).toMatchObject({ x: 'efc', y: null, form: 'histogram', series: [] });
+    expect(state.panels.at(-1)).toMatchObject({ x: 'efc', y: 'count', aggregate: 'median', form: 'histogram', series: [] });
     expect((fixture.nativeElement as HTMLElement).querySelectorAll('[data-testid="panel-card"]')).toHaveLength(6);
     expect(document.querySelector('[data-testid="add-panel-picker"]')).toBeNull();
     subscription.unsubscribe();
@@ -890,7 +882,7 @@ describe('Dashboard chrome', () => {
       document.querySelector('[data-testid="metric-info-family"]')?.textContent?.trim(),
     ).toBeTruthy();
     expect(document.querySelector('[data-testid="metric-popover"] app-column-picker')).not.toBeNull();
-    expect(document.querySelector('[aria-label="Y slot (optional)"]')).not.toBeNull();
+    expect(document.querySelector('[aria-label="Y slot"]')).not.toBeNull();
     expect(document.querySelector<HTMLAnchorElement>('[data-testid="metric-popover"] a')?.href).toContain('mriqc.readthedocs.io');
     // The old caption info icon has left the face.
     expect(host.querySelector('[data-panel-id="p5"] [data-testid="metric-info"]')).toBeNull();
@@ -1050,7 +1042,7 @@ describe('Dashboard chrome', () => {
   it('sizes the stat row so the number outweighs its label', async () => {
     const fixture = TestBed.createComponent(Dashboard);
     await settle(fixture);
-    const stat = (fixture.nativeElement as HTMLElement).querySelector('[data-stat="MEAN"]');
+    const stat = (fixture.nativeElement as HTMLElement).querySelector('[data-stat="SCANS"]');
     const [label, value] = stat?.querySelectorAll('span') ?? [];
     // 10px/500 secondary ink over 15px/600 tabular, not 11px/600 over 13px/400.
     // The sizes themselves live in `styles.css`, which jsdom never loads, so

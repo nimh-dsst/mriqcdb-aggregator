@@ -44,7 +44,7 @@ describe('time marks', () => {
     }
   });
 
-  it.each(['histogram', 'line', 'area', 'density', 'ecdf', 'box'] as const)('uses the common %s builder with a date axis', form => {
+  it.each(['histogram', 'line', 'area', 'density', 'ecdf'] as const)('uses the common %s builder with a date axis', form => {
     const chart = continuousChart({ ...input, form }, [coverage]);
     expect(() => compile(chart.spec!)).not.toThrow();
     expect(JSON.stringify(chart.spec)).toContain('"type":"temporal"');
@@ -67,13 +67,13 @@ describe('time marks', () => {
     const ecdf = continuousChart({ ...input, form: 'ecdf' }, [coverage]);
     expect(ecdf.datasets['population'].map(row => (row as {p:number}).p)).toEqual([0, 0.25, 0.25, 1]);
     const box = continuousChart({ ...input, form: 'box' }, [coverage]);
-    expect(box.datasets['groups'][0]).toMatchObject({ p50: (Date.UTC(2024, 2, 1) + Date.UTC(2024, 3, 1)) / 2, note: 'from monthly counts' });
-    expect(JSON.stringify(box.spec)).toContain('Approximation');
+    expect(Object.values(box.datasets).flat().map(row => (row as {count:number}).count)).toEqual([1, 0, 3]);
+    expect(JSON.stringify(box.spec)).toContain('Uploads');
   });
-  it('normalizes Area with series and leaves a single Area as counts', () => {
+  it('stacks Count areas without turning the quantity into Share', () => {
     const multiple = continuousChart({ ...input, form: 'area', cohorts: [...input.cohorts, { id:'b', label:'B',color:'#fff' }] }, [coverage, coverage]);
     const single = continuousChart({ ...input, form: 'area' }, [coverage]);
-    expect(multiple.spec).toMatchObject({ encoding: { y: { stack: 'normalize', axis: { format: '.0%' } } } });
+    expect(multiple.spec).toMatchObject({ encoding: { y: { stack: 'zero', title: 'Uploads' } } });
     expect(single.spec).toMatchObject({ encoding: { y: { stack: null, title: 'Uploads' } } });
   });
   it('aligns calendar series whose first occupied months differ', () => {

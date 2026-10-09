@@ -36,6 +36,48 @@ const create = (series: readonly Series[] = []) => {
 };
 
 describe('CompareInput', () => {
+  it('removes one expanded group chip and offers the missing group to add back', async () => {
+    const descriptor: Series = { kind: 'field', field: firstField.id };
+    const fixture = create([descriptor]);
+    const id = `g\u0000${firstField.id}\u0000Vendor A`;
+    fixture.componentRef.setInput('legend', [{ id, name: 'Vendor A', color: '#123456', n: 12, descriptorKey: seriesKey(descriptor) }]);
+    const removed: string[] = [], replaced: Series[] = [];
+    fixture.componentInstance.removed.subscribe(value => removed.push(value));
+    fixture.componentInstance.replaced.subscribe(value => replaced.push(value));
+    fixture.detectChanges();
+    fixture.nativeElement.querySelector('button[aria-label="Remove comparison Vendor A"]').click();
+    expect(removed).toEqual([id]);
+    fixture.componentRef.setInput('series', [{ kind: 'values', field: firstField.id, values: ['Vendor B'] }]);
+    fixture.detectChanges();
+    fixture.nativeElement.querySelector('button[aria-label="Add comparison"]').click();
+    await fixture.whenStable();
+    const items = [...TestBed.inject(OverlayContainer).getContainerElement().querySelectorAll<HTMLButtonElement>('[role="menuitem"]')];
+    const addBack = items.find(item => item.textContent?.includes('Vendor A'))!;
+    expect(addBack.disabled).toBe(false);
+    addBack.click();
+    expect(replaced).toEqual([{ kind: 'values', field: firstField.id, values: ['Vendor B', 'Vendor A'] }]);
+  });
+
+  it('opens Split at and emits numeric bins from entered cut points', async () => {
+    const fixture = create();
+    const numeric = fieldsFor('bold', 'raw', 'filter').filter(field => field.kind === 'numeric');
+    fixture.componentRef.setInput('fields', [...fields, ...numeric]);
+    const replaced: Series[] = [];
+    fixture.componentInstance.replaced.subscribe(value => replaced.push(value));
+    fixture.detectChanges();
+    fixture.nativeElement.querySelector('button[aria-label="Add comparison"]').click();
+    await fixture.whenStable();
+    [...TestBed.inject(OverlayContainer).getContainerElement().querySelectorAll<HTMLButtonElement>('[role="menuitem"]')]
+      .find(item => item.textContent?.includes('Split at'))!.click();
+    await fixture.whenStable();
+    const cuts = fixture.nativeElement.querySelector('[aria-label="Cut points"]') as HTMLInputElement;
+    cuts.value = '1, 2';
+    cuts.dispatchEvent(new Event('input', { bubbles: true }));
+    fixture.detectChanges();
+    [...fixture.nativeElement.querySelectorAll('button')].find((button: any) => button.textContent.trim() === 'Split').click();
+    expect(replaced).toEqual([{ kind: 'values', field: numeric[0].id, values: ['bin:[null,1]', 'bin:[1,2]', 'bin:[2,null]'] }]);
+  });
+
   it.each(['contextmenu', 'F10', 'ContextMenu', 'click'])('opens field-chip actions with %s and emits group actions', async gesture => {
     const descriptor: Series = { kind: 'field', field: firstField.id };
     const fixture = create([descriptor]);

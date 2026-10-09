@@ -123,7 +123,7 @@ describe('short graph URL tokens', () => {
           ...defaultDashboard().panels[0],
           id: 'right',
           x: asColumnId('tsnr'),
-          y: null,
+          y: 'count', aggregate: 'median',
           form: 'histogram',
         },
       ],

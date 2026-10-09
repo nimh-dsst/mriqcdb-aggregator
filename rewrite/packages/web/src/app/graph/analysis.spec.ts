@@ -1,7 +1,7 @@
 import { queryKey } from '../api/api';
 import { asColumnId, getAuthoredCatalog, type CompletedCatalog } from '@mriqc/shared';
 import { initialState, reduce } from './reducer';
-import { formsFor } from './panel-shapes';
+import { formsFor, defaultForm } from './panel-shapes';
 import { panelQueries } from './queries';
 import { defaultPanelOptions, type Panel, type State } from './state';
 import { decodeUrlState, encodeUrlState, urlState, validateUrlState } from './url';
@@ -9,7 +9,7 @@ import { panelView } from '../view/panel-view';
 
 const metric = asColumnId('fd_mean'), second = asColumnId('tsnr');
 function panel(patch: Partial<Panel> = {}): Panel {
-  return { id: 'p1', x: metric, y: null, series: [],  form: 'histogram', options: defaultPanelOptions(), cursors: [null], ...patch };
+  return { id: 'p1', x: metric, y: 'count', aggregate: 'median', series: [],  form: 'histogram', options: defaultPanelOptions(), cursors: [null], ...patch };
 }
 function state(patch: Partial<Panel> = {}): State {
   return { ...initialState, dataVersion: 'v1', global: { modality: 'bold', view: 'raw', filters: [] },
@@ -35,7 +35,7 @@ describe('analysis axes', () => {
     [{ y: second }, 'heatmap'],
   ] as const)('derives the default from axes %j', (axes, form) => {
     const p = panel(axes);
-    expect(formsFor(p.x, p.y)[0]).toBe(form);
+    expect(defaultForm(p.x, p.y)).toBe(form);
   });
   it('adding and clearing y changes invalid charts to the axis default', () => {
     const paired = reduce(state(), { t: 'setPanelAxis', id: 'p1', axis: 'y', value: second });
@@ -46,9 +46,9 @@ describe('analysis axes', () => {
   });
   it('refuses the same metric twice and adding above the series cap', () => {
     const same = reduce(state(), { t: 'setPanelAxis', id: 'p1', axis: 'y', value: metric });
-    expect(same.panels[0].y).toBeNull(); expect(same.notice).toContain('different');
+    expect(same.panels[0].y).toBe('count'); expect(same.notice).toContain('different');
     const split = reduce(state({ series: [{ kind: 'population' as const }] }), { t: 'addPanelSeries', id: 'p1', series: { kind: 'field', field: asColumnId('manufacturer') } });
-    expect(split.panels[0].series).toEqual([{kind:'population'}]); expect(split.notice).toContain('Six');
+    expect(split.panels[0].series).toHaveLength(2); expect(split.notice).toBeNull();
   });
   it('can leave Table for a chart allowed by its axes', () => {
     const next = reduce(state({ form: 'table', y: second }), { t: 'setPanelChart', id: 'p1', form: 'heatmap' });

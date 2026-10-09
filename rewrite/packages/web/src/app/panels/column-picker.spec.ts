@@ -22,7 +22,7 @@ describe('column drawer actions', () => {
     fixture.componentRef.setInput('focusY', true);
     fixture.componentRef.setInput('pendingForm', 'band');
     fixture.detectChanges();
-    search(fixture, 'Upload time', 'Y slot (optional)');
+    search(fixture, 'Upload time', 'Y slot');
     const choices = fixture.nativeElement.querySelectorAll('.column-picker-columns [data-column-id]');
     expect(choices[0].getAttribute('data-column-id')).toBe('created_at');
     expect(choices[0].disabled).toBe(false);
@@ -106,7 +106,7 @@ describe('column drawer actions', () => {
     const families = body.querySelector('.column-picker-families')!;
     expect(toolbar.nextElementSibling).toBe(body);
     expect(Array.from(toolbar.querySelectorAll('button, input'), control => control.getAttribute('aria-label') ?? control.textContent?.trim()))
-      .toEqual(['X slot', 'Y slot (optional)', 'Swap X and Y', 'Create panel', 'Close column drawer']);
+      .toEqual(['X slot', 'Y slot', 'Swap X and Y', 'Create panel', 'Close column drawer']);
     expect(toolbar.querySelectorAll('input[type="text"]')).toHaveLength(2);
     expect(toolbar.querySelector('[role="combobox"], [role="listbox"]')).toBeNull();
     expect(toolbar.querySelector('[aria-label="Search columns"]')).toBeNull();
@@ -135,7 +135,7 @@ describe('column drawer actions', () => {
     expect(dispatch).not.toHaveBeenCalled();
     fixture.detectChanges();
     fixture.componentInstance.commit(new MouseEvent('click', { shiftKey: true }));
-    expect(dispatch).toHaveBeenLastCalledWith({ t: 'addPanel', x: 'created_at', y: null });
+    expect(dispatch).toHaveBeenLastCalledWith({ t: 'addPanel', aggregate: 'median', x: 'created_at', y: 'count' });
     expect(closed).not.toHaveBeenCalled();
     button.click();
     fixture.componentInstance.commit();
@@ -147,7 +147,7 @@ describe('column drawer actions', () => {
     const { fixture, dispatch } = createDrawer();
     search(fixture, 'fd_mean');
     fixture.nativeElement.querySelector('[data-column-id="fd_mean"]').click();
-    search(fixture, 'tsnr', 'Y slot (optional)');
+    search(fixture, 'tsnr', 'Y slot');
     fixture.nativeElement.querySelector('[data-column-id="tsnr"]').click();
     fixture.detectChanges();
     fixture.componentRef.setInput('metrics', [...metrics]);
@@ -157,7 +157,7 @@ describe('column drawer actions', () => {
       .find(button => button.textContent?.trim() === 'Create panel')!;
     expect(create.disabled).toBe(false);
     create.click();
-    expect(dispatch).toHaveBeenCalledExactlyOnceWith({ t: 'addPanel', x: 'fd_mean', y: 'tsnr' });
+    expect(dispatch).toHaveBeenCalledExactlyOnceWith({ t: 'addPanel', aggregate: 'median', x: 'fd_mean', y: 'tsnr' });
   });
 
   it('retargets a card rather than adding one', () => {
@@ -165,19 +165,19 @@ describe('column drawer actions', () => {
     expect(fixture.componentInstance.selectedFamily()).toBe(metricFamily('snr'));
     family(fixture, 'Fields');
     fixture.nativeElement.querySelector('[data-column-id="manufacturer"]').click();
-    expect(dispatch).toHaveBeenCalledExactlyOnceWith({ t: 'patchPanel', id: 'p1', patch: { x: 'manufacturer', y: null } });
+    expect(dispatch).toHaveBeenCalledExactlyOnceWith({ t: 'patchPanel', id: 'p1', patch: { aggregate: 'median', x: 'manufacturer', y: 'count' } });
     expect(fixture.nativeElement.textContent).not.toContain('Apply');
     expect(fixture.nativeElement.textContent).not.toContain('Create panel');
   });
 
   it('selects a time metric through the Y slot and applies both axes', () => {
     const { fixture, dispatch } = createDrawer('p1');
-    fixture.nativeElement.querySelector('[aria-label="Y slot (optional)"]').click();
+    fixture.nativeElement.querySelector('[aria-label="Y slot"]').click();
     family(fixture, metricFamily('fd_mean'));
     fixture.nativeElement.querySelector('[data-column-id="fd_mean"]').click();
     fixture.detectChanges();
     fixture.componentInstance.commit();
-    expect(dispatch).toHaveBeenCalledWith({ t: 'patchPanel', id: 'p1', patch: { x: 'created_at', y: 'fd_mean' } });
+    expect(dispatch).toHaveBeenCalledWith({ t: 'patchPanel', id: 'p1', patch: { aggregate: 'median', x: 'created_at', y: 'fd_mean' } });
   });
 
   it('removes Y immediately and leaves the title drawer open', () => {
@@ -186,7 +186,7 @@ describe('column drawer actions', () => {
     fixture.detectChanges();
     const closed = vi.fn(); fixture.componentInstance.closed.subscribe(closed);
     fixture.nativeElement.querySelector('[aria-label="Clear Y slot"]').click();
-    expect(dispatch).toHaveBeenCalledExactlyOnceWith({ t: 'patchPanel', id: 'p1', patch: { x: 'fd_mean', y: null } });
+    expect(dispatch).toHaveBeenCalledExactlyOnceWith({ t: 'patchPanel', id: 'p1', patch: { aggregate: 'median', x: 'fd_mean', y: 'count' } });
     expect(closed).not.toHaveBeenCalled();
     expect(fixture.nativeElement.textContent).not.toContain('Apply');
   });
@@ -199,7 +199,7 @@ describe('column drawer actions', () => {
     const details = fixture.nativeElement.querySelector('.column-picker-details');
     expect(details.textContent).toContain('Lower is better');
     expect(details.querySelector('a')?.href).toContain('mriqc.readthedocs.io');
-    expect(fixture.nativeElement.querySelector('[aria-label="Y slot (optional)"]')).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('[aria-label="Y slot"]')).not.toBeNull();
   });
 
   it('creates two metrics in one command, swaps them, and clears a slot', () => {
@@ -212,7 +212,7 @@ describe('column drawer actions', () => {
     expect(dispatch).not.toHaveBeenCalled();
     fixture.nativeElement.querySelector('[aria-label="Swap X and Y"]').click();
     fixture.componentInstance.commit();
-    expect(dispatch).toHaveBeenCalledExactlyOnceWith({ t: 'addPanel', x: 'tsnr', y: 'fd_mean' });
+    expect(dispatch).toHaveBeenCalledExactlyOnceWith({ t: 'addPanel', aggregate: 'median', x: 'tsnr', y: 'fd_mean' });
     fixture.nativeElement.querySelector('[aria-label="Clear Y slot"]').click();
     expect(fixture.componentInstance.slots().y).toBeNull();
   });
@@ -226,9 +226,9 @@ describe('column drawer actions', () => {
     fixture.componentRef.setInput('focusY', true);
     fixture.componentRef.setInput('pendingForm', 'scatter');
     fixture.detectChanges();
-    search(fixture, 'tsnr', 'Y slot (optional)');
+    search(fixture, 'tsnr', 'Y slot');
     fixture.nativeElement.querySelector('[data-column-id="tsnr"]').click();
-    expect(dispatch).toHaveBeenCalledExactlyOnceWith({ t: 'patchPanel', id: 'p1', patch: { x: 'fd_mean', y: 'tsnr', form: 'scatter' } });
+    expect(dispatch).toHaveBeenCalledExactlyOnceWith({ t: 'patchPanel', id: 'p1', patch: { aggregate: 'median', x: 'fd_mean', y: 'tsnr', form: 'scatter' } });
   });
 
   it('filters across families by full name, short label and id, and picks either slot with Enter', () => {
@@ -248,7 +248,7 @@ describe('column drawer actions', () => {
     fixture.detectChanges();
     expect(fixture.componentInstance.slots().x?.id).toBe('fd_mean');
     expect(x.value).toBe('Mean framewise displacement');
-    const y = search(fixture, 'tsnr', 'Y slot (optional)');
+    const y = search(fixture, 'tsnr', 'Y slot');
     y.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
     fixture.detectChanges();
     expect(fixture.componentInstance.slots().y?.id).toBe('tsnr');

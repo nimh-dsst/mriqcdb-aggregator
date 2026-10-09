@@ -20,6 +20,7 @@ import {
 } from '@mriqc/shared';
 
 import { normalizedOptions, validColumn } from './panels';
+import { isColumnY, type Aggregate } from './state';
 import {
   ALL_COHORT,
   CURRENT_COHORT,
@@ -92,8 +93,8 @@ export function encodeUrlState(url: UrlState): string {
 /** Unknown versions and undecodable streams use the router's default fallback. */
 export function decodeUrlState(param: string | null | undefined): UrlState | null {
   if (!param) return null;
-  if (param.length > MAX_PARAM_LENGTH || param[0] !== URL_VERSION || param.length < 3) return null;
-  return readUrlRecord(param.slice(1));
+  if (param.length > MAX_PARAM_LENGTH || ![URL_VERSION, '1'].includes(param[0]) || param.length < 3) return null;
+  return readUrlRecord(param.slice(1), param[0] === '1');
 }
 
 /* --------------------------------------------------------------- validation */
@@ -188,17 +189,19 @@ export function validateUrlState(url: UrlState): UrlState {
       const x =
         panel.x && validColumn(panel.x, modality, view) ? panel.x : metricsFor(modality)[0].id;
       const y =
-        axisType(x) !== 'categorical' &&
         panel.y !== x &&
         panel.y &&
         (panel.y === 'created_at' || isValidMetric(modality, panel.y))
           ? panel.y
-          : null;
+          : panel.y === 'share' || (!isColumnY(panel.y) && panel.options?.yMode === 'share') ? 'share' : 'count';
       const series = normalizeSeries(panel.series, {
         cohortIds: cohorts.map((cohort) => cohort.id),
         fieldCount: () => 0,
-      }).filter((item) => !('field' in item) || isValidField(modality, view, item.field, 'group'));
-      const candidate: Panel = { ...panel, x, y, series, cursors: [null] };
+      }).filter((item) => !('field' in item) || isValidField(modality, view, item.field, item.kind === 'values' ? 'filter' : 'group'));
+      const aggregate = ['median', 'mean', 'sum', 'min', 'max', 'p05', 'p25', 'p50', 'p75', 'p95'].includes(panel.aggregate) ? panel.aggregate : 'median';
+      const legacyLines = (panel.form as string) === 'lines';
+      const candidate: Panel = { ...panel, x, y, aggregate: aggregate as Aggregate, series, cursors: [null],
+        ...(legacyLines ? { form: 'band', options: { ...panel.options, fill: 'lines' } } : {}) };
       const validated = validForm({
         ...candidate,
         options: normalizedOptions(candidate, {}, modality),

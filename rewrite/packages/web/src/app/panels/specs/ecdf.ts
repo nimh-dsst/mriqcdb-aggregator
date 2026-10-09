@@ -1,3 +1,4 @@
+import { withValueAxes } from './value-axis';
 /**
  * Empirical CDFs, drawn as a step line over `{ value, p }` rows. The rows come
  * from the quantiles the `distribution` procedure returns plus the cumulative
@@ -51,7 +52,7 @@ export function ecdfSpec(
   brush: readonly [number, number] | null = null,
 ): TopLevelSpec {
   const theme = axis.theme ?? LIGHT_THEME;
-  return {
+  return withValueAxes({
     $schema: VL_SCHEMA,
     ...baseConfig(theme),
     ...FILLS_CONTAINER,
@@ -59,7 +60,7 @@ export function ecdfSpec(
     params: [brushParam(brush, theme)],
     mark: { ...STEP_LINE, color: theme.populationColor },
     encoding: { x: valueX(axis), y: PROPORTION_Y },
-  } as unknown as TopLevelSpec;
+  } as unknown as TopLevelSpec, axis);
 }
 
 /**
@@ -77,7 +78,7 @@ export function facetedEcdfSpec(
     groups.length === 0
       ? { range: [...theme.categories, OTHER_COLOR] }
       : { domain: groups, range: groupRange(groups, ordered, theme) };
-  return {
+  return withValueAxes({
     $schema: VL_SCHEMA,
     ...baseConfig(theme),
     data: { name: GROUPS_DATA },
@@ -98,5 +99,5 @@ export function facetedEcdfSpec(
         },
       },
     },
-  } as unknown as TopLevelSpec;
+  } as unknown as TopLevelSpec, axis);
 }

@@ -88,7 +88,8 @@ export function defaultDashboard(): UrlState {
   const panels = metrics.map((metric, i) => ({
     id: `p${i + 1}`,
     x: asColumnId(metric),
-    y: null,
+    y: 'count' as const,
+    aggregate: 'median' as const,
     form: 'histogram' as const,
     series: [],
     options: { ...options },
@@ -104,7 +105,8 @@ export function defaultDashboard(): UrlState {
       {
         id: `p${metrics.length + 1}`,
         x: 'created_at',
-        y: null,
+        y: 'count',
+        aggregate: 'median',
         form: 'histogram' as const,
         series: [],
         options: { ...options },
@@ -190,6 +192,7 @@ export function reduce(state: State, command: Command): State {
       const made = newPanel(state, command.x);
       const configured = patchPanel({ ...state, panels: [...state.panels, made] }, made.id, {
         ...(command.y !== undefined ? { y: command.y } : {}),
+        ...(command.aggregate !== undefined ? { aggregate: command.aggregate } : {}),
         ...(command.form ? { form: command.form } : {}),
         ...(command.series ? { series: command.series } : {}),
       });

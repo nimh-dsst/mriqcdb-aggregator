@@ -41,7 +41,7 @@ export type Command =
   | { t: 'setFilters'; filters: readonly Filter[] }
   // panels
   /** Create a quantity, optionally with explicit series and a valid form. */
-  | { t: 'addPanel'; x?: MetricId | 'created_at'; y?: MetricId | null; form?: PanelChart; series?: readonly Series[] }
+  | { t: 'addPanel'; x?: MetricId | 'created_at'; y?: import('./state').YQuantity | null; aggregate?: import('./state').Aggregate; form?: PanelChart; series?: readonly Series[] }
   | { t: 'addPanelSeries'; id: PanelId; series: Series }
   | { t: 'removePanelSeries'; id: PanelId; key: string }
   | { t: 'setPanelForm'; id: PanelId; form: PanelChart }
@@ -197,7 +197,8 @@ export type CommandType = Command['t'];
  */
 export interface PanelPatch {
   x?: MetricId | 'created_at';
-  y?: MetricId | null;
+  y?: import('./state').YQuantity | null;
+  aggregate?: import('./state').Aggregate;
   series?: readonly Series[];
   split?: GroupField | null;
   metric?: MetricId;

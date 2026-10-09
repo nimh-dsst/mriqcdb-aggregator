@@ -1,4 +1,4 @@
-import type { Density2dResult, DistributionResult, GroupedSummaryResult } from '@mriqc/shared';
+import type { BinnedSummaryResult, Density2dResult, DistributionResult, GroupedSummaryResult } from '@mriqc/shared';
 import { queryKey } from '@mriqc/shared';
 import { panelQueries, resultOf } from './queries';
 import type { Panel, State } from './state';
@@ -6,6 +6,7 @@ import type { Panel, State } from './state';
 export function axisEvidence(state: State, panel: Panel, axis: 'x' | 'y' = 'x') {
   const summaries: { min: number | null; p05?: number }[] = panelQueries(state, panel).flatMap(query => {
     if (query.proc === 'distribution') {
+      if (query.metric !== (axis === 'x' ? panel.x : panel.y)) return [];
       const result = resultOf<DistributionResult>(state, queryKey(query));
       return result ? result.n ? [{ min: result.min, p05: result.quantiles?.p05 }] : [] : [{ min: null }];
     }
@@ -16,6 +17,11 @@ export function axisEvidence(state: State, panel: Panel, axis: 'x' | 'y' = 'x') 
     if (query.proc === 'density2d') {
       const result = resultOf<Density2dResult>(state, queryKey(query));
       return [{ min: result?.[axis].lo ?? null }];
+    }
+    if (query.proc === 'binnedSummary') {
+      const result = resultOf<BinnedSummaryResult>(state, queryKey(query));
+      return result ? axis === 'x' ? [{ min: result.range[0] }]
+        : result.buckets.map(bucket => ({ min: bucket.quantiles.p05, p05: bucket.quantiles.p05 })) : [{ min: null }];
     }
     return [];
   });

@@ -185,7 +185,7 @@ export class PanelCard {
     if (axis === 'color') return '';
     const column = axis === 'x' ? this.panel()?.x : this.panel()?.y;
     if (column === 'created_at') return 'UTC milliseconds';
-    if (!column) return this.panel()?.options.yMode === 'share' ? 'share' : 'count';
+    if (!column || column === 'count' || column === 'share') return this.panel()?.options.yMode === 'share' ? 'share' : 'count';
     return this.metrics().find(metric => metric.id === column)?.unit || 'unitless';
   }
 
@@ -266,7 +266,7 @@ export class PanelCard {
   readonly metrics = computed(() => metricsFor(this.modality()));
   readonly yUnit = computed(() => this.metrics().find(metric => metric.id === this.panel()?.y)?.unit);
   readonly fields = computed(() =>
-    fieldsFor(this.modality(), this.selectedView(), 'group'),
+    fieldsFor(this.modality(), this.selectedView(), 'filter'),
   );
   readonly groups = computed(() => this.state().cohorts);
   readonly fieldValues = computed(() => {
@@ -437,6 +437,10 @@ export class PanelCard {
   }
 
   formDetails(form: Form) {
+    const panel = this.panel();
+    if (form === 'band' && panel && (panel.y === 'count' || panel.y === 'share') && panelCohorts(this.state(), panel).length < 2) {
+      return { ...FORM_INFO.band, hint: 'Band needs series' };
+    }
     if (form === 'bars' && this.panel() && axisType(this.panel()!.x) === 'categorical') {
       return { ...FORM_INFO.bars, hint: 'Counts in each category' };
     }
@@ -475,6 +479,11 @@ export class PanelCard {
 
   removeSeries(key: string): void {
     this.graph.dispatch({ t: 'removePanelSeries', id: this.panelId(), key });
+  }
+  replaceSeries(series: Parameters<CompareInput['added']['emit']>[0]): void {
+    const panel = this.panel();
+    if (!panel) return;
+    this.patch({ series: [...panel.series.filter(item => item.kind !== 'field' && item.kind !== 'values'), series] });
   }
 
   async createGroup(): Promise<void> {
@@ -535,7 +544,7 @@ export class PanelCard {
 
   onBrush2d(ranges: Brush2dRange): void {
     const panel = this.panel();
-    if (panel?.y) {
+    if (panel?.y && panel.y !== 'count' && panel.y !== 'share' && panel.y !== 'created_at') {
       this.graph.dispatch({
         t: 'brush2d',
         from: panel.id,

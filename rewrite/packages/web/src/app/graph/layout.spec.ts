@@ -22,7 +22,7 @@ function panel(
   return {
     id,
     x: 'metric',
-    y: null,
+    y: 'count', aggregate: 'median',
     form: 'histogram',
     series: [],
 

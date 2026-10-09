@@ -29,6 +29,26 @@ export type CohortId = string;
 export type Form = (typeof import('./panel-shapes').FORM_ORDER)[number];
 export type PanelChart = Form;
 export type ColumnRef = ColumnId | 'created_at';
+
+/** A value plotted on the vertical axis. */
+export type YQuantity = 'count' | 'share' | ColumnRef;
+
+/** The aggregation used when plotting a numeric column on the vertical axis. */
+export type Aggregate =
+  | 'median'
+  | 'mean'
+  | 'sum'
+  | 'min'
+  | 'max'
+  | 'p05'
+  | 'p25'
+  | 'p50'
+  | 'p75'
+  | 'p95';
+
+export function isColumnY(y: YQuantity | null | undefined): y is ColumnRef {
+  return typeof y === 'string' && y !== 'count' && y !== 'share';
+}
 export type { Series } from './series';
 import type { Series } from './series';
 
@@ -83,6 +103,7 @@ export interface PanelOptions {
   yMode: 'count' | 'share' | 'logCount';
   layout: 'overlaid' | 'stacked' | 'stacked100';
   quantiles: 'quartiles' | 'tails';
+  fill: 'band' | 'lines';
   coefficient?: 'spearman' | 'pearson';
   /** Apply the linked brush from other panels. */
   useSelection: boolean;
@@ -219,7 +240,8 @@ export const MIN_COMPARISON_COHORTS = 2;
 export interface Panel {
   id: PanelId;
   x: ColumnRef;
-  y: MetricId | null;
+  y: YQuantity;
+  aggregate: Aggregate;
   form: Form;
   series: readonly Series[];
   /** Rendering and analysis parameters, independent of the axes. */
@@ -344,6 +366,7 @@ export function defaultPanelOptions(clip: ClipMode = 'p01p99'): PanelOptions {
     xScale: 'linear', xRange: 'auto', yScale: 'linear', yRange: 'auto',
     yMode: 'count', layout: 'overlaid',
     quantiles: 'quartiles',
+    fill: 'band',
     useSelection: true,
     granularity: 'month',
     splitPresentation: 'overlay',

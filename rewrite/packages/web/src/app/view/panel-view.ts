@@ -4,7 +4,11 @@ import type { TopLevelSpec } from 'vega-lite';
 import { axisType, panelForms } from '../graph/panel-shapes';
 import { axisEvidence } from '../graph/axis-options';
 import { withChipLegend } from '../panels/specs/chip-legend';
-import { withCountRange } from '../panels/specs/axis-ranges';
+import { ySummaryQuery, ySummaryResult } from '../graph/y-summary';
+import { withValueAxes } from '../panels/specs/value-axis';
+import { isColumnY } from '../graph/state';
+import { baseConfig, FILLS_CONTAINER } from '../panels/specs/palette';
+import { countBoxChart } from '../panels/specs/grammar';
 import { LIGHT_THEME, OTHER_COLOR, type ChartTheme, type CohortResult, type MetricAxis } from '../panels/specs';
 import { type ChartInput, type ChartOutput } from '../panels/specs/select';
 import { stackedHistogram, COHORTS_DATA } from '../panels/specs/comparison';
@@ -189,7 +193,10 @@ function axisFor(state: State, panel: Panel): MetricAxis {
     granularity: panel.options.granularity,
     xRange: panel.options.xRange,
     constant: evidence.constant,
-    yMode: panel.options.yMode,
+    yMode: panel.y === 'share' ? 'share' : panel.options.yMode,
+    yScale: panel.options.yScale,
+    yRange: panel.options.yRange,
+    xPositive: evidence.positive,
     countTitle: countAxisTitle(activeView(state)),
   };
 }
@@ -308,10 +315,10 @@ function sameDeps(a: readonly unknown[], b: readonly unknown[]): boolean {
 
 function titleFor(state: State, panel: Panel): string {
   if (panel.form === 'matrix') return 'Metric correlations';
-  if (panel.x === 'created_at') return panel.y ? `${metricDef(state, panel.y)?.shortLabel ?? metricDef(state, panel.y)?.label ?? panel.y} over time` : 'Uploads over time';
-  if (axisType(panel.x) === 'categorical') return 'Scans per ' + (fieldDef(state, panel.x)?.label ?? panel.x);
+  if (panel.x === 'created_at') return isColumnY(panel.y) ? `${metricDef(state, panel.y)?.shortLabel ?? metricDef(state, panel.y)?.label ?? panel.y} over time` : panel.y === 'share' ? 'Share of uploads over time' : 'Uploads over time';
+  if (axisType(panel.x) === 'categorical') return (isColumnY(panel.y) ? metricDef(state, panel.y)?.shortLabel ?? (panel.y === 'created_at' ? 'Upload time' : panel.y) : panel.y === 'share' ? 'Share' : 'Scans') + ' per ' + (fieldDef(state, panel.x)?.label ?? panel.x);
   const x = metricDef(state, panel.x), y = metricDef(state, panel.y);
-  return panel.y ? (panel.y === 'created_at' ? 'Upload time' : y?.shortLabel ?? y?.label ?? panel.y) + ' vs ' + (x?.shortLabel ?? x?.label ?? panel.x) : x?.label ?? String(panel.x);
+  return isColumnY(panel.y) ? (panel.y === 'created_at' ? 'Upload time' : y?.shortLabel ?? y?.label ?? panel.y) + ' vs ' + (x?.shortLabel ?? x?.label ?? panel.x) : x?.label ?? String(panel.x);
 }
 
 /** A card is one quantity, its resolved series, and a valid form. */
@@ -322,13 +329,41 @@ export function panelView(state: State, id: PanelId, theme: ChartTheme = LIGHT_T
   const deps = [theme, panel, state.global, state.catalog, state.dataVersion, state.selections, state.cohorts, state.study, total, ...keys.map(key => state.datasets[key])];
   const memo = memos.get(id);
   if (memo && sameDeps(memo.deps, deps)) return memo.view;
-  if ((axisType(panel.x) === 'time' && panel.y !== null) || (axisType(panel.x) === 'numeric' && panel.y !== null) || panel.form === 'matrix') {
-    const view = (panel.form === 'band' || panel.form === 'lines') ? timePanelView(state, panel, theme) : analysisPanelView(state, panel, theme);
-    const quantityKey = queryKey(cohortQuery(state, panel, panelCohort(state, panel)));
-    const numericStats = axisType(panel.x) === 'numeric' && panel.form !== 'matrix' ? panelStats(state, panel, [quantityKey]) : null;
+  if ((isColumnY(panel.y) && panel.form !== 'table') || panel.form === 'matrix') {
+    const view = ['heatmap', 'hexbin', 'scatter', 'clusters', 'matrix'].includes(panel.form) ? analysisPanelView(state, panel, theme) : timePanelView(state, panel, theme);
+    const quantityPanel = { ...panel, x: panel.y as ColumnId, options: { ...panel.options, xRange: 'auto' as const } };
+    const quantityKey = queryKey(ySummaryQuery(state, panel, panelCohort(state, panel)));
+    const quantity = ySummaryResult(state, panel, panelCohort(state, panel));
+    const dateY = panel.y === 'created_at';
+    const date = (value: number | null | undefined) => value == null ? '—' : new Date(value).toISOString().slice(0, 10);
+    const numericStats = dateY ? quantity?.quantiles ? ['p05', 'p25', 'p50', 'p75', 'p95'].map(key => ({ label: key === 'p50' ? 'MEDIAN' : key.toUpperCase(), value: date(quantity.quantiles![key as 'p05']), title: 'Upload date, estimated from daily counts.' })) : null
+      : isColumnY(panel.y) && panel.form !== 'matrix' ? panelStats(state, quantityPanel, [quantityKey]) : null;
+    const yCohorts = panelCohorts(state, panel);
+    const yResults = yCohorts.map(cohort => ({ id: cohort.id, name: cohort.name, base: ySummaryResult(state, panel, cohort), ranged: null }));
+    const yComparison = !dateY && panel.form !== 'matrix' && yCohorts.length > 1
+      ? comparisonStats(state, quantityPanel, yCohorts, yResults) : null;
+    if (panel.form === 'box') {
+      const rows = yResults.flatMap((result, index) => result.base?.quantiles ? [{ ...result.base.quantiles, seriesId: result.id,
+        label: result.name, n: result.base.n, color: theme.categories[index % 6] }] : []);
+      const y = { field: 'p50', type: dateY ? 'temporal' : 'quantitative', title: dateY ? 'Upload time' : metricDef(state, panel.y)?.label ?? String(panel.y) };
+      view.spec = { ...baseConfig(theme), ...FILLS_CONTAINER, data: { name: 'yBoxes' },
+        encoding: { x: { field: 'label', type: 'nominal', title: 'Series' }, color: { field: 'color', type: 'nominal', scale: null, legend: null } },
+        layer: [
+          { mark: 'rule', encoding: { y: { ...y, field: 'p05' }, y2: { field: 'p95' } } },
+          { mark: { type: 'bar', size: 18 }, encoding: { y: { ...y, field: 'p25' }, y2: { field: 'p75' } } },
+          { mark: { type: 'tick', size: 20, color: theme.medianColor }, encoding: { y } },
+        ] } as TopLevelSpec;
+      view.datasets = { yBoxes: rows };
+      view.hasRows = rows.length > 0;
+      view.n = quantity?.n ?? null;
+      view.analysisHeaders = [];
+      view.analysisRows = [];
+    }
     const derived = { ...view, title: titleFor(state, panel), stats: numericStats ?? view.stats,
+      comparison: yComparison,
+      ...(panel.form !== 'matrix' ? { analysisRows: dateY ? yResults.map((result, index) => ({ id: result.id, name: result.name, color: theme.categories[index % 6], cells: [result.base?.n.toLocaleString('en-US') ?? '—', ...['p05', 'p50', 'p95'].map(key => date(result.base?.quantiles?.[key as 'p05']))] })) : [], analysisHeaders: ['Total', 'P05', 'Median', 'P95'], analysisNote: dateY ? 'Upload date quantiles are estimated from daily counts.' : undefined } : {}),
       notes: [...view.notes, ...(panel.series.some(series => series.kind === 'study') && studyFormReason(panel, state) ? [studyFormReason(panel, state)!] : [])],
-      spec: view.spec ? withChipLegend(view.spec) : null };
+      spec: view.spec ? withChipLegend(withValueAxes(view.spec, axisFor(state, panel), view.datasets)) : null };
     if (panel.form !== 'clusters') memos.set(id, { deps, view: derived });
     return derived;
   }
@@ -381,8 +416,9 @@ export function panelView(state: State, id: PanelId, theme: ChartTheme = LIGHT_T
         }
         return { id: cohort.id, name: cohort.name, color: colors[index], counts: [...countMap].map(([category, n]) => ({ category, n })) };
       });
-      const rendered = categoryChart(categorySeries, category?.label ?? String(panel.x), panel.form === 'share', countAxisTitle(activeView(state)), theme);
+      const rendered = categoryChart(categorySeries, category?.label ?? String(panel.x), panel.y === 'share' || panel.form === 'share', countAxisTitle(activeView(state)), theme);
       chart = { ...rendered, brushable: false, n };
+      if (panel.form === 'box') chart = { ...countBoxChart(categorySeries.map(item => ({ ...item, bins: item.counts.map((bin, index) => ({ lo: index, hi: index + 1, count: bin.n })) })), axis.countTitle, axis), brushable: false, n };
     } else {
       chart = { ...continuousChart({ form: panel.form, axis, clip: 'none', brush: null, groupLabel: 'Series', groupField: null,
         groupOrdered: false, cohortLabel: cohorts[0]?.name ?? 'This dashboard', granularity: panel.options.granularity,
@@ -404,11 +440,16 @@ export function panelView(state: State, id: PanelId, theme: ChartTheme = LIGHT_T
     id: cohort.id, name: cohort.name, base: aggregate,
     ranged: sharedRange ? distributionResult(state, queryKey(cohortQuery(state, panel, cohort, sharedRange))) : null,
   }) : [];
-  const comparison = numeric && panel.series.length ? comparisonStats(state, panel, statsCohorts, statsResults) : null;
-  if (comparison) {
-    comparison.rows = comparison.rows.map(row => ({ ...row, color: colors[cohorts.findIndex(cohort => cohort.id === row.id)] ?? OTHER_COLOR }));
+  const comparison = null;
+  if (numeric) {
+    stats = aggregate ? [{ label: axis.countTitle.toUpperCase(), value: aggregate.n.toLocaleString('en-US'), title: 'Total count in this dashboard.' }] : null;
+    if (cohorts.length > 1) {
+      const reference = counts[cohorts.findIndex(cohort => cohort.id === panel.reference)] ?? counts[0];
+      analysisHeaders = ['Total', 'Difference'];
+      analysisRows = cohorts.map((cohort, index) => ({ id: cohort.id, name: cohort.name, color: colors[index],
+        cells: [counts[index]?.toLocaleString('en-US') ?? '—', counts[index] !== null && reference != null ? (counts[index]! - reference).toLocaleString('en-US') : '—'] }));
+    }
   }
-  if (panel.series.length) stats = null;
   const view: PanelView = {
     id, panel, title: titleFor(state, panel), meaning: panelMeaning({ x: panel.x, form: panel.form, modality: state.global.modality,
       view: activeView(state), metricLabel: metric?.label ?? null, metricDescription: metric?.description ?? null, metricUnit: metric?.unit ?? null,
@@ -417,7 +458,7 @@ export function panelView(state: State, id: PanelId, theme: ChartTheme = LIGHT_T
       ...(panel.series.some(series => series.kind === 'study') && studyFormReason(panel, state) ? [studyFormReason(panel, state)!] : [])],
     clipChip: clipChip(panel.options.clip, metric, panel), metricHelp: metric ? { label: metric.label, taxonomy: [metric.family, metric.subfamily].filter(Boolean).join(' / '), description: metric.description ?? null, unit: metric.unit ?? null } : null,
     specKey: JSON.stringify([theme.mode, panel.x, panel.y, panel.form, panel.options, series, chart.spec]),
-    spec: chart.spec ? withChipLegend(withCountRange(chart.spec, panel)) : null, datasets: chart.datasets, table, status, brushable: chart.brushable,
+    spec: chart.spec ? withChipLegend(withValueAxes(chart.spec, axis, chart.datasets)) : null, datasets: chart.datasets, table, status, brushable: chart.brushable,
     hasRows: table ? table.rows.length > 0 : Object.values(chart.datasets).some(rows => rows.length > 0), live: status.kind === 'ready',
     n: chart.n, countLabel: countLabel(state, panel), stats, xPositive: axisEvidence(state,panel).positive,
     cohorts: panel.series.length ? cohorts.map((cohort, index) => ({ id: cohort.id, name: cohort.name, color: colors[index], n: counts[index] ?? null, editable: false, descriptorKey: cohort.descriptorKey })) : null,

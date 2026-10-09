@@ -66,7 +66,7 @@ describe('axis range commands', () => {
 function panel(overrides: Partial<Panel> = {}): Panel {
   return {
     id: 'p1',
-    y: null,
+    y: 'count', aggregate: 'median',
     x: asColumnId('fd_mean'),
     form: 'histogram',
     series: [],
@@ -167,7 +167,7 @@ describe('reduce', () => {
 
     it('leaves a metricless panel kind alone', () => {
       const state = fixture({
-        panels: [panel({ y: null, x: 'created_at', series: [{ kind: 'field' as const, field: asColumnId('manufacturer') }] })],
+        panels: [panel({ y: 'count', aggregate: 'median', x: 'created_at', series: [{ kind: 'field' as const, field: asColumnId('manufacturer') }] })],
       });
       expect(reduce(state, { t: 'setModality', modality: 'T1w' }).panels[0].x).toBe('created_at');
     });
@@ -392,7 +392,7 @@ describe('reduce', () => {
     it('drops a study reference from a shared link and explains why', () => {
       const url = defaultDashboard();
       const comparison = panel({
-        y: null,
+        y: 'count', aggregate: 'median',
         form: 'histogram',
         series: [{ kind: 'study' as const }],
       });
@@ -557,7 +557,7 @@ describe('reduce', () => {
 
     it('purges local query results when a study is replaced and collapses comparisons when cleared', () => {
       const comparison = panel({
-        y: null,
+        y: 'count', aggregate: 'median',
         form: 'histogram',
         series: [{ kind: 'study' as const }],
       });
@@ -807,11 +807,11 @@ describe('cohort commands', () => {
       expect(converted.x).toBe('fd_mean');
     });
 
-    it('keeps a grouping and reports the cap when an against series will not fit', () => {
+    it('keeps five field groups and adds the sixth comparison series', () => {
       const grouped = fixture({ panels: [panel({ series: [{ kind: 'field' as const, field: asColumnId('manufacturer') }] })] });
       const state = reduce(grouped, { t: 'convertToComparison', panelId: 'p1', with: 'all' });
-      expect(state.panels[0].series).toEqual(grouped.panels[0].series);
-      expect(state.notice).toContain('Six');
+      expect(state.panels[0].series).toEqual([...grouped.panels[0].series, {kind:'population'}]);
+      expect(state.notice).toBeNull();
     });
 
     it('appends to a panel that is already a comparison, and never twice', () => {

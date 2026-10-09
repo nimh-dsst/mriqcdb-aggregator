@@ -30,12 +30,12 @@ describe('element settings in links and queries', () => {
     expect(encodeUrlState(urlState(explicit))).toBe(encodeUrlState(urlState(state)));
   });
   it('retains an explicit log scale for Matrix', () => {
-    const state = reduce(pair(), { t: 'patchPanel', id: 'p1', patch: { y: null, form: 'matrix', options: { metrics: [asColumnId('fd_mean'), asColumnId('snr')], colorScale: 'log' } } });
+    const state = reduce(pair(), { t: 'patchPanel', id: 'p1', patch: { y: 'count', aggregate: 'median', form: 'matrix', options: { metrics: [asColumnId('fd_mean'), asColumnId('snr')], colorScale: 'log' } } });
     expect(state.panels[0].form).toBe('matrix');
     expect(decodeUrlState(encodeUrlState(urlState(state)))?.panels[0].options.colorScale).toBe('log');
   });
   it('omits the default linear matrix scale', () => {
-    const state = reduce(pair(), { t: 'patchPanel', id: 'p1', patch: { y: null, form: 'matrix', options: { metrics: [asColumnId('fd_mean'), asColumnId('snr')] } } });
+    const state = reduce(pair(), { t: 'patchPanel', id: 'p1', patch: { y: 'count', aggregate: 'median', form: 'matrix', options: { metrics: [asColumnId('fd_mean'), asColumnId('snr')] } } });
     expect(state.panels[0].form).toBe('matrix');
     const explicit = reduce(state, { t: 'setPanelOptions', id: 'p1', options: { colorScale: 'linear', colorDomain: 'auto' } });
     expect(encodeUrlState(urlState(explicit))).toBe(encodeUrlState(urlState(state)));

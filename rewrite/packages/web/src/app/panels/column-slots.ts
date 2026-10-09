@@ -30,7 +30,7 @@ export const EMPTY_DRAWER_SLOTS: DrawerSlots = {
 };
 
 export function canUseAsY(column: DrawerSlotColumn, x: DrawerSlotColumn | null): boolean {
-  return column.id !== x?.id && column.isContinuous && x?.isContinuous === true;
+  return column.id !== x?.id && column.isContinuous && x !== null;
 }
 
 export function canSwapDrawerSlots(slots: DrawerSlots): boolean {
@@ -74,7 +74,7 @@ export function reduceDrawerSlots<TColumn extends DrawerSlotColumn>(
       }
 
       if (canUseAsY(column, slots.x)) {
-        if (column.id === 'created_at') return { x: column, y: slots.x, focused: 'y' };
+        if (column.id === 'created_at' && slots.x.isContinuous) return { x: column, y: slots.x, focused: 'y' };
         return { ...slots, y: column, focused: 'y' };
       }
 

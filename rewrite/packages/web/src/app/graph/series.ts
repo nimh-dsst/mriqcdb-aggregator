@@ -145,7 +145,7 @@ export const seriesSlots = (
         normalizedFieldCount(series.field, fieldCount),
       );
     case "values":
-      return distinctValues(series.values).length;
+      return distinctValues(series.values).filter(value => !value.startsWith('other:')).length;
     default:
       return 1;
   }
@@ -197,7 +197,7 @@ export const seriesDisabledReason = (
   }
 
   const usedSlots =
-    IMPLICIT_DASHBOARD_SERIES +
+    (hasGrouping || isGrouping(normalizedCandidate) ? 0 : IMPLICIT_DASHBOARD_SERIES) +
     existing.reduce(
       (total, series) => total + seriesSlots(series, context.fieldCount),
       0,

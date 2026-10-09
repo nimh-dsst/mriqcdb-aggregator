@@ -30,7 +30,7 @@ const urlModel = {
     {
       id: 'quantity',
       x: snr,
-      y: null,
+      y: 'count', aggregate: 'median',
       form: 'histogram',
       series: [
         {
@@ -46,7 +46,7 @@ const urlModel = {
     {
       id: 'category',
       x: manufacturer,
-      y: null,
+      y: 'count', aggregate: 'median',
       form: 'share',
       series: [{ kind: 'field', field: magneticFieldStrength }],
       options: defaultPanelOptions(),
@@ -70,7 +70,7 @@ const urlModel = {
     {
       id: 'matrix',
       x: snr,
-      y: null,
+      y: 'count', aggregate: 'median',
       form: 'matrix',
       series: [],
       options: {
@@ -87,8 +87,8 @@ const decodedPanels = (value: unknown): readonly Record<string, unknown>[] =>
 
 describe('graph URL scheme', () => {
   it('uses only the schema version character', () => {
-    expect(URL_VERSION).toBe('1');
-    expect(encodeUrlState(urlModel as never)).toMatch(/^1[A-Za-z0-9_-]+$/);
+    expect(URL_VERSION).toBe('2');
+    expect(encodeUrlState(urlModel as never)).toMatch(/^2[A-Za-z0-9_-]+$/);
   });
 
   it('round-trips every panel axis shape, every series descriptor, and delimiter values', () => {

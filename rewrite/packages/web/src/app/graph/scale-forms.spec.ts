@@ -9,7 +9,7 @@ import { panelView } from '../view/panel-view';
 const state = () => reduce(INITIAL_STATE, { t:'hydrate', url:defaultDashboard() });
 describe('continuous form query contracts', () => {
   it.each(['band','lines'] as const)('requests metric binned quantiles for %s', form => {
-    const s=reduce(state(),{t:'patchPanel',id:'p1',patch:{y:asColumnId('tsnr'),form}});
+    const s=reduce(state(),{t:'patchPanel',id:'p1',patch:{y:asColumnId('tsnr'),form:'band',options:{fill:form}}});
     const queries=panelQueries(s,s.panels[0]);
     expect(queries[0]).toMatchObject({proc:'binnedSummary',x:'fd_mean',y:'tsnr',bins:40});
     expect(queries.some(q=>q.proc==='density2d')).toBe(false);
@@ -26,9 +26,9 @@ describe('continuous form query contracts', () => {
     const view=panelView({...s,dataVersion:'v',datasets:{[queryKey(sample)]:{status:'ready',version:'v',result:{rows:[{id:'old',created_at:'2024-01-01'},{id:'new',created_at:'2024-03-01'}],nextCursor:null}}}},'p5');
     if(x==='created_at') expect(view?.table?.rows.map(row=>row['id'])).toEqual(['new','old']);
   });
-  it('rejects hidden Table on a categorical quantity', () => {
+  it('allows Table on a categorical quantity', () => {
     const categorical = reduce(state(), { t: 'patchPanel', id: 'p5', patch: { x: asColumnId('manufacturer') } });
     expect(categorical.panels[4].form).toBe('bars');
-    expect(reduce(categorical, { t: 'setPanelForm', id: 'p5', form: 'table' })).toBe(categorical);
+    expect(reduce(categorical, { t: 'setPanelForm', id: 'p5', form: 'table' }).panels[4].form).toBe('table');
   });
 });

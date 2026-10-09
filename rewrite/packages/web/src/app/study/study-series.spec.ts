@@ -9,7 +9,7 @@ import { reduce } from '../graph/reducer';
 import { panelView } from '../view/panel-view';
 
 const fd = asColumnId('fd_mean'), tsnr = asColumnId('tsnr');
-const panel = (patch: Partial<Panel> = {}): Panel => ({ id: 'study-test', x: fd, y: null, form: 'histogram',
+const panel = (patch: Partial<Panel> = {}): Panel => ({ id: 'study-test', x: fd, y: 'count', aggregate: 'median', form: 'histogram',
   series: [{ kind: 'study' }], options: defaultPanelOptions(), cursors: [null], ...patch });
 const state = (p: Panel): State => ({ ...INITIAL_STATE, global: { modality: 'bold', view: 'raw', filters: [] }, panels: [p],
   study: { status: 'ready', name: 'fixture.csv', rows: 300, metrics: [fd, tsnr], columns: ['bids_name', 'fd_mean', 'tsnr', 'manufacturer', 'created_at'],
@@ -27,12 +27,12 @@ describe('study series across the scheme', () => {
       }
     });
   }
-  for (const form of ['heatmap', 'scatter', 'hexbin', 'clusters', 'band', 'lines'] as const) {
+  for (const form of ['heatmap', 'scatter', 'hexbin', 'clusters', 'band'] as const) {
     it(`plans local two-axis ${form}`, () => {
       for (const x of [fd, asColumnId('created_at')]) {
         const p = panel({ x, y: tsnr, form }), s = state(p);
         expect(panelQueries(s, p).some(query => query.source === 'study' && query.proc ===
-          (form === 'band' || form === 'lines' ? 'binnedSummary' : 'density2d'))).toBe(true);
+          (form === 'band' ? 'binnedSummary' : 'density2d'))).toBe(true);
       }
     });
   }

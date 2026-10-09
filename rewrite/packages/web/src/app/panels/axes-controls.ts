@@ -10,7 +10,7 @@ import { ElementControls } from './element-controls';
   template: `
     @for (axis of axes(); track axis) {
       <app-element-controls [options]="view().panel.options" [axis]="axis" [unit]="unit(axis)"
-        [countAxis]="axis === 'y' && view().panel.y === null" (changed)="changed.emit($event)" />
+        [countAxis]="axis === 'y' && (view().panel.y === 'count' || view().panel.y === 'share')" (changed)="changed.emit($event)" />
     }`,
 })
 export class AxesControls {
@@ -23,6 +23,6 @@ export class AxesControls {
   protected unit(axis: 'x' | 'y'): string {
     const panel = this.view().panel;
     if (axis === 'x') return panel.x === 'created_at' ? 'UTC milliseconds' : this.view().metricHelp?.unit || 'unitless';
-    return panel.y ? this.yUnit() || 'unitless' : panel.options.yMode === 'share' ? 'share' : 'count';
+    return panel.y !== 'count' && panel.y !== 'share' ? this.yUnit() || 'unitless' : panel.options.yMode === 'share' ? 'share' : 'count';
   }
 }

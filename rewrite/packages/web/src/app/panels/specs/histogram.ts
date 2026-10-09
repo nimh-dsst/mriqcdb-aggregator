@@ -1,3 +1,4 @@
+import { withValueAxes } from './value-axis';
 /**
  * Bar charts over pre-binned rows.
  *
@@ -32,6 +33,10 @@ export interface MetricAxis {
   xRange?: 'auto' | readonly [number, number];
   constant?: number;
   yMode?: 'count' | 'share' | 'logCount';
+  yScale?: 'linear' | 'log' | 'symlog';
+  yRange?: 'auto' | readonly [number, number];
+  xPositive?: boolean;
+  yPositive?: boolean;
   /**
    * What the count axis is counting, in the view's own noun: "Scans" or
    * "Uploads". Never "Records" -- that was true of both views and so said
@@ -94,7 +99,7 @@ export function histogramSpec(
   if (separateSpike) {
     const x = binnedX(axis);
     const gap = bins > 100 ? 0 : 2;
-    return {
+    return withValueAxes({
       $schema: VL_SCHEMA,
       ...baseConfig(theme),
       ...FILLS_CONTAINER,
@@ -139,9 +144,9 @@ export function histogramSpec(
           },
         },
       ],
-    } as unknown as TopLevelSpec;
+    } as unknown as TopLevelSpec, axis);
   }
-  return {
+  return withValueAxes({
     $schema: VL_SCHEMA,
     ...baseConfig(theme),
     ...FILLS_CONTAINER,
@@ -155,7 +160,7 @@ export function histogramSpec(
       x2: { field: 'hi' },
       y: countAxis(axis),
     },
-  } as unknown as TopLevelSpec;
+  } as unknown as TopLevelSpec, axis);
 }
 
 /**
@@ -172,7 +177,7 @@ export function densitySpec(
   brush: readonly [number, number] | null = null,
 ): TopLevelSpec {
   const theme = axis.theme ?? LIGHT_THEME;
-  return {
+  return withValueAxes({
     $schema: VL_SCHEMA,
     ...baseConfig(theme),
     ...FILLS_CONTAINER,
@@ -205,7 +210,7 @@ export function densitySpec(
         { field: 'share', type: 'quantitative', title: 'Smoothed share', format: '.2%' },
       ],
     },
-  } as unknown as TopLevelSpec;
+  } as unknown as TopLevelSpec, axis);
 }
 
 /**
@@ -227,7 +232,7 @@ export function facetedHistogramSpec(
     groups.length === 0
       ? { range: [...theme.categories, OTHER_COLOR] }
       : { domain: groups, range: groupRange(groups, ordered, theme) };
-  return {
+  return withValueAxes({
     $schema: VL_SCHEMA,
     ...baseConfig(theme),
     data: { name: GROUPS_DATA },
@@ -249,5 +254,5 @@ export function facetedHistogramSpec(
         },
       },
     },
-  } as unknown as TopLevelSpec;
+  } as unknown as TopLevelSpec, axis);
 }

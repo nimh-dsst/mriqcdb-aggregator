@@ -26,13 +26,13 @@ function roundTrip<T>(codec: Codec<T>, value: T): T {
 
 describe('six-bit URL scalars', () => {
   it('assigns one character per canonical form in formsFor order', () => {
-    expect(CHART_TOKENS.values).toEqual(['histogram', 'line', 'area', 'density', 'ecdf', 'box', 'table',
-      'heatmap', 'scatter', 'hexbin', 'clusters', 'band', 'lines', 'bars', 'share', 'matrix']);
+    expect(CHART_TOKENS.values).toEqual(['histogram', 'line', 'area', 'density', 'ecdf', 'box', 'table', 'band',
+      'heatmap', 'scatter', 'hexbin', 'clusters', 'bars', 'share', 'matrix']);
     const metric = asColumnId('snr');
     const forms = [...new Set([
-      ...formsFor(metric, null), ...formsFor('created_at', null),
+      ...formsFor(metric, 'count'), ...formsFor('created_at', 'count'),
       ...formsFor('created_at', metric), ...formsFor(metric, asColumnId('fd_mean')),
-      ...formsFor(asColumnId('manufacturer'), null), ...formsFor([], null),
+      ...formsFor(asColumnId('manufacturer'), 'count'), ...formsFor([], 'count'),
     ])];
     expect(CHART_TOKENS.values).toEqual(forms);
     forms.forEach((form, index) => {

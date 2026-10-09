@@ -80,7 +80,8 @@
             [drawer]="true"
             [focusY]="focusSecondMetric()"
             [panelId]="panel.id"
-    [y]="panel.y"
+            [y]="panel.y"
+            [aggregate]="panel.aggregate"
             [pendingForm]="pendingForm()"
             (closed)="closeColumnPicker()"
           >
@@ -111,7 +112,7 @@
         [studyReady]="studyReady()"
         [dateRange]="dateRange()"
         (added)="addSeries($event)"
-        (removed)="removeSeries($event)"
+        (removed)="removeSeries($event)" (replaced)="replaceSeries($event)"
         (newGroup)="createGroup()"
         (groupAction)="groupAction($event)"
       />
@@ -144,9 +145,11 @@
                 <span class="form-option">
                   <app-form-glyph [form]="entry.form" />
                   <span class="font-medium">{{ info.label }}</span>
-                  @if (entry.reason) {
+                  @if (entry.reason === 'add a second column') {
                     <a class="form-option-hint form-reason" href="#second-column" aria-disabled="false" [attr.data-form]="entry.form"
                       (click)="addSecondMetric($event, formPicker, entry.form)">{{ entry.reason }}</a>
+                  } @else if (entry.reason) {
+                    <span class="text-caption text-ink-2">{{ entry.reason }}</span>
                   } @else {
                     <span class="form-option-hint">{{ info.hint }}</span>
                   }
@@ -158,7 +161,7 @@
       </div>
     </div>
 
-    @if (panel.form === 'band' || panel.form === 'lines') {
+    @if (panel.form === 'band') {
       <div class="flex items-center gap-2 border-b border-border p-2">
         <label class="text-caption text-ink-2" for="median-band-metric-{{ panel.id }}">
           Second column
@@ -227,7 +230,7 @@
 
     <mat-menu #optionsMenu="matMenu" class="panel-options-menu">
       <div class="panel-settings" data-testid="panel-settings" (click)="$event.stopPropagation()" cdkTrapFocus [cdkTrapFocusAutoCapture]="true" (keydown)="$event.key !== 'Escape' && $event.stopPropagation()">
-        @if (['histogram', 'line', 'area', 'band', 'lines'].includes(panel.form)) {
+        @if (['histogram', 'line', 'area', 'band'].includes(panel.form)) {
           <label appSettingRow class="setting-row"><span>Bins</span>
             @if (timeX()) {
               <select aria-label="Bins" [value]="panel.options.granularity" (change)="changeOption($event, 'granularity')">
@@ -245,14 +248,19 @@
             </select>
           </label>
         }
-        @if (panel.form === 'band' || panel.form === 'lines') {
+        @if (panel.form === 'band') {
           <label appSettingRow class="setting-row"><span>Quantiles</span>
             <select aria-label="Quantiles" [value]="panel.options.quantiles" (change)="changeOption($event, 'quantiles')">
               <option value="quartiles">Quartiles</option><option value="tails">Tails</option>
             </select>
           </label>
+          <label appSettingRow class="setting-row"><span>Fill</span>
+            <select aria-label="Band fill" [value]="panel.options.fill" (change)="changeOption($event, 'fill')">
+              <option value="band">Band</option><option value="lines">Lines</option>
+            </select>
+          </label>
         }
-        @if (panel.series.length && !panel.y && ['histogram', 'line', 'area', 'density'].includes(panel.form)) {
+        @if (panel.series.length && (panel.y === 'count' || panel.y === 'share') && ['histogram', 'line', 'area', 'density'].includes(panel.form)) {
           <label appSettingRow class="setting-row"><span>Layout</span>
             <select aria-label="Layout" [value]="panel.options.layout" (change)="changeOption($event, 'layout')">
               <option value="overlaid">Overlaid</option><option value="stacked" [disabled]="!canStack()">Stacked</option><option value="stacked100" [disabled]="!canStack()">100%</option>
@@ -265,7 +273,6 @@
       </div>
     </mat-menu>
 
-    <ng-template cdkConnectedOverlay [cdkConnectedOverlayOrigin]="contextOrigin" [cdkConnectedOverlayOpen]="contextTarget() !== null">
     @if (contextTarget(); as target) {
       <div class="fixed inset-0 z-50" (click)="closeContext()" (contextmenu)="$event.preventDefault(); closeContext()">
         <section class="panel-context fixed rounded border border-border bg-surface text-ink" role="dialog"
@@ -284,14 +291,13 @@
               <button role="menuitem" class="context-action" (click)="copyCardLink(); closeContext()">Copy link to this card</button>
             </div>
           } @else {
-            <app-element-controls [options]="panel.options" [axis]="target" [countAxis]="target === 'y' && !panel.y"
+            <app-element-controls [options]="panel.options" [axis]="target" [countAxis]="target === 'y' && (panel.y === 'count' || panel.y === 'share')"
               [unit]="contextUnit(target)"
               [colorDefault]="panel.form === 'matrix' ? 'linear' : 'log'" (changed)="patch({options: $event})" />
           }
         </section>
       </div>
     }
-    </ng-template>
     @if (view(); as panelView) {
       @if (copyLinkError(); as link) {
         <label class="p-4 text-caption">Copy this card's link
@@ -382,7 +388,7 @@
           }
 
           @if (panelView.analysisRows?.length) {
-            <table class="w-full whitespace-nowrap text-left text-[12px] leading-6 tabular-nums [&_tr]:h-6 [&_th]:px-1 [&_td]:px-1">
+            <table class="w-full whitespace-nowrap text-left text-[12px] leading-6 tabular-nums [&_tr]:h-6 [&_th]:px-1 [&_td]:px-1" data-testid="comparison-table">
               <thead>
                 <tr>
                   <th class="text-left text-ink-2">Series</th>

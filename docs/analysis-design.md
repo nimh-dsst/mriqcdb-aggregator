@@ -109,7 +109,7 @@ removable: ✕ on a group drops that group (the field series becomes a chosen-
 values series); the + menu adds any group back, picks a custom set, or sets
 cut points for a numeric split.
 
-Derived, never configured: the title ("Mean framewise displacement", "tSNR vs FD mean", "Uploads over time", "Scans per Manufacturer", "Metric correlations"), the count line, the stat row (quantiles of x for numeric; totals for time and categories), the meaning line, the legend (one, chips, ✕ removes a series, click isolates), the differences table when ≥2 series, the preferred grid size (numeric 4×10; time, categorical, two-metric 8×10; correlation 8×14; +2 rows with series).
+Derived, never configured: the title ("Mean framewise displacement", "tSNR vs FD mean", "Uploads over time", "Scans per Manufacturer", "Metric correlations"), the count line, the stat row (totals for Count; quantiles of the selected column y), the meaning line, the legend (one, chips, ✕ removes a series, click isolates), the differences table when ≥2 series, the preferred grid size (numeric 4×10; time, categorical, two-metric 8×10; correlation 8×14; +2 rows with series).
 
 Consequences for the current code: `PanelKind` and `coverage`/`sample`/`comparison` as kinds disappear (the sample table is Form = Table; coverage is x = time; comparison is Series ≠ ∅); the metric picker becomes a column picker including Upload time and the categorical fields; `split`/`cohorts` become `series`; the per-card scope select, the options-menu "Compare with", the Cohorts bar and "Compare selected" are removed; URL tokens migrate.
 
@@ -412,3 +412,33 @@ metric requests timeSummary, Band draws the median and p25–p75, and Lines
 passes its mode to `medianBandChart` to draw p05/p50/p95. Area normalizes
 multiple series to shares. Compare chips carry the plotted colours and counts,
 and numeric comparisons use one compact series table.
+
+
+## Implementation notes: x, y and aggregate (2026-10-09)
+
+The web panel stores `y: 'count' | 'share' | ColumnRef` and `aggregate`
+(median by default). Hydration normalizes the former null y and Lines form;
+Lines is now Band with `options.fill: 'lines'`. The compact URL carries y,
+aggregate and fill, omitting Count, median and band defaults. Version 2 writes
+the new schema; the version-1 reader preserves old links and migrates their
+Y and Lines fields. Form availability
+uses the grammar above for all continuous columns, including upload time.
+
+Column-y per-bin marks query binnedSummary; Count/Share marks use existing
+per-series histograms or coverage. Count Band interpolates quartiles or tails
+across the series at each shared bin, including zero counts. One series draws
+its line with “Band needs series”. Count Box summarizes bin counts; column Box
+uses the selected y column's distribution quantiles. Histogram, Line and Area
+use the selected aggregate. The current response supplies mean and
+p05/p25/p50/p75/p95; sum/min/max are disabled as “not available for this
+aggregate”. Categorical numeric-y Bars can also use the min/max values already
+returned by groupedSummary. Upload-date quantiles and category summaries use
+daily coverage, explicitly labelled as estimates; upload time is not sent to
+the metric-only distribution endpoint. No server procedure or response contract
+changed.
+
+`panels/specs/value-axis.ts` resolves both coordinate scales across the complete
+spec, using `valueScale` for every quantitative form. Log falls back to symlog
+when the domain includes zero or negative values, and the axis names that
+scale. Y count mode is connected to the card's fixed context overlay. Stats
+and differences use counts or the selected y column, independently of x.

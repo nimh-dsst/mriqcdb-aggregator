@@ -7,19 +7,19 @@ import { FormGlyph } from './form-glyphs';
 
 describe('mark forms', () => {
   it('defaults continuous axes to Histogram, pairs to Heatmap except time pairs to Band, and categories to Bars', () => {
-    expect(defaultForm(asColumnId('snr'), null)).toBe('histogram');
-    expect(defaultForm('created_at', null)).toBe('histogram');
+    expect(defaultForm(asColumnId('snr'), 'count')).toBe('histogram');
+    expect(defaultForm('created_at', 'count')).toBe('histogram');
     expect(defaultForm(asColumnId('snr'), asColumnId('fd_mean'))).toBe('heatmap');
     expect(defaultForm('created_at', asColumnId('fd_mean'))).toBe('band');
-    expect(defaultForm(asColumnId('manufacturer'), null)).toBe('bars');
+    expect(defaultForm(asColumnId('manufacturer'), 'count')).toBe('bars');
   });
   it.each([
-    [asColumnId('snr'), null, ['histogram', 'line', 'area', 'density', 'ecdf', 'box', 'table'], ['Histogram', 'Line', 'Area', 'Density', 'ECDF', 'Box', 'Table']],
-    ['created_at', null, ['histogram', 'line', 'area', 'density', 'ecdf', 'box', 'table'], ['Histogram', 'Line', 'Area', 'Density', 'ECDF', 'Box', 'Table']],
-    ['created_at', asColumnId('fd_mean'), ['heatmap', 'scatter', 'hexbin', 'clusters', 'band', 'lines'], ['Heatmap', 'Scatter', 'Hexbin', 'Clusters', 'Band', 'Lines']],
-    [asColumnId('snr'), asColumnId('fd_mean'), ['heatmap', 'scatter', 'hexbin', 'clusters', 'band', 'lines'], ['Heatmap', 'Scatter', 'Hexbin', 'Clusters', 'Band', 'Lines']],
-    [asColumnId('manufacturer'), null, ['bars', 'share'], ['Bars', 'Share']],
-    [[asColumnId('snr'), asColumnId('fd_mean')], null, ['matrix'], ['Matrix']],
+    [asColumnId('snr'), 'count', ['histogram', 'line', 'area', 'density', 'ecdf', 'box', 'table', 'band'], ['Histogram', 'Line', 'Area', 'Density', 'ECDF', 'Box', 'Table', 'Band']],
+    ['created_at', 'count', ['histogram', 'line', 'area', 'density', 'ecdf', 'box', 'table', 'band'], ['Histogram', 'Line', 'Area', 'Density', 'ECDF', 'Box', 'Table', 'Band']],
+    ['created_at', asColumnId('fd_mean'), ['histogram', 'line', 'area', 'density', 'ecdf', 'box', 'table', 'heatmap', 'scatter', 'hexbin', 'clusters', 'band'], ['Histogram', 'Line', 'Area', 'Density', 'ECDF', 'Box', 'Table', 'Heatmap', 'Scatter', 'Hexbin', 'Clusters', 'Band']],
+    [asColumnId('snr'), asColumnId('fd_mean'), ['histogram', 'line', 'area', 'density', 'ecdf', 'box', 'table', 'heatmap', 'scatter', 'hexbin', 'clusters', 'band'], ['Histogram', 'Line', 'Area', 'Density', 'ECDF', 'Box', 'Table', 'Heatmap', 'Scatter', 'Hexbin', 'Clusters', 'Band']],
+    [asColumnId('manufacturer'), 'count', ['box', 'table', 'bars', 'share'], ['Box', 'Table', 'Bars', 'Share']],
+    [[asColumnId('snr'), asColumnId('fd_mean')], 'count', ['matrix'], ['Matrix']],
   ] as const)('has the exact ordered row and default for %s / %s', (x, y, ids, names) => {
     const forms = formsFor(x, y);
     expect(forms).toEqual(ids);
@@ -33,7 +33,7 @@ describe('mark forms', () => {
     ['facetedHistogram', 'histogram'], ['overlaidEcdf', 'ecdf'],
   ] as const)('does not offer obsolete form %s', (old, _current) => {
     expect(FORM_INFO).not.toHaveProperty(old);
-    const panel = { id: 'p1', x: asColumnId('snr'), y: null, series: [],
+    const panel = { id: 'p1', x: asColumnId('snr'), y: 'count' as const, aggregate: 'median' as const, series: [],
       form: old as Form, options: defaultPanelOptions(), cursors: [null] };
     expect(validForm(panel).form).toBe('histogram');
   });

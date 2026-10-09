@@ -86,7 +86,7 @@ describe('axes, layout and size state', () => {
   it('uses the count range while preserving a logarithmic count scale', () => {
     const p = panel(); p.options.yRange = [5, 100]; p.options.yMode = 'logCount';
     const spec = { data: { name: 'counts' }, mark: 'bar' as const, encoding: { y: { field: 'count', type: 'quantitative' as const, scale: { type: 'log' as const } } } };
-    expect(withCountRange(spec, p)).toMatchObject({ encoding: { y: { scale: { type: 'log', domain: [5, 100], nice: false, zero: false } } } });
+    expect(withCountRange(spec, p)).toMatchObject({ encoding: { y: { scale: { type: 'log', domain: [5, 100], nice: false } } } });
     expect(spec.encoding.y.scale).toEqual({ type: 'log' });
   });
   it('allows log only when the known minimum is positive', () => {
