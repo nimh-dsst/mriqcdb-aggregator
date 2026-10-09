@@ -6,7 +6,7 @@
  */
 
 import { canonicalViewFor } from '@mriqc/shared';
-import type { DashboardLayout } from './layout';
+import type { DashboardLayout } from '../slices/layout/geometry';
 import type {
   ClipMode,
   ColumnId,
@@ -26,11 +26,11 @@ export type PanelId = string;
 export type CohortId = string;
 
 /** The form vocabulary is derived from the one axis-to-form table. */
-export type Form = (typeof import('./panel-shapes').FORM_ORDER)[number];
+export type Form = (typeof import('../slices/panels/shapes').FORM_ORDER)[number];
 export type PanelChart = Form;
 export type ColumnRef = ColumnId | 'created_at';
-export type { Series } from './series';
-import type { Series } from './series';
+export type { Series } from '../slices/series/model';
+import type { Series } from '../slices/series/model';
 
 /** How a distribution split is presented; facets are an explicit reading mode. */
 export type SplitPresentation = 'overlay' | 'facets';
@@ -304,55 +304,20 @@ export interface GlobalState {
 }
 
 /** The whole dashboard, as one value. */
-export interface State {
-  layout?: DashboardLayout | null;
-  maximizedPanel?: PanelId | null;
-  /** The server's current ingest version; null until the subscription first emits. */
-  dataVersion: string | null;
-  catalog: CompletedCatalog | null;
-  global: GlobalState;
-  selections: readonly SelectionState[];
-  /** Ordered; the grid renders them in this order. */
-  panels: readonly Panel[];
-  /**
-   * The cohorts the user defined. `current` and `all` are *not* here: they are
-   * derived from `global` and `selection` so they can never drift from the top
-   * bar (`docs/comparison-design.md`, "State changes").
-   */
-  cohorts: readonly Cohort[];
-  study: StudyState;
-  /** Ephemeral user-facing message; not part of the shareable URL. */
-  notice: string | null;
-  datasets: Readonly<Record<QueryKey, DatasetEntry>>;
-  export: ExportState;
-  exportDialogOpen?: boolean;
-  exportPanelId?: PanelId;
-}
+import type { PanelsState } from '../slices/panels/state';
+import type { SeriesState } from '../slices/series/state';
+import type { LayoutState } from '../slices/layout/state';
+import type { FiltersState } from '../slices/filters/state';
+import type { CohortsState } from '../slices/cohorts/state';
+import type { StudySliceState } from '../slices/study/state';
+import type { HistoryState } from '../slices/history/state';
+export interface State extends PanelsState, SeriesState, LayoutState, FiltersState, CohortsState, StudySliceState, HistoryState {}
 
 /** How many unreferenced dataset entries survive eviction. */
 export const EVICTION_KEEP = 16;
 
 /** Default options for a new panel. */
-export function defaultPanelOptions(clip: ClipMode = 'p01p99'): PanelOptions {
-  return {
-    bins: 40,
-    cells: 60,
-    colorDomain: 'auto',
-    clip,
-    xScale: 'linear', xRange: 'auto', yScale: 'linear', yRange: 'auto',
-    yMode: 'count', layout: 'overlaid',
-    quantiles: 'quartiles',
-    useSelection: true,
-    granularity: 'month',
-    splitPresentation: 'overlay',
-    cumulative: false,
-    share: false,
-    coverageWindow: 'all',
-    coverageLogY: false,
-    coverageCustom: null,
-    boxSort: 'median',
-  };
-}
+export { defaultPanelOptions } from '../slices/panels/defaults';
 
 /** True for a chart whose x axis is the metric's and which therefore carries a brush. */
 export function isValueChart(chart: PanelChart): boolean {
@@ -382,3 +347,5 @@ export const INITIAL_STATE: State = {
   datasets: {},
   export: 'idle',
 };
+
+export type { UrlState } from '../slices/history/url-state';
