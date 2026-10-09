@@ -1,9 +1,0 @@
-node_modules/
-dist/
-*.tsbuildinfo
-.angular/
-coverage/
-*.duckdb
-*.duckdb.wal
-data/
-.dev/

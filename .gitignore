@@ -1,26 +1,15 @@
-.pixi/
-.pytest_cache/
-.ruff_cache/
-__pycache__/
-*.pyc
+node_modules/
+dist/
+*.tsbuildinfo
+.angular/
+coverage/
+*.duckdb
+*.duckdb.wal
+data/
+.dev/
+
+# macOS and local env
 .DS_Store
 .env
-pixi.lock
-data/
-docs/temp/
-.coverage
-.terraform/
-.vite/
-*.tfstate
-*.tfstate.*
-*.tfbackend
-!terraform/loader-host/example.s3.tfbackend
-crash.log
-*.tfvars
-tfplan
-
-# tool state and local scratch (not project content)
-.codex/
-uv.lock
-rewrite/scratchpad/
-rewrite/rewrite/
+# written by build:db when it adopts the test dumps
+packages/server/test/fixtures/dumps/manifest.json
