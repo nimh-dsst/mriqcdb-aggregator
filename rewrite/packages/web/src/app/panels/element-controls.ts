@@ -14,7 +14,7 @@ export type CoordinateScale = 'linear' | 'log' | 'symlog';
 export type ColourScale = 'linear' | 'log' | 'sqrt';
 export type NumericRange = 'auto' | readonly [number, number];
 
-type RangeMode = 'auto' | 'custom';
+type RangeMode = 'auto' | 'full' | 'custom';
 
 @Component({
   selector: 'app-element-controls',
@@ -51,7 +51,10 @@ type RangeMode = 'auto' | 'custom';
       <label appSettingRow class="control-row">
         <span>{{ axis() === 'color' ? 'Domain' : 'Range' }}</span>
         <select [attr.aria-label]="axis() === 'color' ? 'Domain' : 'Range'" [value]="rangeMode()" (change)="onRangeModeChange($event)">
-          <option value="auto">Auto</option>
+          <option value="auto">{{ axis() === 'color' || countAxis() ? 'Auto' : 'Auto (p01–p99)' }}</option>
+          @if (axis() !== 'color' && !countAxis()) {
+            <option value="full">Full (min–max)</option>
+          }
           <option value="custom">Custom</option>
         </select>
       </label>
@@ -160,7 +163,7 @@ export class ElementControls {
   constructor() {
     effect(() => {
       const range = this.currentRange();
-      this.rangeMode.set(range === 'auto' ? 'auto' : 'custom');
+      this.rangeMode.set(range === 'auto' ? (this.axis() !== 'color' && !this.countAxis() && this.options().clip === 'none' ? 'full' : 'auto') : 'custom');
       this.lowerBound.set(range === 'auto' ? '' : String(range[0]));
       this.upperBound.set(range === 'auto' ? '' : String(range[1]));
     });
@@ -214,6 +217,13 @@ export class ElementControls {
   }
 
   onRangeModeChange(event: Event): void {
+    if (this.selectValue(event) === 'full' && this.axis() !== 'color' && !this.countAxis()) {
+      this.rangeMode.set('full');
+      this.lowerBound.set('');
+      this.upperBound.set('');
+      this.changed.emit({ ...this.rangePatch('auto'), clip: 'none' });
+      return;
+    }
     if (this.selectValue(event) === 'auto') {
       this.rangeMode.set('auto');
       this.lowerBound.set('');
@@ -268,7 +278,8 @@ export class ElementControls {
     if (this.axis() === 'color') {
       return {colorDomain: range};
     }
-    return this.axis() === 'x' ? {xRange: range} : {yRange: range};
+    return { ...(this.axis() === 'x' ? {xRange: range} : {yRange: range}),
+      ...(range === 'auto' && !this.countAxis() ? {clip: 'p01p99' as const} : {}) };
   }
 
   private selectValue(event: Event): string {

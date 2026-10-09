@@ -252,13 +252,6 @@
             </select>
           </label>
         }
-        @if (numericX() && panel.form !== 'table' && panel.form !== 'matrix') {
-          <label appSettingRow class="setting-row"><span>Clip</span>
-            <select aria-label="Clip" [value]="panel.options.clip" (change)="changeOption($event, 'clip')">
-              <option value="p01p99">p01–p99</option><option value="p05p95">p05–p95</option><option value="none">None</option>
-            </select>
-          </label>
-        }
         @if (panel.series.length && !panel.y && ['histogram', 'line', 'area', 'density'].includes(panel.form)) {
           <label appSettingRow class="setting-row"><span>Layout</span>
             <select aria-label="Layout" [value]="panel.options.layout" (change)="changeOption($event, 'layout')">
@@ -282,6 +275,8 @@
           (keydown.escape)="closeContext(); $event.stopPropagation()" (keydown)="contextNavigation($event)">
           @if (target === 'body') {
             <div class="panel-settings" role="menu" aria-label="Chart actions">
+              <button role="menuitem" class="context-action" (click)="historyAction('undo'); closeContext()">Undo <span class="text-ink-2">{{ undoShortcut }}</span></button>
+              <button role="menuitem" class="context-action" (click)="historyAction('redo'); closeContext()">Redo <span class="text-ink-2">{{ redoShortcut }}</span></button>
               <button role="menuitem" class="context-action" (click)="zoomToBrush(); closeContext()" [disabled]="!hasBrush()">Zoom to brush</button>
               <button role="menuitem" class="context-action" (click)="resetPanelRanges(); closeContext()">Reset axes</button>
               <button role="menuitem" class="context-action" (click)="toggleMaximized(); closeContext()">Maximize</button>

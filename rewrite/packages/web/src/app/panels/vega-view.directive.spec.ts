@@ -25,6 +25,23 @@ describe('range2dOf', () => {
   });
 });
 
+it.each(['pointerup', 'blur'])('flushes the final debounced brush on %s', async event => {
+  const listeners = new Map<string, (name: string, value: unknown) => void>();
+  const view = { finalize() {}, data() {}, addSignalListener(name: string, callback: (name: string, value: unknown) => void) { listeners.set(name, callback); }, async runAsync() {} };
+  TestBed.configureTestingModule({ imports: [RendererHost], providers: [{ provide: VEGA_EMBED, useValue: async () => async () => ({ view, finalize() {} }) }] });
+  const fixture = TestBed.createComponent(RendererHost);
+  fixture.detectChanges(); await fixture.whenStable();
+  await vi.waitFor(() => expect(listeners.has('brush2d')).toBe(true));
+  fixture.nativeElement.querySelector('div').dispatchEvent(new Event('pointerdown'));
+  listeners.get('brush2d')?.('brush2d', { x: [1, 2], y: [3, 4] });
+  expect(fixture.componentInstance.events).toEqual([]);
+  window.dispatchEvent(new Event(event));
+  expect(fixture.componentInstance.events).toEqual([{ x: [1, 2], y: [3, 4] }]);
+  await new Promise(resolve => setTimeout(resolve, 120));
+  expect(fixture.componentInstance.events).toHaveLength(1);
+  fixture.destroy();
+});
+
 it('does not turn programmatic dataset refresh signals into linked brush commands', async () => {
   const listeners = new Map<string, (name: string, value: unknown) => void>();
   const view = { finalize() {}, data() {}, addSignalListener(name: string, callback: (name: string, value: unknown) => void) { listeners.set(name, callback); },

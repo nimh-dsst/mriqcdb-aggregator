@@ -65,6 +65,19 @@ describe('ElementControls', () => {
     expect(changes).toEqual([{xScale: 'symlog'}]);
   });
 
+  it.each(['x', 'y'] as const)('offers Auto, Full and Custom on the %s axis', async axis => {
+    await render(axis);
+    const range = selects()[1];
+    expect(optionLabels(range)).toEqual(['Auto (p01–p99)', 'Full (min–max)', 'Custom']);
+    await selectValue(range, 'full');
+    expect(changes).toEqual([{ [axis + 'Range']: 'auto', clip: 'none' }]);
+    fixture.componentRef.setInput('options', { ...defaultPanelOptions(), clip: 'none' });
+    fixture.detectChanges();
+    expect(component.rangeMode()).toBe('full');
+    await selectValue(range, 'auto');
+    expect(changes.at(-1)).toEqual({ [axis + 'Range']: 'auto', clip: 'p01p99' });
+  });
+
   it('offers coordinate scales and dispatches the y scale', async () => {
     await render('y');
 
@@ -116,7 +129,7 @@ describe('ElementControls', () => {
     expect(changes).toEqual([{xRange: [5, 8]}]);
 
     await selectValue(selects()[1], 'auto');
-    expect(changes).toEqual([{xRange: [5, 8]}, {xRange: 'auto'}]);
+    expect(changes).toEqual([{xRange: [5, 8]}, {xRange: 'auto', clip: 'p01p99'}]);
   });
 
   it('emits a valid custom y range', async () => {
@@ -129,7 +142,7 @@ describe('ElementControls', () => {
     expect(changes).toEqual([{yRange: [-3, 9]}]);
 
     await selectValue(selects()[1], 'auto');
-    expect(changes).toEqual([{yRange: [-3, 9]}, {yRange: 'auto'}]);
+    expect(changes).toEqual([{yRange: [-3, 9]}, {yRange: 'auto', clip: 'p01p99'}]);
   });
 
   it('rejects non-positive log color bounds before emitting a domain or auto reset', async () => {

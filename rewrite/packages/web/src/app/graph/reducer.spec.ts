@@ -3,6 +3,7 @@ import type { Command } from './commands';
 import { CATALOG_KEY, needed, neededQueries, referencedKeys } from './queries';
 import { nextCohortColor } from './cohorts';
 import { defaultDashboard, initialState, reduce } from './reducer';
+import { decodeUrlState, encodeUrlState, urlState } from './url';
 import {
   EVICTION_KEEP,
   FIRST_PAGE,
@@ -17,6 +18,29 @@ import {
 /* ---------------------------------------------------------------- fixtures */
 
 describe('axis range commands', () => {
+  it('retains bounds beyond data and requests a new server bin grid', () => {
+    const next = reduce(fixture(), { t: 'setPanelRange', id: 'p1', axis: 'x', range: [-100, 1000] });
+    expect(next.panels[0].options.xRange).toEqual([-100, 1000]);
+    expect([...neededQueries(next).values()].find(query => query.proc === 'distribution')).toMatchObject({ range: [-100, 1000] });
+  });
+
+  it('folds Full and Auto into the clip preset and clears custom bounds', () => {
+    const full = run(fixture(),
+      { t: 'setPanelRange', id: 'p1', axis: 'x', range: [-10, 100] },
+      { t: 'setPanelRange', id: 'p1', axis: 'x', range: 'full' });
+    expect(full.panels[0].options).toMatchObject({ xRange: 'auto', clip: 'none' });
+    expect([...neededQueries(full).values()].find(query => query.proc === 'distribution')).toMatchObject({ clip: 'none' });
+    const auto = reduce(full, { t: 'setPanelRange', id: 'p1', axis: 'x', range: 'auto' });
+    expect(auto.panels[0].options).toMatchObject({ xRange: 'auto', clip: 'p01p99' });
+    expect(reduce(full, { t: 'resetPanelRanges', id: 'p1' }).panels[0].options.clip).toBe('p01p99');
+  });
+
+  it('maps an old p05–p95 URL to Auto when decoding and hydrating', () => {
+    const old = urlState(fixture({ panels: [panel({ options: { ...defaultPanelOptions(), clip: 'p05p95' } })] }));
+    expect(decodeUrlState(encodeUrlState(old))!.panels[0].options.clip).toBe('p01p99');
+    expect(reduce(fixture(), { t: 'hydrate', url: old }).panels[0].options.clip).toBe('p01p99');
+  });
+
   it('sets and resets ranges without changing quantity, count mode or layout', () => {
     const state = fixture({ panels: [panel({ options: { ...defaultPanelOptions(), yMode: 'logCount' } })] });
     const ranged = run(state,

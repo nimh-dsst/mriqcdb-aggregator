@@ -18,8 +18,8 @@ import {
   output,
 } from '@angular/core';
 import { outputFromObservable } from '@angular/core/rxjs-interop';
-import { Subject } from 'rxjs';
-import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
+import { Subject, merge, timer } from 'rxjs';
+import { debounce, distinctUntilChanged } from 'rxjs/operators';
 import type { TopLevelSpec } from 'vega-lite';
 import {
   attachAxisBandGestures,
@@ -122,17 +122,18 @@ export class VegaViewDirective {
 
   private readonly brushes = new Subject<BrushRange>();
   private readonly brushes2d = new Subject<Brush2dRange>();
+  private readonly brushRelease = new Subject<void>();
 
   /**
    * Interval selections, debounced so one drag becomes one command rather than
    * fifty (`dashboard-graph.md`, "Brushing").
    */
   readonly brush = outputFromObservable(
-    this.brushes.pipe(debounceTime(100), distinctUntilChanged(sameRange)),
+    this.brushes.pipe(debounce(() => merge(timer(100), this.brushRelease)), distinctUntilChanged(sameRange)),
   );
 
   readonly brush2d = outputFromObservable(
-    this.brushes2d.pipe(debounceTime(100), distinctUntilChanged(sameRange2d)),
+    this.brushes2d.pipe(debounce(() => merge(timer(100), this.brushRelease)), distinctUntilChanged(sameRange2d)),
   );
 
   /** Edge bookkeeping for the press-and-hold case; see `onBrushSignal`. */
@@ -174,10 +175,13 @@ export class VegaViewDirective {
         this.pendingClear2d = false;
         this.brushes2d.next(null);
       }
+      this.brushRelease.next();
     };
+    const blur = () => { up(); this.brushRelease.next(); };
     host.addEventListener('pointerdown', down);
     window.addEventListener('pointerup', up);
     window.addEventListener('pointercancel', up);
+    window.addEventListener('blur', blur);
     inject(DestroyRef).onDestroy(() => {
       this.destroyed = true;
       observer?.disconnect();
@@ -185,6 +189,7 @@ export class VegaViewDirective {
       host.removeEventListener('pointerdown', down);
       window.removeEventListener('pointerup', up);
       window.removeEventListener('pointercancel', up);
+      window.removeEventListener('blur', blur);
       this.teardown();
     });
     effect(() => {

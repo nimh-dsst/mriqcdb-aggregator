@@ -444,7 +444,9 @@ const options: ContextCodec = {
   },
   read(reader, ctx) {
     const { extra, ...value } = optionRecord.read(reader, ctx);
-    return { ...extra, ...value };
+    const decoded = { ...extra, ...value };
+    if (decoded.clip === 'p05p95') decoded.clip = 'p01p99';
+    return decoded;
   },
 };
 const defaultPanel = (ctx: Context) =>

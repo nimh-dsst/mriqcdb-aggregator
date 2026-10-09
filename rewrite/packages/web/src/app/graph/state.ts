@@ -305,6 +305,8 @@ export interface GlobalState {
 
 /** The whole dashboard, as one value. */
 export interface State {
+  /** Session history is deliberately excluded from the URL and snapshots. */
+  history?: import('./history').History;
   layout?: DashboardLayout | null;
   maximizedPanel?: PanelId | null;
   /** The server's current ingest version; null until the subscription first emits. */

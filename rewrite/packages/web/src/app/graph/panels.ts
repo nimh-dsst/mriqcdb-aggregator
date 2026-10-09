@@ -90,6 +90,7 @@ export function retargetPanels(panels: readonly Panel[], modality: Modality, vie
 
 export function normalizedOptions(panel: Panel, patch: Partial<PanelOptions>, modality?: Modality): PanelOptions {
   const options = { ...defaultPanelOptions(), ...panel.options, ...patch };
+  if (options.clip === 'p05p95') options.clip = 'p01p99';
   const legacy = options as PanelOptions & { logScale?: boolean };
   if (legacy.logScale === true && !('xScale' in panel.options)) options.xScale = 'log';
   delete legacy.logScale;

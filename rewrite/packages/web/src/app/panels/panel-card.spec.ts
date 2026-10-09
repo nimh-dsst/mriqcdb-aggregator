@@ -133,15 +133,17 @@ describe('PanelCard', () => {
     body.focus(); body.dispatchEvent(new KeyboardEvent('keydown', { key, shiftKey: key === 'F10', bubbles: true }));
     fixture.detectChanges(); await fixture.whenStable();
     const actions = Array.from(TestBed.inject(OverlayContainer).getContainerElement().querySelectorAll<HTMLButtonElement>('[role="menuitem"]'));
-    expect(actions.map(button => button.textContent?.trim())).toEqual(['Zoom to brush', 'Reset axes', 'Maximize', "Export this card's rows", 'Copy link to this card']);
-    expect(actions[0].disabled).toBe(true);
-    actions[1].focus(); actions[1].dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true }));
-    expect(document.activeElement).toBe(actions[2]);
-    actions[3].click();
+    expect(actions.map(button => button.textContent?.trim())).toEqual([`Undo ${fixture.componentInstance.undoShortcut}`, `Redo ${fixture.componentInstance.redoShortcut}`, 'Zoom to brush', 'Reset axes', 'Maximize', "Export this card's rows", 'Copy link to this card']);
+    expect(actions[2].disabled).toBe(true);
+    actions[3].focus(); actions[3].dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true }));
+    expect(document.activeElement).toBe(actions[4]);
+    actions[5].click();
     expect(TestBed.inject(Graph).dispatch).toHaveBeenCalledWith({ t: 'openExport', panelId: 'panel-1' });
   });
 
   it.each([
+    ['Undo', { t: 'undo' }],
+    ['Redo', { t: 'redo' }],
     ['Reset axes', { t: 'resetPanelRanges', id: 'panel-1' }],
     ['Maximize', { t: 'maximizePanel', id: 'panel-1' }],
     ['Zoom to brush', { t: 'zoomToBrush', from: 'panel-1' }],
@@ -151,7 +153,7 @@ describe('PanelCard', () => {
     (graph.state$ as BehaviorSubject<State>).next({ ...makeState(makePanel()), selections: [{ from: 'panel-1', metric: asColumnId('snr'), range: [1, 2] }] });
     fixture.nativeElement.querySelector('[aria-label="Chart body"]').dispatchEvent(new MouseEvent('contextmenu', { bubbles: true }));
     fixture.detectChanges(); await fixture.whenStable();
-    const button = Array.from(TestBed.inject(OverlayContainer).getContainerElement().querySelectorAll<HTMLButtonElement>('[role="menuitem"]')).find(button => button.textContent?.trim() === label)!;
+    const button = Array.from(TestBed.inject(OverlayContainer).getContainerElement().querySelectorAll<HTMLButtonElement>('[role="menuitem"]')).find(button => button.textContent?.trim().startsWith(label as string))!;
     button.click(); expect(graph.dispatch).toHaveBeenCalledWith(command);
   });
 
@@ -167,10 +169,10 @@ describe('PanelCard', () => {
   });
 
   it.each([
-    ['histogram', ['Bins', 'Clip', 'Follow brushed range']],
-    ['heatmap', ['Cells', 'Clip', 'Follow brushed range']],
-    ['hexbin', ['Cells', 'Clip', 'Follow brushed range']],
-    ['band', ['Bins', 'Quantiles', 'Clip', 'Follow brushed range']],
+    ['histogram', ['Bins', 'Follow brushed range']],
+    ['heatmap', ['Cells', 'Follow brushed range']],
+    ['hexbin', ['Cells', 'Follow brushed range']],
+    ['band', ['Bins', 'Quantiles', 'Follow brushed range']],
   ] as const)('keeps only the applicable options in a single nontruncating column: %s', async (form, labels) => {
     const fixture = create(makePanel({ form, y: form === 'histogram' ? null : asColumnId('fd_mean') }));
     fixture.nativeElement.querySelector('[aria-label="Panel options"]').click();

@@ -142,6 +142,9 @@ const dimmedSpec = (spec: unknown, isolatedId: string | null): unknown => {
   `,
 })
 export class PanelCard {
+  readonly undoShortcut = /Mac|iPhone|iPad/.test(navigator.platform) ? '⌘Z' : 'Ctrl+Z';
+  readonly redoShortcut = /Mac|iPhone|iPad/.test(navigator.platform) ? '⌘⇧Z' : 'Ctrl+Y / Ctrl+Shift+Z';
+  historyAction(action: 'undo' | 'redo'): void { this.graph.dispatch({ t: action }); }
   readonly differenceHeaders = DIFFERENCE_HEADERS;
   private readonly graph = inject(Graph);
   private readonly theme = inject(Theme);

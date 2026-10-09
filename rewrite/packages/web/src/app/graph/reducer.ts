@@ -119,6 +119,13 @@ export function defaultDashboard(): UrlState {
 /** Fold one command into the dashboard. Pure; never throws on bad input. */
 export function reduce(state: State, command: Command): State {
   switch (command.t) {
+    // Session history commands are handled by the graph's history fold.
+    case 'undo':
+    case 'redo':
+    case 'endHistoryRun':
+      return state;
+    case 'clearNotice':
+      return state.notice === command.notice ? { ...state, notice: null } : state;
     /* ------------------------------------------------------ global controls */
 
     case 'setModality': {

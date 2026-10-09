@@ -421,13 +421,13 @@ what has no element on the card.
 
 | Element | Actions (hover affordance; right-click or a small ⋯ opens the same list) |
 |---|---|
-| Axis (x or y) | drag to set range (exists) · double-click resets · menu: Scale Linear/Log/Symlog · Range auto / custom lo–hi (unit) · for count axes Count/Share/Log count |
+| Axis (x or y) | drag along the axis to set a range; drag past the axis end to extend beyond the data; mouse wheel over the axis zooms in/out around the pointer (owner, 2026-10-09: "is there any way to expand the range?"); double-click resets · menu: Scale Linear/Log/Symlog · Range: Auto (p01–p99) / Full (min–max) / Custom lo–hi (unit) — this replaces the Clip setting, which leaves the options menu · for count axes Count/Share/Log count |
 | Compare chip / legend chip | ✕ remove · isolate (click) · reset (double-click) · "Save as group…" when the series is a field group or chosen values · "Only this group" (set the dashboard filter to it) |
 | Title | opens the drawer, which **edits live** when opened from a title (every slot change applies immediately, no Apply button; ✕ on Y removes the second column in one click). Create stays for Add panel only |
 | Colour legend (Heatmap, Hexbin, Matrix) | Scale: Linear / Log / Sqrt (default Log for counts) · Domain: auto / custom lo–hi · the legend title names the scale ("Count (log)") (owner, 2026-10-09: "no way to change scales? like heatmap log color") |
 | Chart body | brush (exists) · right-click: Zoom to brush · Reset axes · Maximize · Export this card's rows · Copy link to this card |
 | Form picker | the form list (exists) |
-| Options menu (⚙, sliders icon) | ONLY: Bins (Histogram/Line/Area; also the x bins of Band/Lines) · Cells (Heatmap/Hexbin: grid per axis 30 / 60 / 120, default 60) · Quantiles (Band/Lines) · Clip p01–p99/p05–p95/none · Layout overlaid/stacked/100% (series) · Follow the brushed range · Height is by resize |
+| Options menu (⚙, sliders icon) | ONLY: Bins (Histogram/Line/Area; also the x bins of Band/Lines) · Cells (Heatmap/Hexbin: grid per axis 30 / 60 / 120, default 60) · Quantiles (Band/Lines) · Layout overlaid/stacked/100% (series) · Follow the brushed range · Height is by resize |
 
 **Options menu sizing.** 320px wide, 16px padding, rows 36px, one setting per
 row: label left (`--ink-2`, 12px) and control right (min 120px). Range inputs

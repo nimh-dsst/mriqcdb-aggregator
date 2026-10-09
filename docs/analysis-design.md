@@ -18,8 +18,16 @@ exploratory clustering.
 2. **A form is a drawing, named by its geometry.** Never a description of the
    data. Forms apply to scale types (continuous, categorical, metric set), not
    to columns; time is a continuous scale with month bins.
-3. **A card is Rows × Quantity × Series × Form** and nothing else. Anything on
-   a card that is not one of the four is a defect.
+3. **A card is Rows × Quantity × Series × Form, and Quantity is always x AND y.**
+   y defaults to Count, a quantity like any other; alternatives are Share
+   or any column with an aggregate (median by default; mean, sum, min,
+   max, a percentile). There are no card types underneath: a histogram is
+   x = metric, y = Count; "Uploads over time" is x = time, y = Count; "FD
+   mean over time" is x = time, y = FD mean (median); a heatmap is x and y
+   both columns with Count in 2D cells. Forms draw y over x and nothing
+   else (owner, 2026-10-09: "we've been through this already about the x
+   and y axes"; "it really feels like you are continuing to try and keep
+   the same shape").
 4. **Every way of getting more than one series is a comparison**, chosen in
    the one Compare control. Split-by is a comparison. Comparisons can be
    multiple.
@@ -45,6 +53,14 @@ exploratory clustering.
    chip. The options menu shows the same numbers for exact entry. A custom
    range re-bins on the server (shared-range path), never a client crop.
 
+11. **Every history-worthy change is undoable from the keyboard.** Ctrl+Z
+   undoes, Ctrl+Y or Ctrl+Shift+Z redoes; a transient note names the step
+   ("Undid: form → Density"). The push/replace predicate that decides URL
+   history entries decides what a step is, so Back and Ctrl+Z agree;
+   continuous changes (brush drag, typing a range, axis drag) collapse into
+   one step on release. Inside a text field the keys keep their native
+   meaning. The stack lives in app state for the session, not in the URL.
+
 ## The one scheme (owner, 2026-10-09: "a solid continuous scheme to show data how I want to see it so that I can think of what I see")
 
 Every card is one question with four parts. Nothing else exists on a card,
@@ -58,24 +74,40 @@ Any UI element that cannot be named as one of the four is a defect.
 | **Series** | zero or more ways to put groups side by side: `field` (top groups), `values` (chosen values of a field), `population`, `cohort` (saved group), `study`, `span` (earlier time window) | the one **Compare** chip input on the card |
 | **Form** | how it is drawn, derived from the axis types (table below); plus scale, range, bins, layout in the options menu | the icon dropdown on the card; menu for the rest |
 
-Forms by scale type (owner, 2026-10-09: "uploads over time is still a different
-set of graph types?" — it must not be). **A form is a drawing, named by its
-geometry, and it applies to a scale type, not to a column.** Numeric metrics and
-time are both continuous scales; a histogram over months is the same mark as a
-histogram over SNR, bars of counts per bin. The only difference time brings is
-the bin unit (month, week, day) and the axis format. Any form name that
-describes the data ("counts over time", "uploads") is a quantity, not a form.
+## The grammar (2026-10-09)
 
-| x scale | y | forms (glyph · name · use when) |
+Every card is `{ x, y, aggregate, series, form, options }`:
+
+| Part | Values | Default |
 |---|---|---|
-| continuous (metric or time) | none | Histogram (counts per bin) · Line (counts per bin as a line) · Area (counts per bin filled; stacked share with series) · Density (smoothed shape) · ECDF (cumulative share, read percentiles or cumulative uploads) · Box (spread per series) · Table (the records) |
-| continuous (metric or time) | numeric metric | Heatmap (2D density) · Scatter (sample points) · Hexbin (sample, binned) · Clusters (k-means on the sample) · Band (median with a filled quantile band per x bin) · Lines (three quantile lines per x bin) — which quantiles is the option `quantiles`: Quartiles (Q1, median, Q3; default, the old quartile-lines chart) or Tails (p05, median, p95) |
-| categorical field | none | Bars (count per category) · Share (100% bar) · Table |
-| set of metrics | — | Matrix (pairwise coefficient) |
+| `x` | any column: numeric metric, time, categorical field | — (chosen in the drawer) |
+| `y` | `count` · `share` · any numeric column (or time) | `count` |
+| `aggregate` | for a column y: `median` · `mean` · `sum` · `min` · `max` · `p05` … `p95` | `median` |
+| `series` | zero or more: field groups (each group its own chip), chosen values, population, saved group, study, earlier span; numeric split by cut points | none |
+| `form` | a mark, see below | by x and y |
 
-Defaults: continuous x → Histogram; continuous x + y → Heatmap, except time x + y
-→ Band; categorical → Bars. Bins for a time x follow the dashboard granularity
-(month by default). The picker is a view of the ONE fixed list (Invariant 1), order: Histogram, Line, Area, Density, ECDF, Box, Table, Heatmap, Scatter, Hexbin, Clusters, Band, Lines, Bars, Share, Matrix. Hidden when physically impossible for the axes (Bars/Share on a continuous x; Histogram…Table on a categorical x; Matrix unless the quantity is a metric set); disabled with the reason "add a second metric" (a link that opens the drawer's y select) for Heatmap/Scatter/Hexbin/Clusters/Band/Lines on a single-metric continuous card. The picker renders glyph · name · use-when; the trigger shows glyph + name untruncated.
+Forms are marks over (x, y). The list never changes; a mark that cannot draw the
+card's x/y is hidden; one that needs one more choice is disabled with that choice
+as the reason.
+
+| form | draws | needs |
+|---|---|---|
+| Histogram | bars of y per x bin (y = count: a histogram; y = column: the aggregate per bin) | continuous x |
+| Line, Area | the same per-bin value as a line / filled area (stacked when series, Area as 100% share when y = share) | continuous x |
+| Density | smoothed y per x (y = count: kernel density) | continuous x |
+| ECDF | cumulative y over x (y = count: the ECDF) | continuous x |
+| Box | spread of y per series (y = count over x bins: the spread of bin counts; y = column: the column's spread) | any x |
+| Band | quantiles of y per x bin: y = column → across the rows in the bin; y = count → across the series in the bin (one series: the line). Option `fill: band / lines` replaces the former "Lines" form; option `quantiles: quartiles / tails` | continuous x, ≥1 series for y = count |
+| Bars, Share | y per category | categorical x |
+| Heatmap, Hexbin, Scatter, Clusters | Count (or the aggregate) over 2D cells / sample points of (x, y) | continuous x and a column y |
+| Table | the rows | any |
+| Matrix | pairwise coefficient over a set of columns | a metric set |
+
+Defaults: continuous x → Histogram; continuous x + column y → Heatmap (time x +
+column y → Band); categorical x → Bars. Series chips are individually
+removable: ✕ on a group drops that group (the field series becomes a chosen-
+values series); the + menu adds any group back, picks a custom set, or sets
+cut points for a numeric split.
 
 Derived, never configured: the title ("Mean framewise displacement", "tSNR vs FD mean", "Uploads over time", "Scans per Manufacturer", "Metric correlations"), the count line, the stat row (quantiles of x for numeric; totals for time and categories), the meaning line, the legend (one, chips, ✕ removes a series, click isolates), the differences table when ≥2 series, the preferred grid size (numeric 4×10; time, categorical, two-metric 8×10; correlation 8×14; +2 rows with series).
 

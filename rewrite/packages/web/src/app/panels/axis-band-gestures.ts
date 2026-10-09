@@ -1,6 +1,6 @@
 export type AxisRangeEvent = { axis: 'x' | 'y'; range: [number, number] | 'auto' };
 type Axis = AxisRangeEvent['axis'];
-type Scale = ((value: unknown) => unknown) & { invert?: (value: number) => unknown; range?: () => unknown };
+type Scale = ((value: unknown) => unknown) & { invert?: (value: number) => unknown; range?: () => unknown; copy?: () => Scale; clamp?: (value: boolean) => Scale };
 type Point = { x: number; y: number };
 type Bounds = { left: number; right: number; top: number; bottom: number };
 type Geometry = Bounds & { axis: Axis; scale: Scale; start: number; end: number; offset: number };
@@ -128,10 +128,20 @@ function geometries(host: HTMLElement, view: VegaAxisBandView): Geometry[] {
 }
 
 /** Converts with Vega's native inversion, retaining log, time, and symlog semantics. */
-export function invertAxisRange(scale: Pick<Scale, 'invert'>, firstPixel: number, lastPixel: number): [number, number] | null {
-  if (typeof scale.invert !== 'function') return null;
-  const first = numeric(scale.invert(firstPixel)), last = numeric(scale.invert(lastPixel));
+export function invertAxisRange(scale: Pick<Scale, 'invert' | 'copy'>, firstPixel: number, lastPixel: number): [number, number] | null {
+  // Log chart marks are clamped; interaction must extrapolate without changing rendering.
+  const copy = scale.copy?.();
+  copy?.clamp?.(false);
+  const inverse = copy ?? scale;
+  if (typeof inverse.invert !== 'function') return null;
+  const first = numeric(inverse.invert(firstPixel)), last = numeric(inverse.invert(lastPixel));
   return first === null || last === null ? null : first <= last ? [first, last] : [last, first];
+}
+
+/** One wheel notch changes the span by 10%, anchored at the pointer. */
+export function zoomAxisRange(scale: Pick<Scale, 'invert' | 'copy'>, pixels: readonly [number, number], pointer: number, delta: number): [number, number] | null {
+  const factor = delta < 0 ? 0.9 : delta > 0 ? 1.1 : 1;
+  return invertAxisRange(scale, pointer + (pixels[0] - pointer) * factor, pointer + (pixels[1] - pointer) * factor);
 }
 function normalizedForEmit(scale: Scale, range: [number, number], pixel: number): [number, number] {
   let temporal = false;
@@ -214,11 +224,13 @@ export function attachAxisBandGestures(host: HTMLElement, view: VegaAxisBandView
   let active: { geometry: Geometry; pointerId: number; start: number; current: number; moved: boolean } | undefined;
   let bands: HTMLElement[] = [];
   let refreshPending = false;
+  let wheel: { geometry: Geometry; scale: Scale; pixels: [number, number]; timer: ReturnType<typeof setTimeout> } | undefined;
+  const cancelWheel = (): void => { if (wheel) clearTimeout(wheel.timer); wheel = undefined; };
   const hide = (): void => { outline.style.display = 'none'; };
   const pointerPosition = (event: PointerEvent, item: Geometry): number => {
     const rect = host.getBoundingClientRect();
     const raw = item.axis === 'x' ? event.clientX - rect.left : event.clientY - rect.top;
-    return Math.min(item.end, Math.max(item.start, raw));
+    return raw;
   };
   const draw = (item: Geometry, first: number, last: number): void => {
     outline.style.display = 'block';
@@ -247,8 +259,27 @@ export function attachAxisBandGestures(host: HTMLElement, view: VegaAxisBandView
     if (item.axis === 'x') pixels(band, item.left, item.bottom, item.right - item.left, BAND_SIZE);
     else pixels(band, item.left - BAND_SIZE, item.top, BAND_SIZE, item.bottom - item.top);
     contextAffordance(band, item.axis);
+    band.addEventListener('wheel', event => {
+      if (!Number.isFinite(event.deltaY) || !event.deltaY || active || item.end <= item.start) return;
+      event.preventDefault(); event.stopPropagation();
+      if (wheel && wheel.geometry !== item) commitWheel();
+      const previous = wheel?.pixels ?? [item.start - item.offset, item.end - item.offset];
+      const zoomScale = wheel?.scale ?? item.scale.copy?.() ?? item.scale;
+      const rect = host.getBoundingClientRect();
+      const position = (item.axis === 'x' ? event.clientX - rect.left : event.clientY - rect.top) - item.offset;
+      const fraction = (position - (item.start - item.offset)) / (item.end - item.start);
+      const anchor = previous[0] + fraction * (previous[1] - previous[0]);
+      const factor = event.deltaY < 0 ? 0.9 : 1.1;
+      const next: [number, number] = [anchor + (previous[0] - anchor) * factor, anchor + (previous[1] - anchor) * factor];
+      const selected = zoomAxisRange(zoomScale, previous as [number, number], anchor, event.deltaY);
+      if (!selected || selected[0] >= selected[1]) return;
+      cancelWheel();
+      wheel = { geometry: item, scale: zoomScale, pixels: next, timer: setTimeout(commitWheel, 500) };
+      draw(item, next[0] + item.offset, next[1] + item.offset);
+    }, { passive: false });
     band.addEventListener('pointerdown', event => {
       if (event.button !== 0) return;
+      cancelWheel();
       event.preventDefault(); event.stopPropagation();
       const start = pointerPosition(event, item);
       active = { geometry: item, pointerId: event.pointerId, start, current: start, moved: false };
@@ -261,11 +292,19 @@ export function attachAxisBandGestures(host: HTMLElement, view: VegaAxisBandView
     });
     band.addEventListener('pointerup', event => finish(event, false));
     band.addEventListener('pointercancel', event => finish(event, true));
-    band.addEventListener('dblclick', event => { event.preventDefault(); event.stopPropagation(); hide(); emit({ axis: item.axis, range: 'auto' }); });
+    band.addEventListener('dblclick', event => { event.preventDefault(); event.stopPropagation(); cancelWheel(); hide(); emit({ axis: item.axis, range: 'auto' }); });
     host.append(band); bands.push(band);
   };
+  const commitWheel = (): void => {
+    const pending = wheel;
+    cancelWheel(); hide();
+    if (!pending) return;
+    const selected = invertAxisRange(pending.scale, ...pending.pixels);
+    if (selected) emit({ axis: pending.geometry.axis, range: normalizedForEmit(pending.scale, selected, pending.pixels[0]) });
+    if (refreshPending) { refreshPending = false; refresh(); }
+  };
   const refresh = (): void => {
-    if (active) {
+    if (active || wheel) {
       refreshPending = true;
       return;
     }
@@ -284,5 +323,5 @@ export function attachAxisBandGestures(host: HTMLElement, view: VegaAxisBandView
   refresh();
   const observer = typeof ResizeObserver === 'undefined' ? undefined : new ResizeObserver(refresh);
   observer?.observe(host);
-  return { refresh, destroy: () => { observer?.disconnect(); active = undefined; for (const band of bands) band.remove(); outline.remove(); host.style.position = originalPosition; } };
+  return { refresh, destroy: () => { observer?.disconnect(); cancelWheel(); active = undefined; for (const band of bands) band.remove(); outline.remove(); host.style.position = originalPosition; } };
 }

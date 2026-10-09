@@ -128,7 +128,7 @@ describe('Dashboard with MockApi', () => {
     expect(menu.querySelector('app-axes-controls')).toBeNull();
     expect(menu.textContent).not.toContain('Layout');
     expect(menu.textContent).not.toContain('Bins');
-    expect(menu.textContent).toContain('Clip');
+    expect(menu.textContent).not.toContain('Clip');
     expect(menu.textContent).not.toContain('Box sort');
     expect(menu.textContent).toContain('Follow brushed range');
     expect(menu.querySelector('[data-testid="panel-chart-selector"]')).toBeNull();

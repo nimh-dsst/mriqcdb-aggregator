@@ -18,13 +18,13 @@ import type { Query } from '../api/api';
  * async pipe), the router sync, the form sync, and the effects runner.
  */
 
-import { DestroyRef, Injectable, inject } from '@angular/core';
+import { DestroyRef, Injectable, inject, DOCUMENT } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router } from '@angular/router';
-import { Observable, Subject, concat, merge, of } from 'rxjs';
+import { Observable, Subject, concat, merge, of, fromEvent, timer } from 'rxjs';
 import {
   catchError,
-  debounceTime,
+  debounce,
   distinctUntilChanged,
   filter,
   finalize,
@@ -52,7 +52,8 @@ import { LIGHT_THEME, type ChartTheme } from '../panels/specs/palette';
 import { panelView, type PanelView } from '../view/panel-view';
 import { cohortList, cohortListEquals, type CohortChip } from './cohorts';
 import { neededQueries } from './queries';
-import { defaultDashboard, initialState, reduce } from './reducer';
+import { defaultDashboard, initialState } from './reducer';
+import { reduceHistory, historyShortcut } from './history';
 import type { GlobalState, Panel, PanelId, State } from './state';
 import { URL_PARAM, decodeUrlState, encodeUrlState, urlState } from './url';
 
@@ -125,6 +126,8 @@ export class Graph {
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly document = inject(DOCUMENT);
+  private readonly interactionEnd = new Subject<void>();
 
   /** UI events Angular hands us as callbacks. A channel, never read. */
   private readonly ui = new Subject<Command>();
@@ -199,7 +202,7 @@ export class Graph {
       // The only time operator on this side of the loop: a date typed into the
       // picker, or a bound typed into a range box, is one command rather than
       // one per keystroke.
-      debounceTime(150),
+      debounce(() => merge(timer(150), this.interactionEnd)),
       map((): Command => ({ t: 'setFilters', filters: filtersFromForm(this.form.getRawValue()) })),
     );
 
@@ -237,7 +240,7 @@ export class Graph {
     );
 
     this.state$ = this.commands$.pipe(
-      scan(reduce, initialState),
+      scan((state, command) => reduceHistory(state, command, Date.now()), initialState),
       takeUntilDestroyed(this.destroyRef),
       shareReplay({ bufferSize: 1, refCount: false }),
     );
@@ -288,12 +291,11 @@ export class Graph {
     // Edge 2: the URL. `urlState` excludes datasets and cursors.
     this.state$
       .pipe(
-        map(urlState),
-        map(encodeUrlState),
-        distinctUntilChanged(),
+        map(state => ({ param: encodeUrlState(urlState(state)), mode: state.history?.urlMode ?? 'replace' })),
+        distinctUntilChanged((a, b) => a.param === b.param),
         takeUntilDestroyed(this.destroyRef),
       )
-      .subscribe((param) => this.syncUrl(param));
+      .subscribe(({ param, mode }) => this.syncUrl(param, mode));
 
     // Edge 3: the controls form, pushed back when the reducer changes `global`
     // (a modality switch clears filters). `emitEvent: false` keeps it an edge.
@@ -308,6 +310,43 @@ export class Graph {
     // Keep the fold alive for the life of the injector, so a panel appearing
     // later replays the current state instead of restarting the dashboard.
     this.state$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe();
+
+    fromEvent<KeyboardEvent>(this.document, 'keydown').pipe(takeUntilDestroyed(this.destroyRef)).subscribe(event => {
+      const command = historyShortcut(event, this.document);
+      if (!command) return;
+      event.preventDefault();
+      this.dispatch({ t: command });
+    });
+    // Close after release handlers have committed their final range/geometry.
+    let releaseTimer: ReturnType<typeof setTimeout> | undefined;
+    const window = this.document.defaultView;
+    merge(fromEvent(this.document, 'pointerup'), fromEvent(this.document, 'pointercancel'),
+      fromEvent(this.document, 'mouseup'), fromEvent(this.document, 'focusout'),
+      ...(window ? [fromEvent(window, 'blur')] : []))
+      .pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
+        this.interactionEnd.next();
+        clearTimeout(releaseTimer);
+        releaseTimer = setTimeout(() => this.dispatch({ t: 'endHistoryRun' }), 0);
+      });
+    let idleTimer: ReturnType<typeof setTimeout> | undefined;
+    this.state$.pipe(map(state => state.history?.run), distinctUntilChanged(), takeUntilDestroyed(this.destroyRef))
+      .subscribe(run => {
+        clearTimeout(idleTimer);
+        if (run) idleTimer = setTimeout(() => this.dispatch({ t: 'endHistoryRun' }), 500);
+      });
+    let noticeTimer: ReturnType<typeof setTimeout> | undefined;
+    this.state$.pipe(map(state => state.notice), distinctUntilChanged(), takeUntilDestroyed(this.destroyRef))
+      .subscribe(notice => {
+        clearTimeout(noticeTimer);
+        if (notice && /^(Undid:|Redid:|Nothing to (undo|redo)\.)/.test(notice)) {
+          noticeTimer = setTimeout(() => this.dispatch({ t: 'clearNotice', notice }), 5000);
+        }
+      });
+    this.destroyRef.onDestroy(() => {
+      clearTimeout(releaseTimer);
+      clearTimeout(idleTimer);
+      clearTimeout(noticeTimer);
+    });
   }
 
   /** Panel toolbars, the Vega directive, and the "+ panel" menu come in here. */
@@ -332,13 +371,13 @@ export class Graph {
     return view$;
   }
 
-  private syncUrl(param: string): void {
+  private syncUrl(param: string, historyMode: 'push' | 'replace'): void {
     // Never before the first hydrate: writing the URL from a state that has not
     // yet read the address bar is how a shared link gets replaced by the
     // default dashboard on arrival.
     if (!this.hydrated) return;
     if (this.lastUrlParam === param) return;
-    const mode = urlSyncMode(this.firstSyncAfterHydrate, param, paramFromLocation());
+    const mode = urlSyncMode(this.firstSyncAfterHydrate || historyMode === 'replace', param, paramFromLocation());
     this.firstSyncAfterHydrate = false;
     this.lastUrlParam = param;
     void this.router.navigate([], {

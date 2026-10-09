@@ -92,6 +92,61 @@ describe('urlSyncMode', () => {
 describe('Graph', () => {
   afterEach(() => window.history.replaceState({}, '', '/'));
 
+  describe('undo and redo integration', () => {
+    it('routes document keys and replaces the URL on undo and redo', async () => {
+      const { graph, states } = boot('/');
+      await wait(50);
+      const navigate = vi.spyOn(TestBed.inject(Router), 'navigate');
+      graph.dispatch({ t: 'setPanelForm', id: 'p1', form: 'density' });
+      expect(navigate.mock.calls.at(-1)?.[1]?.replaceUrl).toBe(false);
+      const key = new KeyboardEvent('keydown', { key: 'z', ctrlKey: true, cancelable: true });
+      document.dispatchEvent(key);
+      expect(key.defaultPrevented).toBe(true);
+      expect(states.at(-1)?.panels[0].form).toBe('histogram');
+      expect(states.at(-1)?.notice).toBe('Undid: form → Density');
+      expect(navigate.mock.calls.at(-1)?.[1]?.replaceUrl).toBe(true);
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'z', metaKey: true, shiftKey: true }));
+      expect(states.at(-1)?.panels[0].form).toBe('density');
+      expect(navigate.mock.calls.at(-1)?.[1]?.replaceUrl).toBe(true);
+    });
+
+    it('does not intercept undo in a focused input', () => {
+      const { graph, states } = boot('/');
+      graph.dispatch({ t: 'setPanelForm', id: 'p1', form: 'density' });
+      const input = document.createElement('input');
+      document.body.append(input);
+      input.focus();
+      const key = new KeyboardEvent('keydown', { key: 'z', ctrlKey: true, bubbles: true, cancelable: true });
+      input.dispatchEvent(key);
+      expect(key.defaultPrevented).toBe(false);
+      expect(states.at(-1)?.panels[0].form).toBe('density');
+      input.remove();
+    });
+
+    it('coalesces URL writes and closes the run on pointer release, blur and idle', async () => {
+      const { graph, states } = boot('/');
+      await wait(50);
+      const navigate = vi.spyOn(TestBed.inject(Router), 'navigate');
+      const change = (hi: number) => graph.dispatch({ t: 'setPanelRange', id: 'p1', axis: 'x', range: [0, hi] });
+      change(1);
+      expect(navigate.mock.calls.at(-1)?.[1]?.replaceUrl).toBe(false);
+      change(2);
+      expect(navigate.mock.calls.at(-1)?.[1]?.replaceUrl).toBe(true);
+      expect(states.at(-1)?.history?.undo).toHaveLength(1);
+      document.dispatchEvent(new Event('pointerup'));
+      await wait(10);
+      expect(states.at(-1)?.history?.run).toBeNull();
+      change(3);
+      expect(states.at(-1)?.history?.undo).toHaveLength(2);
+      document.dispatchEvent(new Event('focusout'));
+      await wait(10);
+      expect(states.at(-1)?.history?.run).toBeNull();
+      change(4);
+      await wait(550);
+      expect(states.at(-1)?.history?.run).toBeNull();
+    });
+  });
+
   describe('startup hydration', () => {
     it('opens the dashboard the url names and leaves the url alone', async () => {
       const encoded = encodeUrlState(shared);

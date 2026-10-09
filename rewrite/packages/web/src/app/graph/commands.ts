@@ -31,6 +31,10 @@ import type { UrlState } from './url';
 export type CohortPatch = Partial<Omit<Cohort, 'id'>>;
 
 export type Command =
+  | { t: 'undo' }
+  | { t: 'redo' }
+  | { t: 'endHistoryRun' }
+  | { t: 'clearNotice'; notice: string }
   // global controls
   | { t: 'setModality'; modality: Modality }
   | { t: 'setView'; view: View }
@@ -41,7 +45,7 @@ export type Command =
   | { t: 'addPanelSeries'; id: PanelId; series: Series }
   | { t: 'removePanelSeries'; id: PanelId; key: string }
   | { t: 'setPanelForm'; id: PanelId; form: PanelChart }
-  | { t: 'setPanelRange'; id: PanelId; axis: 'x' | 'y'; range: [number, number] | 'auto' }
+  | { t: 'setPanelRange'; id: PanelId; axis: 'x' | 'y'; range: [number, number] | 'auto' | 'full' }
   | { t: 'resetPanelRanges'; id: PanelId }
   | { t: 'zoomToBrush'; from: PanelId }
   | { t: 'addGroupToPanels'; id: CohortId; panelIds?: readonly PanelId[] }
@@ -230,9 +234,12 @@ export function panelPatch(command: Command): { id: PanelId; patch: PanelPatch }
     case 'setPanelForm':
       return { id: command.id, patch: { form: command.form } };
     case 'setPanelRange':
-      return { id: command.id, patch: { options: { [command.axis === 'x' ? 'xRange' : 'yRange']: command.range } } };
+      return { id: command.id, patch: { options: {
+        [command.axis === 'x' ? 'xRange' : 'yRange']: command.range === 'full' ? 'auto' : command.range,
+        ...(command.range === 'auto' ? { clip: 'p01p99' as const } : command.range === 'full' ? { clip: 'none' as const } : {}),
+      } } };
     case 'resetPanelRanges':
-      return { id: command.id, patch: { options: { xRange: 'auto', yRange: 'auto' } } };
+      return { id: command.id, patch: { options: { xRange: 'auto', yRange: 'auto', clip: 'p01p99' } } };
     case 'setPanelGroup':
       return { id: command.id, patch: { group: command.group } };
     case 'setPanelOptions':
