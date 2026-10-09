@@ -1,5 +1,5 @@
 import type { State } from '../../graph/state';
-import { needed,referencedKeys } from './queries';
+import { needed, referencedKeys } from './queries';
 import { CATALOG_KEY } from './results';
 
 /** Loading and error counts are derived from the current version, never stored. */

@@ -12,15 +12,15 @@
  */
 
 import {
-fieldValueLabel,
-fieldsFor,
-metricsFor,
-type ColumnId,
-type CompletedCatalog,
-type Filter,
-type Modality,
-type Selection,
-type View,
+  fieldValueLabel,
+  fieldsFor,
+  metricsFor,
+  type ColumnId,
+  type CompletedCatalog,
+  type Filter,
+  type Modality,
+  type Selection,
+  type View,
 } from '@mriqc/shared';
 
 /**

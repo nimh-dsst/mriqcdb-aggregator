@@ -3,13 +3,11 @@
  * per character), then its non-default values in schema order. Both directions
  * walk these same tables; scalar codecs alone know how to represent a value.
  */
-import {
-unsigned
-} from '../../codec/tokens';
+import { unsigned } from '../../codec/tokens';
 import type { UrlState } from '../../graph/state';
-import { deriveLayout,type DashboardLayout } from './geometry';
+import { deriveLayout, type DashboardLayout } from './geometry';
 
-import { readRecord,writeRecord,type Context,type ContextCodec,type Schema } from '../../codec/records';
+import { readRecord, writeRecord, type Context, type ContextCodec, type Schema } from '../../codec/records';
 export const LAYOUT_FIELDS: Schema = [
   { field: 'missing', codec: { write() {}, read: () => true }, default: false },
   ...(['x', 'y', 'w', 'h'] as const).map((field) => ({

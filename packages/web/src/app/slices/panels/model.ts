@@ -1,14 +1,28 @@
-import { asColumnId,getAuthoredCatalog,isValidField,isValidMetric,metricsFor,type Modality,type View } from '@mriqc/shared';
+import {
+  asColumnId,
+  getAuthoredCatalog,
+  isValidField,
+  isValidMetric,
+  metricsFor,
+  type Modality,
+  type View,
+} from '@mriqc/shared';
 import { clampBins } from '../../codec/tokens';
 import { validateCommonOptions } from '../../forms/common-options';
 import type { PanelOptions } from '../../forms/options';
 import { FORM_DEFS } from '../../forms/registry';
-import { FIRST_PAGE,defaultPanelOptions,type ColumnRef,type Panel,type PanelId,type State } from '../../graph/state';
-import type { PanelPatch } from '../../loop/commands';
-import { evict } from '../history/datasets';
-import { normalizeSeries,seriesDisabledReason,seriesKey,type Series } from '../series/model';
+import {
+  FIRST_PAGE,
+  defaultPanelOptions,
+  type ColumnRef,
+  type Panel,
+  type PanelId,
+  type State,
+} from '../../graph/state';
+import type { PanelPatch } from '../commands';
+import { normalizeSeries, seriesDisabledReason, seriesKey, type Series } from '../series/model';
 import { panelCohorts } from '../series/queries';
-import { axisType,brushable,formsFor,panelFormAvailability,validForm } from './shapes';
+import { axisType, formsFor, panelFormAvailability, validForm } from './shapes';
 
 export function seriesContext(state: State) {
   return {
@@ -42,14 +56,6 @@ function pruneReference(state: State, panel: Panel): Panel {
     return rest;
   }
   return panel;
-}
-
-export function pruneSelection(state: State): State {
-  const selections = state.selections.filter(selection => {
-    const origin = state.panels.find(panel => panel.id === selection.from);
-    return origin && [origin.x, origin.y].includes(selection.metric) && brushable(origin);
-  });
-  return selections.length === state.selections.length ? state : { ...state, selections };
 }
 
 function firstMetric(modality: Modality) { return metricsFor(modality)[0]?.id ?? asColumnId('fd_mean'); }
@@ -145,7 +151,7 @@ export function patchPanel(state: State, id: PanelId, patch: PanelPatch): State 
     current = pruneReference(state, current);
     return JSON.stringify(current) === JSON.stringify(panel) ? panel : { ...current, cursors: FIRST_PAGE };
   });
-  return next === state ? notice ? { ...state, notice } : state : evict(pruneSelection({ ...next, notice }));
+  return next === state ? notice ? { ...state, notice } : state : { ...next, notice };
 }
 
 export function addSeries(state: State, id: PanelId, series: Series): State {

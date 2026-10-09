@@ -1,7 +1,7 @@
-import type { ColumnRef,Form,MetricId,Panel } from '../../graph/state';
+import type { ColumnRef, Form, MetricId, Panel } from '../../graph/state';
 
 import { axisType } from '../../forms/availability';
-import { FORM_ORDER,formAvailability,formDef,type FormAvailability } from '../../forms/registry';
+import { FORM_ORDER, formAvailability, formDef, type FormAvailability } from '../../forms/registry';
 export { axisType,type AxisType } from '../../forms/availability';
 export { FORM_ORDER,formAvailability,type FormAvailability } from '../../forms/registry';
 

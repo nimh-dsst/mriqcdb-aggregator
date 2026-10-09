@@ -1,4 +1,4 @@
-import type { CompletedCatalog,QueryKey } from '@mriqc/shared';
+import type { CompletedCatalog, QueryKey } from '@mriqc/shared';
 import type { DatasetEntry } from '../../graph/state';
 
 export interface HistoryState {

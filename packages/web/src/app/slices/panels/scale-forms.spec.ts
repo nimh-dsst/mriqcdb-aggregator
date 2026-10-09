@@ -3,7 +3,7 @@ import { asColumnId } from '@mriqc/shared';
 import { describe, expect, it } from 'vitest';
 import { INITIAL_STATE } from '../../graph/state';
 import { defaultDashboard } from './defaults';
-import { reduce } from '../../loop/reducer';
+import { reduce } from '../reducer';
 import { panelQueries } from './queries';
 import { panelView } from './view';
 

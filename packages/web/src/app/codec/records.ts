@@ -3,19 +3,19 @@
  * per character), then its non-default values in schema order. Both directions
  * walk these same tables; scalar codecs alone know how to represent a value.
  */
-import { canonicalViewFor,viewsFor,type Modality } from '@mriqc/shared';
+import { canonicalViewFor, viewsFor, type Modality } from '@mriqc/shared';
 import {
-BitReader,
-BitWriter,
-COLUMN_TOKENS,
-enumeration,
-FIELD_TOKENS,
-MAX_COHORT_ID_LENGTH,
-METRIC_TOKENS,
-textCodec,
-tokenCodec,
-unsigned,
-VIEW_TOKENS
+  BitReader,
+  BitWriter,
+  COLUMN_TOKENS,
+  enumeration,
+  FIELD_TOKENS,
+  MAX_COHORT_ID_LENGTH,
+  METRIC_TOKENS,
+  textCodec,
+  tokenCodec,
+  unsigned,
+  VIEW_TOKENS,
 } from './tokens';
 
 export type RecordValue = Record<string, unknown>;

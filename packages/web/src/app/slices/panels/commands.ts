@@ -1,26 +1,21 @@
-/**
- * The command union: one variant per thing that can happen to the dashboard.
- *
- * Verbatim from `docs/dashboard-graph.md`, "Inputs". Commands are plain
- * serializable data (the one exception is `studyChosen`, which carries a
- * `File`), so a session is a replayable log.
- */
+/** Feature commands composed into the root discriminated union. */
 
 import type {
-CohortId,
-GroupField,
-MetricId,
-Panel,
-PanelChart,
-PanelId,
-PanelOptions,
-UrlState
+  CohortId,
+  GroupField,
+  MetricId,
+  Panel,
+  PanelChart,
+  PanelId,
+  PanelOptions,
+  UrlState,
 } from '../../graph/state';
 import type { DashboardLayout } from '../layout/geometry';
 import type { Series } from '../series/model';
 
-import type { Command } from '../../loop/commands';
+import type { Command } from '../commands';
 export type PanelsCommand =
+  | { t: 'advancePanelPage'; id: PanelId; cursor: string | null }
   | { t: 'retargetPanels'; prune?: boolean } | { t: 'prunePanelCohorts' } | { t: 'hydratePanels'; panels: UrlState['panels'] }
   | { t: 'addPanel'; x?: MetricId | 'created_at'; y?: MetricId | null; form?: PanelChart; series?: readonly Series[] }
   | { t: 'setPanelForm'; id: PanelId; form: PanelChart }
@@ -102,4 +97,3 @@ export function panelPatch(command: Command): { id: PanelId; patch: PanelPatch }
       return null;
   }
 }
-

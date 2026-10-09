@@ -1,12 +1,9 @@
-import {
-asColumnId,
-fieldValueLabel,isNoneValue,NONE_FILTER_VALUE
-} from '@mriqc/shared';
-import { groupCohortId,type Cohort,type Panel,type State } from '../../graph/state';
-import { panelCohort } from "../cohorts/queries";
+import { asColumnId, fieldValueLabel, isNoneValue, NONE_FILTER_VALUE } from '@mriqc/shared';
+import { groupCohortId, type Cohort, type Panel, type State } from '../../graph/state';
+import { panelCohort } from '../cohorts/queries';
 import { cohortById } from '../cohorts/scopes';
-import { studyFormReason } from "../study/queries";
-import { seriesKey,seriesLabel } from './model';
+import { studyFormReason } from '../study/queries';
+import { seriesKey, seriesLabel } from './model';
 
 export type ResolvedSeries = Cohort & { descriptorKey?: string };
 

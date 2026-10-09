@@ -1,10 +1,10 @@
 import { asColumnId, isValidMetric, queryKey, type Filter } from '@mriqc/shared';
-import type { Command } from './commands';
+import type { Command } from '../slices/commands';
 import { CATALOG_KEY } from '../slices/history/results';
 import { needed, neededQueries, referencedKeys } from '../slices/history/queries';
 import { nextCohortColor } from '../slices/cohorts/model';
 import { defaultDashboard } from '../slices/panels/defaults';
-import { initialState, reduce } from './reducer';
+import { initialState, reduce } from '../slices/reducer';
 import {
   EVICTION_KEEP,
   FIRST_PAGE,

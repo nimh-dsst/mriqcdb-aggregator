@@ -4,17 +4,26 @@
  * walk these same tables; scalar codecs alone know how to represent a value.
  */
 import {
-dateCodec,
-enumeration,
-MAX_COHORT_NAME,
-MAX_FILTER_VALUES,
-roundedNumber,
-textCodec
+  dateCodec,
+  enumeration,
+  MAX_COHORT_NAME,
+  MAX_FILTER_VALUES,
+  roundedNumber,
+  textCodec,
 } from '../../codec/tokens';
 import { MAX_BUCKETS } from './model';
 
-import { fieldToken,list,metricToken,pair,record,reference,type Context,type Schema } from '../../codec/records';
-import { filters,filterValue } from '../filters/url';
+import {
+  fieldToken,
+  list,
+  metricToken,
+  pair,
+  record,
+  reference,
+  type Context,
+  type Schema,
+} from '../../codec/records';
+import { filters, filterValue } from '../filters/url';
 const BUCKET_FIELDS: Schema = [
   { field: 'name', codec: textCodec(MAX_COHORT_NAME), default: 'Group' },
   { field: 'filters', codec: filters, default: undefined },

@@ -12,20 +12,20 @@ import { studyView } from '../study/view';
  */
 
 import {
-fieldsFor,
-viewsFor,
-type ColumnId,
-type CompletedCatalog,
-type DateRange,
-type FieldDef,
-type FieldValueCount,
-type Filter,
-type NumericRange,
-type QuarantineCounts,
-type ViewDef,
+  fieldsFor,
+  viewsFor,
+  type ColumnId,
+  type CompletedCatalog,
+  type DateRange,
+  type FieldDef,
+  type FieldValueCount,
+  type Filter,
+  type NumericRange,
+  type QuarantineCounts,
+  type ViewDef,
 } from '@mriqc/shared';
-import type { ExportState,PanelId,State,StudyState } from '../../graph/state';
-import { metricDef,significant } from '../panels/text';
+import type { ExportState, PanelId, State, StudyState } from '../../graph/state';
+import { metricDef, significant } from '../panels/text';
 
 /**
  * How many distinct values a multi-select stays usable with. Past it the top

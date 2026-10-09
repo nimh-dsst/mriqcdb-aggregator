@@ -1,11 +1,11 @@
-import { ActivatedRoute,Router } from '@angular/router';
-import { concat,Observable,of } from 'rxjs';
-import { distinctUntilChanged,filter,map,tap } from 'rxjs/operators';
+import { ActivatedRoute, Router } from '@angular/router';
+import { concat, Observable, of } from 'rxjs';
+import { distinctUntilChanged, filter, map, tap } from 'rxjs/operators';
 
-import { type Command } from '../loop/commands';
+import { type Command } from '../slices/commands';
+import { urlSyncMode } from '../slices/history/history';
 import { defaultDashboard } from '../slices/panels/defaults';
 import { decodeUrlState } from '../url/url';
-import { urlSyncMode } from '../slices/history/history';
 
 export const URL_PARAM = 's';
 

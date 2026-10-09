@@ -1,34 +1,24 @@
-import { DestroyRef,Injectable,inject } from '@angular/core';
+import { DestroyRef, Injectable, inject } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { ActivatedRoute,Router } from '@angular/router';
-import { Observable,Subject,merge } from 'rxjs';
-import {
-catchError,
-distinctUntilChanged,
-finalize,
-map,
-scan,
-shareReplay,
-} from 'rxjs/operators';
+import { ActivatedRoute, Router } from '@angular/router';
+import { Observable, Subject, merge } from 'rxjs';
+import { catchError, distinctUntilChanged, finalize, map, scan, shareReplay } from 'rxjs/operators';
+import { connectEffects } from '../effects/connect';
 
-import { aboutEquals,aboutView } from '../about/about-view';
+import { aboutEquals, aboutView } from '../about/about-view';
 import { API } from '../api/api';
 import { buildControlsForm } from '../chrome/controls-form';
+import { LIGHT_THEME, type ChartTheme } from '../panels/specs/palette';
 import { cohortList, cohortListEquals } from '../slices/cohorts/view';
-import { type Command } from './commands';
-import { downloadExport, runEffects, runExportEffects, runStudyEffects } from '../effects/legacy';
-import { neededQueries } from '../slices/history/queries';
-import { initialState, reduce } from './reducer';
-import { encodeUrlState, urlState } from '../url/url';
-import { LIGHT_THEME,type ChartTheme } from '../panels/specs/palette';
-import { runClusterEffects } from '../study/cluster-effects';
-import { StudyRunner } from '../study/study-runner';
+import { type Command } from '../slices/commands';
 import { chrome, chromeEquals } from '../slices/filters/view';
 import { panelView } from '../slices/panels/view';
+import { initialState, reduce } from '../slices/reducer';
+import { StudyRunner } from '../study/study-runner';
+import { encodeUrlState, urlState } from '../url/url';
 
 import { UrlSync } from '../effects/url';
-import { controlCommands,synchronizeControls } from './controls';
-import { sameKeySets } from './projections';
+import { controlCommands, synchronizeControls } from '../slices/filters/controls';
 
 export { urlSyncMode } from '../slices/history/history';
 
@@ -106,38 +96,7 @@ export class Graph {
   }
 
   private connectEffects(): void {
-    const needed$ = this.state$.pipe(
-      map((state) => ({
-        version: state.dataVersion,
-        queries: neededQueries(state),
-      })),
-      distinctUntilChanged(
-        (left, right) =>
-          left.version === right.version && sameKeySets(left.queries, right.queries),
-      ),
-    );
-
-    // This is intentionally the first state subscription: hydration is cold.
-    runEffects(needed$, this.api, this.studyApi)
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe({ next: (command) => this.feedback.next(command), error: () => {} });
-    runExportEffects(this.state$)
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe({
-        next: (command) => {
-          this.feedback.next(command);
-          if (command.t === 'exportFinished' && command.blob && command.filename) {
-            downloadExport(command.blob, command.filename);
-          }
-        },
-        error: () => {},
-      });
-    runStudyEffects(this.ui, this.studyApi)
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe({ next: (command) => this.feedback.next(command), error: () => {} });
-    runClusterEffects(this.state$)
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe({ next: (command) => this.feedback.next(command), error: () => {} });
+    connectEffects(this.state$, this.ui, this.feedback, this.api, this.studyApi, this.destroyRef);
     this.state$
       .pipe(
         map(urlState),

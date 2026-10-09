@@ -1,5 +1,5 @@
-import { asColumnId,canonicalViewFor,type ClipMode } from '@mriqc/shared';
-import type { PanelOptions,UrlState } from '../../graph/state';
+import { asColumnId, canonicalViewFor, type ClipMode } from '@mriqc/shared';
+import type { PanelOptions, UrlState } from '../../graph/state';
 
 export function defaultPanelOptions(clip: ClipMode = 'p01p99'): PanelOptions {
   return {

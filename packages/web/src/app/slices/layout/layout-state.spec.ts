@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import { compactLayout, deriveLayout } from './geometry';
 import { defaultDashboard } from '../panels/defaults';
-import { initialState, reduce } from '../../loop/reducer';
+import { initialState, reduce } from '../reducer';
 import { decodeUrlState, encodeUrlState, urlState } from '../../url/url';
 
 function hydratedState() {

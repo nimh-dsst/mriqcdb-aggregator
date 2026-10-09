@@ -1,4 +1,4 @@
-import { fieldValueLabel,type ColumnId,type Filter,type Selection } from "@mriqc/shared";
+import { fieldValueLabel, type ColumnId, type Filter, type Selection } from '@mriqc/shared';
 
 /**
  * One named group in a custom split: every scan matching all of its filters

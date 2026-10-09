@@ -7,7 +7,7 @@
  * why they are here rather than in either.
  */
 
-import { isValidField,type Filter,type Modality,type View } from '@mriqc/shared';
+import { isValidField, type Filter, type Modality, type View } from '@mriqc/shared';
 
 /**
  * The bound a range control writes when the user left that end empty.

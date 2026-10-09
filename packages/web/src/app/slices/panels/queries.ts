@@ -1,25 +1,30 @@
 import {
-asColumnId,fieldsFor,
-getAuthoredCatalog,
-isNoneValue,NONE_FILTER_VALUE,
-type BinnedSummaryQuery,type BinnedSummaryResult,
-type ClipMode,type ColumnId,
-type Density2dResult,
-type DistributionResult,
-type Filter,type QueryKey
+  asColumnId,
+  fieldsFor,
+  getAuthoredCatalog,
+  isNoneValue,
+  NONE_FILTER_VALUE,
+  type BinnedSummaryQuery,
+  type BinnedSummaryResult,
+  type ClipMode,
+  type ColumnId,
+  type Density2dResult,
+  type DistributionResult,
+  type Filter,
+  type QueryKey,
 } from '@mriqc/shared';
-import { queryKey,type Query } from '../../api/api';
+import { queryKey, type Query } from '../../api/api';
 import { formDef } from '../../forms/registry';
-import { type Cohort,type Panel,type State } from '../../graph/state';
+import { type Cohort, type Panel, type State } from '../../graph/state';
 import { clipBounds } from '../../panels/specs';
-import { panelCohort } from "../cohorts/queries";
-import { distributionResult,resultOf } from "../history/results";
-import { groupingSeries,panelCohorts } from "../series/queries";
+import { panelCohort } from '../cohorts/queries';
+import { distributionResult, resultOf } from '../history/results';
+import { groupingSeries, panelCohorts } from '../series/queries';
 import { timeGroups } from '../series/time-groups';
-import { studyFormReason } from "../study/queries";
+import { studyFormReason } from '../study/queries';
 import { correlationMetrics } from './correlation-options';
 import { fineGranularity } from './count-band';
-import { axisType,panelForms } from './shapes';
+import { axisType, panelForms } from './shapes';
 
 export function sampleColumns(state: State, view = state.global.view): readonly ColumnId[] {
   return fieldsFor(state.global.modality, view, 'export').map(field => field.id);
@@ -277,4 +282,11 @@ export function timeTailQuery(query: BinnedSummaryQuery, result: BinnedSummaryRe
   const values = named.slice(6).map(group => isNoneValue(group.buckets[0].group) ? NONE_FILTER_VALUE : group.buckets[0].group!);
   const { groups: group, ...rest } = query;
   return { ...rest, filters: [...query.filters, { field: group, op: 'in', values }] };
+}
+
+export function zoomPatch(state: State, from: string) {
+  const panel = state.panels.find(panel => panel.id === from);
+  const selection = state.selections.find(selection => selection.from === from && selection.metric === panel?.x);
+  return !panel || !selection || selection.range[0] === selection.range[1] ? null
+    : { id: panel.id, patch: { options: { xRange: [...selection.range] as [number, number] } } };
 }

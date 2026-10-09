@@ -1,11 +1,7 @@
-import {
-isDerivedCohort,
-type Cohort,
-type State
-} from '../../graph/state';
+import { isDerivedCohort, type Cohort, type State } from '../../graph/state';
 import { cohortColor } from '../../panels/specs';
-import { sameSelection } from "./model";
-import { cohortsOf } from "./scopes";
+import { sameSelection } from './model';
+import { cohortsOf } from './scopes';
 
 
 /**

@@ -1,11 +1,9 @@
-import {
-type QueryKey
-} from '@mriqc/shared';
-import { queryKey,type Query } from '../../api/api';
+import { type QueryKey } from '@mriqc/shared';
+import { queryKey, type Query } from '../../api/api';
 import { exportCountQuery } from '../../chrome/export-view';
 import { type State } from '../../graph/state';
-import { clusterKeys,panelKeys,panelQueries } from "../panels/queries";
-import { CATALOG_KEY } from "./results";
+import { clusterKeys, panelKeys, panelQueries } from '../panels/queries';
+import { CATALOG_KEY } from './results';
 
 
 /** Every key any panel references, plus the catalog. Eviction spares these. */

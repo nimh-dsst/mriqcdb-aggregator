@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 
 import { axisType } from '../../forms/availability';
 import { formsFor, panelForms, validForm } from './shapes';
-import { reduce } from '../../loop/reducer';
+import { reduce } from '../reducer';
 import { seriesKey } from '../series/model';
 import {
   defaultPanelOptions,

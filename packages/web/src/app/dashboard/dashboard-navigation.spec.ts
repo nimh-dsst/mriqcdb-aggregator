@@ -5,7 +5,7 @@ import { of } from 'rxjs';
 import { APP_ROUTES } from '../app.config';
 import { Graph } from '../loop/graph';
 import { defaultDashboard } from '../slices/panels/defaults';
-import { initialState } from '../loop/reducer';
+import { initialState } from '../slices/reducer';
 import { encodeUrlState } from '../url/url';
 import { Dashboard } from './dashboard';
 

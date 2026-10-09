@@ -1,19 +1,7 @@
-/**
- * The reducer: `(state, command) => state`, pure, and the only writer of state.
- *
- * Every rule under "Reducer behaviour worth stating" in
- * `docs/dashboard-graph.md` is applied here -- which command changes what, in
- * what order, and what has to be evicted or pruned afterwards. The rules
- * themselves live beside the thing they are rules about: `panels.ts` for a
- * panel's shape, `cohorts.ts` for a cohort's, `filters.ts` for a filter list,
- * `datasets.ts` for the entries map, `url.ts` for anything that arrived from a
- * link. This file is the fold.
- */
+/** Pure feature transitions; foreign commands preserve state identity. */
 
-import {
-type State
-} from '../../graph/state';
-import { type Command } from '../../loop/commands';
+import { type State } from '../../graph/state';
+import { type Command } from '../commands';
 
 export function reduceStudy(state: State, command: Command): State {
   switch (command.t) {

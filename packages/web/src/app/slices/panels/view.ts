@@ -1,24 +1,58 @@
-import { asColumnId,fieldValueLabel,fieldsFor,type ColumnId,type CoverageResult,type GroupedSummaryResult,type QueryKey,type SampleResult,type SampleRow } from '@mriqc/shared';
+import {
+  asColumnId,
+  fieldValueLabel,
+  fieldsFor,
+  type ColumnId,
+  type CoverageResult,
+  type GroupedSummaryResult,
+  type QueryKey,
+  type SampleResult,
+  type SampleRow,
+} from '@mriqc/shared';
 import type { TopLevelSpec } from 'vega-lite';
 import { queryKey } from '../../api/api';
 import { formDef } from '../../forms/registry';
-import type { CohortId,Panel,PanelId,State } from '../../graph/state';
-import { LIGHT_THEME,OTHER_COLOR,type ChartTheme,type MetricAxis } from '../../panels/specs';
+import type { CohortId, Panel, PanelId, State } from '../../graph/state';
+import { LIGHT_THEME, OTHER_COLOR, type ChartTheme, type MetricAxis } from '../../panels/specs';
 import { withCountRange } from '../../panels/specs/axis-ranges';
 import { withChipLegend } from '../../panels/specs/chip-legend';
-import { COHORTS_DATA,stackedHistogram } from '../../panels/specs/comparison';
-import { type ChartInput,type ChartOutput } from '../../panels/specs/select';
+import { COHORTS_DATA, stackedHistogram } from '../../panels/specs/comparison';
+import { type ChartInput, type ChartOutput } from '../../panels/specs/select';
 import { panelCohort } from '../cohorts/queries';
 import type { CohortChip } from '../cohorts/view';
-import { distributionResult,resultOf } from '../history/results';
+import { distributionResult, resultOf } from '../history/results';
 import { panelCohorts } from '../series/queries';
-import { comparisonStats, outsideRangeNotes, panelStats, type ComparisonStats, type PanelStat } from '../series/view';
+import {
+  comparisonStats,
+  outsideRangeNotes,
+  panelStats,
+  type ComparisonStats,
+  type PanelStat,
+} from '../series/view';
 import { studyFormReason } from '../study/queries';
-import { analysisPanelView,type AnalysisRow } from './analysis-view';
+import { analysisPanelView, type AnalysisRow } from './analysis-view';
 import { axisEvidence } from './axis-options';
-import { cohortQuery,cohortResults,panelKeys,panelSharedRange,sampleColumns,samplePages,scopedQuery } from './queries';
-import { axisType,panelForms } from './shapes';
-import { activeView,clipChip,countAxisTitle,countLabel,fieldDef,metricDef,panelMeaning,panelNotes,unitNoun } from './text';
+import {
+  cohortQuery,
+  cohortResults,
+  panelKeys,
+  panelSharedRange,
+  sampleColumns,
+  samplePages,
+  scopedQuery,
+} from './queries';
+import { axisType, panelForms } from './shapes';
+import {
+  activeView,
+  clipChip,
+  countAxisTitle,
+  countLabel,
+  fieldDef,
+  metricDef,
+  panelMeaning,
+  panelNotes,
+  unitNoun,
+} from './text';
 import { timePanelView } from './time-view';
 
 export type PanelStatus =

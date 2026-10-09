@@ -1,6 +1,6 @@
 import { queryKey } from '../../api/api';
 import { asColumnId, getAuthoredCatalog, type CompletedCatalog } from '@mriqc/shared';
-import { initialState, reduce } from '../../loop/reducer';
+import { initialState, reduce } from '../reducer';
 import { formsFor } from './shapes';
 import { panelQueries } from './queries';
 import { defaultPanelOptions, type Panel, type State } from '../../graph/state';

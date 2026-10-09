@@ -1,7 +1,7 @@
 import { queryKey } from '../../api/api';
 import { asColumnId, type DistributionResult } from '@mriqc/shared';
 import { defaultDashboard } from '../panels/defaults';
-import { initialState, reduce } from '../../loop/reducer';
+import { initialState, reduce } from '../reducer';
 import { defaultPanelOptions, FIRST_PAGE, type Panel, type State } from '../../graph/state';
 import { decodeUrlState, encodeUrlState, validateUrlState } from '../../url/url';
 import { readUrlRecord, writeUrlRecord } from '../../url/fields';

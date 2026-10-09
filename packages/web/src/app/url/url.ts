@@ -1,43 +1,43 @@
 import { validSelections } from '../slices/filters/selections';
 import { reconcileLayout } from '../slices/layout/geometry';
-import { axisType,validForm } from '../slices/panels/shapes';
+import { axisType, validForm } from '../slices/panels/shapes';
 import { normalizeSeries } from '../slices/series/model';
 /** Shareable dashboard state. The only wire format is the versioned six-bit stream. */
 
 import {
-asColumnId,
-canonicalViewFor,
-fieldsFor,
-isValidField,
-isValidMetric,
-metricsFor,
-viewsFor,
-type FieldKind,
-type Filter,
-type FilterValue,
-type Modality,
-type View,
+  asColumnId,
+  canonicalViewFor,
+  fieldsFor,
+  isValidField,
+  isValidMetric,
+  metricsFor,
+  viewsFor,
+  type FieldKind,
+  type Filter,
+  type FilterValue,
+  type Modality,
+  type View,
 } from '@mriqc/shared';
 
 import {
-MAX_FILTER_VALUES,
-MAX_PANELS,
-MAX_PARAM_LENGTH,
-URL_VERSION,
-isWellFormed,
-uniqueIds
+  MAX_FILTER_VALUES,
+  MAX_PANELS,
+  MAX_PARAM_LENGTH,
+  URL_VERSION,
+  isWellFormed,
+  uniqueIds,
 } from '../codec/tokens';
 import type { UrlState } from '../graph/state';
 import {
-MAX_COHORTS,
-isDerivedCohort,
-parseGroupCohortId,
-type CohortId,
-type Panel,
-type State
+  MAX_COHORTS,
+  isDerivedCohort,
+  parseGroupCohortId,
+  type CohortId,
+  type Panel,
+  type State,
 } from '../graph/state';
-import { normalizedOptions,validColumn } from '../slices/panels/model';
-import { readUrlRecord,writeUrlRecord } from './fields';
+import { normalizedOptions, validColumn } from '../slices/panels/model';
+import { readUrlRecord, writeUrlRecord } from './fields';
 
 /** The slice of state the URL carries. A panel here has no page chain. */
 export type { UrlState } from '../graph/state';

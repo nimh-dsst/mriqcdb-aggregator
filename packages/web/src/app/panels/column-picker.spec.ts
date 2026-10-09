@@ -3,7 +3,7 @@ import { asColumnId, fieldsFor, metricsFor } from '@mriqc/shared';
 import { describe, expect, it, vi } from 'vitest';
 import { Graph } from '../loop/graph';
 import { defaultDashboard } from '../slices/panels/defaults';
-import { reduce } from '../loop/reducer';
+import { reduce } from '../slices/reducer';
 import { INITIAL_STATE } from '../graph/state';
 import { decodeUrlState, encodeUrlState, urlState } from '../url/url';
 import { panelView } from '../slices/panels/view';

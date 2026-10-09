@@ -1,4 +1,4 @@
-import type { GlobalState,SelectionState } from '../../graph/state';
+import type { GlobalState, SelectionState } from '../../graph/state';
 
 export interface FiltersState {
   global: GlobalState;

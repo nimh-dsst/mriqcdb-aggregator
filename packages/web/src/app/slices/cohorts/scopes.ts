@@ -1,25 +1,25 @@
 import {
-NONE_FILTER_VALUE,
-asColumnId,
-fieldValueLabel,
-fieldsFor,
-isNoneValue,
-isValidField
+  NONE_FILTER_VALUE,
+  asColumnId,
+  fieldValueLabel,
+  fieldsFor,
+  isNoneValue,
+  isValidField,
 } from '@mriqc/shared';
 import {
-ALL_COHORT,
-ALL_COHORT_COLOR,
-CURRENT_COHORT,
-CURRENT_COHORT_COLOR,
-STUDY_COHORT,
-STUDY_COHORT_COLOR,
-groupCohortId,
-parseGroupCohortId,
-type Cohort,
-type CohortId,
-type State
+  ALL_COHORT,
+  ALL_COHORT_COLOR,
+  CURRENT_COHORT,
+  CURRENT_COHORT_COLOR,
+  STUDY_COHORT,
+  STUDY_COHORT_COLOR,
+  groupCohortId,
+  parseGroupCohortId,
+  type Cohort,
+  type CohortId,
+  type State,
 } from '../../graph/state';
-import { CATEGORY_PALETTE,MAX_CATEGORIES,groupColorIndex,groupRange } from '../../panels/specs';
+import { CATEGORY_PALETTE, MAX_CATEGORIES, groupColorIndex, groupRange } from '../../panels/specs';
 
 
 /** What "This dashboard" and "Whole population" are called everywhere. */

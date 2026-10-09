@@ -1,7 +1,7 @@
 import { queryKey } from '../../api/api';
 import { asColumnId, getAuthoredCatalog, type CompletedCatalog, type BinnedSummaryQuery, type BinnedSummaryResult } from '@mriqc/shared';
 import { defaultDashboard } from './defaults';
-import { reduce } from '../../loop/reducer';
+import { reduce } from '../reducer';
 import { panelQueries, timeTailQuery } from './queries';
 import { INITIAL_STATE } from '../../graph/state';
 import { LIGHT_THEME, OTHER_COLOR } from '../../panels/specs/palette';

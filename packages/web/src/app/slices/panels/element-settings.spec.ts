@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { asColumnId } from '@mriqc/shared';
 import { defaultDashboard } from './defaults';
-import { initialState, reduce } from '../../loop/reducer';
+import { initialState, reduce } from '../reducer';
 import { densityQueries } from './queries';
 import { decodeUrlState, encodeUrlState, urlState } from '../../url/url';
 

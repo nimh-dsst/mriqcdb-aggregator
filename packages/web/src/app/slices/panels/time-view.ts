@@ -1,18 +1,18 @@
 import type { CoverageResult } from '@mriqc/shared';
 import { type BinnedSummaryResult } from '@mriqc/shared';
 import { queryKey } from '../../api/api';
-import type { Panel,State } from '../../graph/state';
-import { bandChart,type BinnedSeries } from '../../panels/specs/band';
+import type { Panel, State } from '../../graph/state';
+import { bandChart, type BinnedSeries } from '../../panels/specs/band';
 import { withChipLegend } from '../../panels/specs/chip-legend';
-import { OTHER_COLOR,valueScale,type ChartTheme } from '../../panels/specs/palette';
+import { OTHER_COLOR, valueScale, type ChartTheme } from '../../panels/specs/palette';
 import { panelCohort } from '../cohorts/queries';
 import { resultOf } from '../history/results';
 import { panelCohorts } from '../series/queries';
 import { axisEvidence } from './axis-options';
-import { countBand,fineGranularity } from './count-band';
-import { binnedQueries,countBandQuery,isCountBand,panelQueries,scopedQuery } from './queries';
-import { activeView,metricDef,panelNotes,significant,unitNoun } from './text';
-import type { PanelStatus,PanelView } from './view';
+import { countBand, fineGranularity } from './count-band';
+import { binnedQueries, countBandQuery, isCountBand, panelQueries, scopedQuery } from './queries';
+import { activeView, metricDef, panelNotes, significant, unitNoun } from './text';
+import type { PanelStatus, PanelView } from './view';
 
 export function timeSeriesStats(series: BinnedSeries) {
   const buckets = [...series.result.buckets].sort((a, b) => a.lo - b.lo);

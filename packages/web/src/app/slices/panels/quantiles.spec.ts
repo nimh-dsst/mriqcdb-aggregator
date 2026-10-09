@@ -1,7 +1,7 @@
 import { asColumnId } from '@mriqc/shared';
 import { describe, expect, it, vi } from 'vitest';
 import { defaultDashboard } from './defaults';
-import { reduce } from '../../loop/reducer';
+import { reduce } from '../reducer';
 import { INITIAL_STATE } from '../../graph/state';
 import { decodeUrlState, encodeUrlState, urlState } from '../../url/url';
 import { EXTRA_OPTION_FIELDS } from './url';

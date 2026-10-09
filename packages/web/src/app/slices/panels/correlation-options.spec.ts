@@ -1,7 +1,7 @@
 import { asColumnId } from '@mriqc/shared';
 import { correlationMetrics, defaultCorrelationMetrics } from './correlation-options';
 import { defaultDashboard } from './defaults';
-import { initialState, reduce } from '../../loop/reducer';
+import { initialState, reduce } from '../reducer';
 import { decodeUrlState, encodeUrlState, urlState } from '../../url/url';
 
 describe('correlation panel settings', () => {

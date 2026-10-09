@@ -1,7 +1,7 @@
 import { Observable } from 'rxjs';
 import { queryKey, type Density2dResult } from '@mriqc/shared';
 import type { State } from '../graph/state';
-import type { Command } from '../loop/commands';
+import type { Command } from '../slices/commands';
 import { clusterKeys, densityQueries } from '../slices/panels/queries';
 import { createKMeansWorker, type KMeansWorkerResponse } from './kmeans';
 

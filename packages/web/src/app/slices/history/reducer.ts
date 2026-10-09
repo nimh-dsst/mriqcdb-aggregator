@@ -1,20 +1,8 @@
-/**
- * The reducer: `(state, command) => state`, pure, and the only writer of state.
- *
- * Every rule under "Reducer behaviour worth stating" in
- * `docs/dashboard-graph.md` is applied here -- which command changes what, in
- * what order, and what has to be evicted or pruned afterwards. The rules
- * themselves live beside the thing they are rules about: `panels.ts` for a
- * panel's shape, `cohorts.ts` for a cohort's, `filters.ts` for a filter list,
- * `datasets.ts` for the entries map, `url.ts` for anything that arrived from a
- * link. This file is the fold.
- */
+/** Pure feature transitions; foreign commands preserve state identity. */
 
-import {
-type State
-} from '../../graph/state';
-import { type Command } from '../../loop/commands';
-import { evict,touch } from './datasets';
+import { type State } from '../../graph/state';
+import { type Command } from '../commands';
+import { evict, touch } from './datasets';
 import { CATALOG_KEY } from './results';
 
 export function reduceHistory(state: State, command: Command): State {
@@ -73,7 +61,7 @@ export function reduceHistory(state: State, command: Command): State {
 
 
     case 'hydrate': return { ...state, notice: command.notice ?? (command.url.panels.some(panel => panel.series.some(series => series.kind === 'study')) ? 'This view compared against a study that is not in the link.' : null) };
-    case 'evictDatasets': return evict(state);
+    case 'evictDatasets': return command.panelsBefore === state.panels || command.selectionsBefore === state.selections ? state : evict(state);
     case 'dropStudyDatasets': {
       const entries = Object.entries(state.datasets).filter(([key]) => !key.startsWith('study/'));
       return entries.length === Object.keys(state.datasets).length ? state : { ...state, datasets: Object.fromEntries(entries) };

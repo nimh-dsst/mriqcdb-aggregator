@@ -8,19 +8,25 @@ import { axisType } from '../panels/shapes';
  * which explanation in the tooltip.
  */
 
-import { type DistributionResult,type QueryKey } from '@mriqc/shared';
-import { MIN_COMPARISON_COHORTS,type Cohort,type CohortId,type Panel,type State } from '../../graph/state';
-import { cohortColor,type CohortResult } from '../../panels/specs';
-import { resultOf } from '../history/results';
-import { activeView,metricDef,significant,statUnitLabel,unitNoun } from '../panels/text';
+import { type DistributionResult, type QueryKey } from '@mriqc/shared';
 import {
-allPairsKs,
-cohortNumbers,
-differencesFrom,
-outsideShare,
-worstPair,
-type CohortDifference,
-type KsPair,
+  MIN_COMPARISON_COHORTS,
+  type Cohort,
+  type CohortId,
+  type Panel,
+  type State,
+} from '../../graph/state';
+import { cohortColor, type CohortResult } from '../../panels/specs';
+import { resultOf } from '../history/results';
+import { activeView, metricDef, significant, statUnitLabel, unitNoun } from '../panels/text';
+import {
+  allPairsKs,
+  cohortNumbers,
+  differencesFrom,
+  outsideShare,
+  worstPair,
+  type CohortDifference,
+  type KsPair,
 } from './comparison-stats';
 
 /**

@@ -6,28 +6,38 @@ import { FORM_DEFS } from '../../forms/registry';
  * walk these same tables; scalar codecs alone know how to represent a value.
  */
 import {
-CHART_TOKENS,
-clampBins,
-CLIP_TOKENS,
-enumeration,
-exactNumber,
-GRANULARITY_TOKENS,
-MAX_ID_LENGTH,
-MAX_PANELS,
-roundedNumber,
-textCodec,
-tokenCodec,
-unsigned
+  CHART_TOKENS,
+  clampBins,
+  CLIP_TOKENS,
+  enumeration,
+  exactNumber,
+  GRANULARITY_TOKENS,
+  MAX_ID_LENGTH,
+  MAX_PANELS,
+  roundedNumber,
+  textCodec,
+  tokenCodec,
+  unsigned,
 } from '../../codec/tokens';
-import {
-defaultPanelOptions,
-type Panel,
-type PanelOptions
-} from '../../graph/state';
+import { defaultPanelOptions, type Panel, type PanelOptions } from '../../graph/state';
 import { defaultDashboard } from './defaults';
-import { formsFor,panelForms } from './shapes';
+import { formsFor, panelForms } from './shapes';
 
-import { bool,columnToken,fallback,list,metricToken,pair,record,reference,shortText,type Context,type ContextCodec,type RecordValue,type Schema } from '../../codec/records';
+import {
+  bool,
+  columnToken,
+  fallback,
+  list,
+  metricToken,
+  pair,
+  record,
+  reference,
+  shortText,
+  type Context,
+  type ContextCodec,
+  type RecordValue,
+  type Schema,
+} from '../../codec/records';
 import { filterValue } from '../filters/url';
 import { series } from '../series/url';
 const optionDefault = (key: keyof PanelOptions) => () => defaultPanelOptions()[key];

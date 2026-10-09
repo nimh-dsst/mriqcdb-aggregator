@@ -3,7 +3,7 @@ import { MatDialog } from '@angular/material/dialog';
 import { LucideAngularModule } from 'lucide-angular';
 import { cohortDialogSize } from '../chrome/cohort-editor';
 import { Graph } from '../loop/graph';
-import type { Command } from '../loop/commands';
+import type { Command } from '../slices/commands';
 import type { PanelPatch } from '../slices/panels/commands';
 import type { DashboardLayout } from '../slices/layout/geometry';
 import { panelFormAvailability } from '../slices/panels/shapes';

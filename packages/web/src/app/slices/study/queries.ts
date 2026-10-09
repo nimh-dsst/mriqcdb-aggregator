@@ -1,5 +1,5 @@
 import { formDef } from '../../forms/registry';
-import { type Panel,type State } from '../../graph/state';
+import { type Panel, type State } from '../../graph/state';
 import { correlationMetrics } from '../panels/correlation-options';
 
 export function studyReady(state: State): boolean { return typeof state.study === 'object' && state.study.status === 'ready'; }

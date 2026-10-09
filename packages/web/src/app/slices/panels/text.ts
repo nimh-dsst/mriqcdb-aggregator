@@ -14,18 +14,18 @@ import { axisType } from './shapes';
  */
 
 import {
-fieldsFor,
-metricsFor,
-viewsFor,
-type ClipMode,
-type ColumnId,
-type FieldDef,
-type Granularity,
-type MetricDef,
-type Modality,
-type ViewDef,
+  fieldsFor,
+  metricsFor,
+  viewsFor,
+  type ClipMode,
+  type ColumnId,
+  type FieldDef,
+  type Granularity,
+  type MetricDef,
+  type Modality,
+  type ViewDef,
 } from '@mriqc/shared';
-import type { Panel,PanelChart,State } from '../../graph/state';
+import type { Panel, PanelChart, State } from '../../graph/state';
 import { effectiveSelection } from '../filters/queries';
 
 /* ------------------------------------------------- what the view layer reads */

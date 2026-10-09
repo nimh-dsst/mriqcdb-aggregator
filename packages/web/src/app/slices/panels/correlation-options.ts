@@ -1,4 +1,4 @@
-import { asColumnId,isValidMetric,metricsFor,type Modality } from '@mriqc/shared';
+import { asColumnId, isValidMetric, metricsFor, type Modality } from '@mriqc/shared';
 import type { Panel } from '../../graph/state';
 
 export function defaultCorrelationMetrics(modality: Modality) {

@@ -4,23 +4,32 @@
  * walk these same tables; scalar codecs alone know how to represent a value.
  */
 import {
-BitReader,
-BitWriter,
-MAX_PARAM_LENGTH,
-MODALITY_TOKENS,
-tokenCodec,
-uniqueIds
+  BitReader,
+  BitWriter,
+  MAX_PARAM_LENGTH,
+  MODALITY_TOKENS,
+  tokenCodec,
+  uniqueIds,
 } from '../codec/tokens';
-import {
-isDerivedCohort
-} from '../graph/state';
-import { deriveLayout,type DashboardLayout } from '../slices/layout/geometry';
+import { isDerivedCohort } from '../graph/state';
+import { deriveLayout, type DashboardLayout } from '../slices/layout/geometry';
 import { defaultDashboard } from '../slices/panels/defaults';
 import type { UrlState } from './url';
 
-import { currentView,fallback,readRecord,reference,sameValue,viewCodec,writeRecord,type Context,type RecordValue,type Schema } from '../codec/records';
+import {
+  currentView,
+  fallback,
+  readRecord,
+  reference,
+  sameValue,
+  viewCodec,
+  writeRecord,
+  type Context,
+  type RecordValue,
+  type Schema,
+} from '../codec/records';
 import { cohorts } from '../slices/cohorts/url';
-import { filters,selections } from '../slices/filters/url';
+import { filters, selections } from '../slices/filters/url';
 import { layout } from '../slices/layout/url';
 import { panels } from '../slices/panels/url';
 export const DASHBOARD_FIELDS: Schema = [

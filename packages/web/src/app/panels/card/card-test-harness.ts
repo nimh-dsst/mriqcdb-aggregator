@@ -10,7 +10,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { WEB_ICONS } from '../../app.config';
 import { Theme } from '../../chrome/theme';
 import { Graph } from '../../loop/graph';
-import { initialState } from '../../loop/reducer';
+import { initialState } from '../../slices/reducer';
 import { defaultPanelOptions, type Panel, type State } from '../../graph/state';
 import { PanelCardShell as PanelCard } from '../panel-card';
 import { decodeUrlState } from '../../url/url';

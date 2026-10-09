@@ -7,7 +7,7 @@ import { INITIAL_STATE, defaultPanelOptions, type Panel, type State } from '../g
 import { panelCohorts } from '../slices/series/queries';
 import { panelQueries } from '../slices/panels/queries';
 import { studyFormReason } from '../slices/study/queries';
-import { reduce } from '../loop/reducer';
+import { reduce } from '../slices/reducer';
 import { panelView } from '../slices/panels/view';
 
 const fd = asColumnId('fd_mean'), tsnr = asColumnId('tsnr');

@@ -1,7 +1,4 @@
-import {
-type DistributionResult,
-type QueryKey
-} from '@mriqc/shared';
+import { type DistributionResult, type QueryKey } from '@mriqc/shared';
 import { queryKey } from '../../api/api';
 import { type State } from '../../graph/state';
 import { asDistributionResult } from '../../panels/specs';

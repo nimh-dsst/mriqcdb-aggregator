@@ -1,14 +1,14 @@
-import { Observable,merge } from 'rxjs';
-import { debounceTime,distinctUntilChanged,filter,map,tap } from 'rxjs/operators';
+import { Observable, merge } from 'rxjs';
+import { debounceTime, distinctUntilChanged, filter, map, tap } from 'rxjs/operators';
 
 import {
-buildControlsForm,
-filtersFromForm,
-formFromGlobal,
-sameControls,
-type ControlsValue,
-} from '../chrome/controls-form';
-import type { Command } from './commands';
+  buildControlsForm,
+  filtersFromForm,
+  formFromGlobal,
+  sameControls,
+  type ControlsValue,
+} from '../../chrome/controls-form';
+import type { Command } from '../commands';
 
 type ControlsForm = ReturnType<typeof buildControlsForm>;
 

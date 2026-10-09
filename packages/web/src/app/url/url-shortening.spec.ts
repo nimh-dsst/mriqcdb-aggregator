@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { asColumnId } from '@mriqc/shared';
 
 import { defaultDashboard } from '../slices/panels/defaults';
-import { initialState, reduce } from '../loop/reducer';
+import { initialState, reduce } from '../slices/reducer';
 import { defaultPanelOptions } from '../graph/state';
 import { decodeUrlState, encodeUrlState, validateUrlState } from './url';
 import { type UrlState } from '../slices/history/url-state';

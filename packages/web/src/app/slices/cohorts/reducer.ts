@@ -1,27 +1,9 @@
-/**
- * The reducer: `(state, command) => state`, pure, and the only writer of state.
- *
- * Every rule under "Reducer behaviour worth stating" in
- * `docs/dashboard-graph.md` is applied here -- which command changes what, in
- * what order, and what has to be evicted or pruned afterwards. The rules
- * themselves live beside the thing they are rules about: `panels.ts` for a
- * panel's shape, `cohorts.ts` for a cohort's, `filters.ts` for a filter list,
- * `datasets.ts` for the entries map, `url.ts` for anything that arrived from a
- * link. This file is the fold.
- */
+/** Pure feature transitions; foreign commands preserve state identity. */
 
-import {
-isDerivedCohort,
-type State
-} from '../../graph/state';
-import { cohortChange,type Command } from '../../loop/commands';
-import { evict } from '../history/datasets';
-import {
-mintCohortId,
-patchCohort,
-retargetCohorts
-} from './model';
-import { cohortAutoName,uniqueCohortName } from './name';
+import { isDerivedCohort, type State } from '../../graph/state';
+import { cohortChange, type Command } from '../commands';
+import { mintCohortId, patchCohort, retargetCohorts } from './model';
+import { cohortAutoName, uniqueCohortName } from './name';
 
 export function reduceCohorts(state: State, command: Command): State {
   switch (command.t) {
@@ -35,7 +17,7 @@ export function reduceCohorts(state: State, command: Command): State {
       const change = cohortChange(command);
       if (change === null) return state;
       const cohorts = patchCohort(state, change.id, change.patch, change.create);
-      return cohorts === null ? state : evict({ ...state, cohorts });
+      return cohorts === null ? state : ({ ...state, cohorts });
     }
 
 
@@ -56,7 +38,7 @@ export function reduceCohorts(state: State, command: Command): State {
         { name, filters, selections },
         true,
       );
-      return cohorts === null ? state : evict({ ...state, cohorts });
+      return cohorts === null ? state : ({ ...state, cohorts });
     }
 
 

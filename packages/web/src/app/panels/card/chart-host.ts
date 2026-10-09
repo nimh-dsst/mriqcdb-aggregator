@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
 import { asColumnId } from '@mriqc/shared';
 import type { PanelView } from '../../slices/panels/view';
-import type { Command } from '../../loop/commands';
+import type { Command } from '../../slices/commands';
 import type { PanelPatch } from '../../slices/panels/commands';
 import { SampleTable } from '../sample-table';
 import { type Brush2dRange, type BrushRange, type VegaInput, VegaViewDirective } from '../vega-view.directive';

@@ -1,9 +1,9 @@
 import { asColumnId } from '@mriqc/shared';
 import { Subject, scan } from 'rxjs';
-import type { Command } from './commands';
+import type { Command } from '../slices/commands';
 import { expand } from './expand';
-import { defaultDashboard, initialState, reduce } from './reducer';
-import { compose } from './reducer';
+import { defaultDashboard, initialState, reduce } from '../slices/reducer';
+import { compose } from '../slices/reducer';
 import type { State } from '../graph/state';
 import { reducePanels } from '../slices/panels/reducer';
 import { reduceSeries } from '../slices/series/reducer';

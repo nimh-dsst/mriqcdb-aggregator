@@ -1,3 +1,4 @@
+import type { Panel, State } from '../../graph/state';
 /**
  * The command union: one variant per thing that can happen to the dashboard.
  *
@@ -10,7 +11,7 @@ import type { QueryKey } from '@mriqc/shared';
 import type { UrlState } from '../../graph/state';
 
 export type HistoryCommand =
-  | { t: 'evictDatasets' } | { t: 'dropStudyDatasets' }
+  | { t: 'evictDatasets'; panelsBefore?: readonly Panel[]; selectionsBefore?: State['selections'] } | { t: 'dropStudyDatasets' }
   | { t: 'hydrate'; url: UrlState; notice?: string }
   | { t: 'dataArrived'; key: QueryKey; result: unknown; version: string }
   | { t: 'dataFailed'; key: QueryKey; error: string }

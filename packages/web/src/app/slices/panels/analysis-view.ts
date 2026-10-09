@@ -1,18 +1,23 @@
-import { type CorrelationResult,type Density2dResult } from '@mriqc/shared';
+import { type CorrelationResult, type Density2dResult } from '@mriqc/shared';
 import type { TopLevelSpec } from 'vega-lite';
 import { queryKey } from '../../api/api';
-import type { Panel,State } from '../../graph/state';
+import type { Panel, State } from '../../graph/state';
 import { isDerivedCohort } from '../../graph/state';
-import { clustersChart,correlationChart,densityChart,type AnalysisSeries } from '../../panels/specs/analysis-charts';
+import {
+  clustersChart,
+  correlationChart,
+  densityChart,
+  type AnalysisSeries,
+} from '../../panels/specs/analysis-charts';
 import { fisherInterval } from '../../panels/specs/analysis-math';
-import { baseConfig,OTHER_COLOR,valueScale,VL_SCHEMA,type ChartTheme } from '../../panels/specs/palette';
+import { baseConfig, OTHER_COLOR, valueScale, VL_SCHEMA, type ChartTheme } from '../../panels/specs/palette';
 import type { KMeansResult } from '../../study/kmeans';
 import { resultOf } from '../history/results';
-import { panelCohorts,splitDistributionCohorts } from '../series/queries';
+import { panelCohorts, splitDistributionCohorts } from '../series/queries';
 import { axisEvidence } from './axis-options';
-import { clusterKeys,panelQueries } from './queries';
-import { activeView,analysisMeaning,metricDef,significant,unitNoun } from './text';
-import type { PanelStatus,PanelView } from './view';
+import { clusterKeys, panelQueries } from './queries';
+import { activeView, analysisMeaning, metricDef, significant, unitNoun } from './text';
+import type { PanelStatus, PanelView } from './view';
 
 export interface AnalysisRow { id: string; name: string; color: string; cells: readonly string[] }
 

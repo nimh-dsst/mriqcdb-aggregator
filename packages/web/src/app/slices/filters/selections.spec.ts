@@ -1,7 +1,7 @@
 import { queryKey } from '../../api/api';
 import { asColumnId } from '@mriqc/shared';
 import { defaultDashboard } from '../panels/defaults';
-import { reduce } from '../../loop/reducer';
+import { reduce } from '../reducer';
 import { panelQueries } from '../panels/queries';
 import { INITIAL_STATE, type Panel } from '../../graph/state';
 import { decodeUrlState, encodeUrlState, urlState } from '../../url/url';

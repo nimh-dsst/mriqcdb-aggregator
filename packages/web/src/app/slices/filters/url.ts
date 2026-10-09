@@ -4,19 +4,29 @@
  * walk these same tables; scalar codecs alone know how to represent a value.
  */
 import {
-categoryValues,
-dateCodec,
-exactNumber,
-MAX_COHORT_FILTERS,
-MAX_FILTER_VALUES,
-OP_TOKENS,
-roundedNumber,
-textCodec,
-tokenCodec
+  categoryValues,
+  dateCodec,
+  exactNumber,
+  MAX_COHORT_FILTERS,
+  MAX_FILTER_VALUES,
+  OP_TOKENS,
+  roundedNumber,
+  textCodec,
+  tokenCodec,
 } from '../../codec/tokens';
-import { OPEN_HI,OPEN_LO } from './model';
+import { OPEN_HI, OPEN_LO } from './model';
 
-import { fieldToken,list,metricToken,pair,record,reference,type ContextCodec,type RecordValue,type Schema } from '../../codec/records';
+import {
+  fieldToken,
+  list,
+  metricToken,
+  pair,
+  record,
+  reference,
+  type ContextCodec,
+  type RecordValue,
+  type Schema,
+} from '../../codec/records';
 /** Category index, typed exact decimal, date, open bound, or escaped text. */
 export const filterValue: ContextCodec = {
   write(writer, value: string | number | boolean, ctx) {

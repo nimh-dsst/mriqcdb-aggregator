@@ -3,18 +3,19 @@
  * per character), then its non-default values in schema order. Both directions
  * walk these same tables; scalar codecs alone know how to represent a value.
  */
-import {
-MAX_COHORT_ID_LENGTH,
-MAX_COHORT_NAME,
-textCodec,
-unsigned
-} from '../../codec/tokens';
-import {
-MAX_COHORTS
-} from '../../graph/state';
+import { MAX_COHORT_ID_LENGTH, MAX_COHORT_NAME, textCodec, unsigned } from '../../codec/tokens';
+import { MAX_COHORTS } from '../../graph/state';
 
-import { currentView,list,record,viewCodec,type Context,type RecordValue,type Schema } from '../../codec/records';
-import { filters,selections } from '../filters/url';
+import {
+  currentView,
+  list,
+  record,
+  viewCodec,
+  type Context,
+  type RecordValue,
+  type Schema,
+} from '../../codec/records';
+import { filters, selections } from '../filters/url';
 export const COHORT_FIELDS: Schema = [
   {
     field: 'id',

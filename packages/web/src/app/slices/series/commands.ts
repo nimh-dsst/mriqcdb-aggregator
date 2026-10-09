@@ -1,15 +1,6 @@
-/**
- * The command union: one variant per thing that can happen to the dashboard.
- *
- * Verbatim from `docs/dashboard-graph.md`, "Inputs". Commands are plain
- * serializable data (the one exception is `studyChosen`, which carries a
- * `File`), so a session is a replayable log.
- */
+/** Feature commands composed into the root discriminated union. */
 
-import type {
-CohortId,
-PanelId
-} from '../../graph/state';
+import type { CohortId, PanelId } from '../../graph/state';
 import type { Series } from './model';
 
 export type SeriesCommand =

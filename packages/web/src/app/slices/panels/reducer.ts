@@ -1,28 +1,9 @@
-/**
- * The reducer: `(state, command) => state`, pure, and the only writer of state.
- *
- * Every rule under "Reducer behaviour worth stating" in
- * `docs/dashboard-graph.md` is applied here -- which command changes what, in
- * what order, and what has to be evicted or pruned afterwards. The rules
- * themselves live beside the thing they are rules about: `panels.ts` for a
- * panel's shape, `cohorts.ts` for a cohort's, `filters.ts` for a filter list,
- * `datasets.ts` for the entries map, `url.ts` for anything that arrived from a
- * link. This file is the fold.
- */
+/** Pure feature transitions; foreign commands preserve state identity. */
 
-import {
-FIRST_PAGE,
-type State
-} from '../../graph/state';
-import { panelPatch,type Command } from '../../loop/commands';
+import { FIRST_PAGE, type State } from '../../graph/state';
+import { panelPatch, type Command } from '../commands';
 import { evict } from '../history/datasets';
-import {
-mapPanel,
-newPanel,
-patchPanel,
-pruneCohortRefs,
-retargetPanels
-} from './model';
+import { mapPanel, newPanel, patchPanel, pruneCohortRefs, retargetPanels } from './model';
 
 export function reducePanels(state: State, command: Command): State {
   switch (command.t) {
@@ -79,27 +60,18 @@ export function reducePanels(state: State, command: Command): State {
     }
 
 
+    case 'advancePanelPage':
     case 'requestPage':
       // Paging extends the chain; the table shows every page it has loaded, so
       // the earlier keys have to stay referenced.
-      return evict(
-        mapPanel(state, command.id, (panel) =>
-          panel.cursors.includes(command.cursor)
-            ? panel
-            : { ...panel, cursors: [...panel.cursors, command.cursor] },
-        ),
+      return mapPanel(state, command.id, (panel) =>
+        panel.cursors.includes(command.cursor)
+          ? panel
+          : { ...panel, cursors: [...panel.cursors, command.cursor] },
       );
 
     /* --------------------------------------------------------------- cohorts */
 
-
-    case 'zoomToBrush': {
-      const panel = state.panels.find(panel => panel.id === command.from);
-      const selection = state.selections.find(selection => selection.from === command.from && selection.metric === panel?.x);
-      if (!panel || !selection || selection.range[0] === selection.range[1]) return state;
-      return patchPanel({ ...state, selections: state.selections.filter(selection => selection.from !== command.from) }, panel.id,
-        { options: { xRange: [...selection.range] as [number, number] } });
-    }
 
     case 'retargetPanels': {
       const panels = retargetPanels(state.panels, state.global.modality, state.global.view);

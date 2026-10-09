@@ -11,22 +11,15 @@ import { brushable } from '../panels/shapes';
  * link. This file is the fold.
  */
 
-import {
-canonicalViewFor,
-viewsFor
-} from '@mriqc/shared';
-import {
-type State
-} from '../../graph/state';
-import { type Command } from '../../loop/commands';
-import { evict } from '../history/datasets';
-import {
-pruneSelection
-} from '../panels/model';
-import { sameFilters,validFilters } from './model';
+import { canonicalViewFor, viewsFor } from '@mriqc/shared';
+import { type State } from '../../graph/state';
+import { type Command } from '../commands';
+import { sameFilters, validFilters } from './model';
+import { pruneSelection } from './selections';
 
 export function reduceFilters(state: State, command: Command): State {
   switch (command.t) {
+    case 'resetSelections': return { ...state, selections: [] };
     case 'setModality': {
       const modality = command.modality;
       if (modality === state.global.modality) return state;
@@ -51,14 +44,14 @@ export function reduceFilters(state: State, command: Command): State {
       // change must leave the state reference alone or every unrelated keystroke
       // would re-derive the dashboard.
       if (sameFilters(filters, state.global.filters)) return state;
-      return evict({ ...state, global: { ...state.global, filters } });
+      return ({ ...state, global: { ...state.global, filters } });
     }
 
     /* ---------------------------------------------------------------- panels */
 
 
     case 'clearSelections':
-      return state.selections.length ? evict({ ...state, selections: [] }) : state;
+      return state.selections.length ? ({ ...state, selections: [] }) : state;
 
     case 'brush2d':
 
@@ -69,7 +62,7 @@ export function reduceFilters(state: State, command: Command): State {
         : command.ranges ? [command.ranges.x, command.ranges.y] : null;
       if (ranges === null) {
         const selections = state.selections.filter(selection => !metrics.includes(selection.metric));
-        return selections.length === state.selections.length ? state : evict({ ...state, selections });
+        return selections.length === state.selections.length ? state : ({ ...state, selections });
       }
       if (!origin || !brushable(origin) ||
           origin.x !== metrics[0] || (command.t === 'brush2d' && origin.y !== metrics[1]) ||
@@ -79,7 +72,7 @@ export function reduceFilters(state: State, command: Command): State {
       const selections = [...state.selections.filter(selection => !metrics.includes(selection.metric)), ...replacements];
       if (selections.length > 4) return { ...state, notice: 'Up to four metric ranges can be brushed. Clear a range first.' };
       if (JSON.stringify(selections) === JSON.stringify(state.selections)) return state;
-      return evict({ ...state, selections, notice: null });
+      return ({ ...state, selections, notice: null });
     }
 
     /* -------------------------------------------------------------------- url */
@@ -87,7 +80,7 @@ export function reduceFilters(state: State, command: Command): State {
 
     case 'hydrateFilters': return { ...state, global: command.url.global, selections: command.url.selections };
     case 'dropPanelSelections': return { ...state, selections: state.selections.filter(selection => selection.from !== command.id) };
-    case 'pruneSelections': return pruneSelection(state);
+    case 'pruneSelections': return command.panelsBefore === state.panels ? state : pruneSelection(state);
     default: return state;
   }
 }

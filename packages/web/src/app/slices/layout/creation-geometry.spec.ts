@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 
 import { deriveLayout } from './geometry';
 import { defaultDashboard } from '../panels/defaults';
-import { initialState, reduce } from '../../loop/reducer';
+import { initialState, reduce } from '../reducer';
 
 function hydrated() {
   return reduce(initialState, { t: "hydrate", url: defaultDashboard() });

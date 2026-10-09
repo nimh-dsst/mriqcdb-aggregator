@@ -21,7 +21,7 @@ import { cohortRange, coverageFilters, panelKeys, panelQueries, panelSharedRange
 import { needed } from '../history/queries';
 import { panelCohorts, splitDistributionCohorts } from '../series/queries';
 import { defaultDashboard } from './defaults';
-import { initialState, reduce } from '../../loop/reducer';
+import { initialState, reduce } from '../reducer';
 import {
   FIRST_PAGE,
   STUDY_COHORT,

@@ -1,30 +1,30 @@
 import {
-asColumnId,
-canonicalViewFor,
-isValidField,
-viewsFor,
-type Modality,
-type Selection
+  asColumnId,
+  canonicalViewFor,
+  isValidField,
+  viewsFor,
+  type Modality,
+  type Selection,
 } from '@mriqc/shared';
 import {
-ALL_COHORT,
-ALL_COHORT_COLOR,
-CURRENT_COHORT,
-CURRENT_COHORT_COLOR,
-MAX_COHORTS,
-STUDY_COHORT,
-STUDY_COHORT_COLOR,
-isGroupCohort,
-parseGroupCohortId,
-type Cohort,
-type CohortId,
-type State
+  ALL_COHORT,
+  ALL_COHORT_COLOR,
+  CURRENT_COHORT,
+  CURRENT_COHORT_COLOR,
+  MAX_COHORTS,
+  STUDY_COHORT,
+  STUDY_COHORT_COLOR,
+  isGroupCohort,
+  parseGroupCohortId,
+  type Cohort,
+  type CohortId,
+  type State,
 } from '../../graph/state';
-import type { CohortPatch } from '../../loop/commands';
 import { CATEGORY_PALETTE } from '../../panels/specs';
-import { sameFilters,validFilters } from '../filters/model';
+import type { CohortPatch } from '../commands';
+import { sameFilters, validFilters } from '../filters/model';
 import { validSelections } from '../filters/selections';
-import { studyCohort } from "./scopes";
+import { studyCohort } from './scopes';
 
 
 export function sameRange(a: Selection | null, b: Selection | null): boolean {

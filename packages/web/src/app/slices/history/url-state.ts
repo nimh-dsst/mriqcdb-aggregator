@@ -1,4 +1,4 @@
-import type { Cohort,GlobalState,Panel,SelectionState } from '../../graph/state';
+import type { Cohort, GlobalState, Panel, SelectionState } from '../../graph/state';
 import type { DashboardLayout } from '../layout/geometry';
 export interface UrlState {
   layout?: DashboardLayout | null;

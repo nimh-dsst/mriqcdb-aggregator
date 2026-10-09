@@ -1,4 +1,4 @@
-import type { BinnedSummaryResult,CoverageResult,Granularity } from '@mriqc/shared';
+import type { BinnedSummaryResult, CoverageResult, Granularity } from '@mriqc/shared';
 
 /**
  * A band over upload counts. Counts are taken per fine period (a day, or a

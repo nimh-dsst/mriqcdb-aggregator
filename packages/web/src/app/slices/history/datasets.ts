@@ -7,7 +7,7 @@
  */
 
 import type { QueryKey } from '@mriqc/shared';
-import { EVICTION_KEEP,type DatasetEntry,type State } from '../../graph/state';
+import { EVICTION_KEEP, type DatasetEntry, type State } from '../../graph/state';
 import { referencedKeys } from './queries';
 
 /**

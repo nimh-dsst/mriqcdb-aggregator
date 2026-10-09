@@ -1,6 +1,6 @@
-import type { Density2dResult,DistributionResult,GroupedSummaryResult } from '@mriqc/shared';
+import type { Density2dResult, DistributionResult, GroupedSummaryResult } from '@mriqc/shared';
 import { queryKey } from '@mriqc/shared';
-import type { Panel,State } from '../../graph/state';
+import type { Panel, State } from '../../graph/state';
 import { resultOf } from '../history/results';
 import { panelQueries } from './queries';
 

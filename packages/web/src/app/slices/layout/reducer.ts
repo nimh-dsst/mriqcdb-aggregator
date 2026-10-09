@@ -1,4 +1,11 @@
-import { compactLayout,deriveLayout,moveLayout,panelsWithPreferredRows,reconcileLayout,resizeLayout } from './geometry';
+import {
+  compactLayout,
+  deriveLayout,
+  moveLayout,
+  panelsWithPreferredRows,
+  reconcileLayout,
+  resizeLayout,
+} from './geometry';
 /**
  * The reducer: `(state, command) => state`, pure, and the only writer of state.
  *
@@ -11,10 +18,8 @@ import { compactLayout,deriveLayout,moveLayout,panelsWithPreferredRows,reconcile
  * link. This file is the fold.
  */
 
-import {
-type State
-} from '../../graph/state';
-import { type Command } from '../../loop/commands';
+import { type State } from '../../graph/state';
+import { type Command } from '../commands';
 
 export function reduceLayout(state: State, command: Command): State {
   switch (command.t) {
