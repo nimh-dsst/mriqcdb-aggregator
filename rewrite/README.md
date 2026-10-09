@@ -9,6 +9,84 @@ Angular dashboard, sharing one TypeScript vocabulary package.
 | `packages/server` | `@mriqc/server` | Node HTTP + tRPC server reading DuckDB |
 | `packages/web` | `@mriqc/web` | Angular 22 app (standalone, zoneless), Tailwind 4 + Angular Material |
 
+## Quick start on a Mac
+
+Everything below runs in Terminal. The steps assume nothing is installed yet; skip any
+you already have.
+
+**1. Install Homebrew** (the Mac package manager), if `brew --version` says "command not
+found":
+
+```sh
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+```
+
+Follow the two "Next steps" lines it prints at the end; they put `brew` on your `PATH`.
+
+**2. Install git and pnpm.** pnpm fetches the right Node version for this project by
+itself, so Node does not need installing separately.
+
+```sh
+brew install git pnpm
+```
+
+**3. Get the code** and switch to this branch:
+
+```sh
+git clone https://github.com/nimh-dsst/mriqcdb-aggregator.git
+cd mriqcdb-aggregator/rewrite
+git checkout rewrite-usability
+```
+
+**4. Install and build** (a few minutes the first time):
+
+```sh
+pnpm install
+pnpm -r build
+```
+
+**5a. Just look around, no database.** The dashboard has a built-in mock with about
+780,000 made-up scans:
+
+```sh
+pnpm dev start web
+```
+
+Open **http://localhost:4300/?mock=1**. The numbers are invented; use it to try the
+charts, not to read results.
+
+**5b. Run it on real data.** Build a database, then start both servers. The small test
+set in the repo (267 BOLD scans from June 2017) is enough to see everything work:
+
+```sh
+pnpm --filter @mriqc/server build:db -- --from-dumps packages/server/test/fixtures/dumps
+pnpm dev start
+```
+
+Open **http://localhost:4300/?mock=0**. For the full data, point `--from-dumps` at the
+MongoDB dump folder instead (see [Database](#database-build-the-database-first)).
+
+**Stopping:** `pnpm dev stop`. **Updating later:** `git pull`, `pnpm install`,
+`pnpm -r build`, then `pnpm dev restart`.
+
+### Using the dashboard
+
+- **Add panel** (bottom bar) asks once whether you want guidance. Guided mode starts from
+  a question ("How does FD mean differ by manufacturer?") and sets the chart up for you;
+  otherwise you pick the X and Y columns. A **Guided** checkbox at the top switches
+  between the two.
+- **Click a panel's title** (the pencil) to change its columns or to **compare**: split
+  by a field such as manufacturer, compare saved groups, or build a custom split. The
+  pencil after a panel's legend opens the same place.
+- **Chart type, bins and cells** sit to the right of the legend. **Stats** shows the
+  summary table.
+- **Axes:** hover an axis and click **⋯**, or use the sliders icon → *Axes*, for log
+  scales, count vs. share of each group, and a custom range.
+- **Drag across a histogram** (or a rectangle on a heatmap) to filter every other panel
+  to that range.
+- **Filters** along the top apply to every panel. **Share this view** copies a link
+  that reopens exactly what is on screen.
+
 ## Requirements
 
 - Node **^22.22.3 || ^24.15.0 || >=26.0.0** (Angular 22's floor). The workspace pins a Node

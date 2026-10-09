@@ -2,7 +2,7 @@ import { queryKey } from '../api/api';
 import { type CorrelationResult, type Density2dResult } from '@mriqc/shared';
 import { axisEvidence } from '../graph/axis-options';
 import { valueScale } from '../panels/specs/palette';
-import { clusterKeys, panelCohorts, panelQueries, resultOf } from '../graph/queries';
+import { clusterKeys, panelCohorts, panelQueries, resultOf, splitDistributionCohorts } from '../graph/queries';
 import type { Panel, State } from '../graph/state';
 import { isDerivedCohort } from '../graph/state';
 import { densityChart, correlationChart, clustersChart, type AnalysisSeries } from '../panels/specs/analysis-charts';
@@ -76,7 +76,13 @@ export function analysisPanelView(state: State, panel: Panel, theme: ChartTheme)
   let rows: AnalysisRow[] = series.map(item => ({ id: item.id, name: item.name, color: item.color,
     cells: [item.result.n.toLocaleString('en-US'), correlationText(item.result.pearson, item.result.n), correlationText(item.result.spearman, item.result.n)] }));
   let note = '95% CIs use the Fisher transform. Drag a rectangle to filter the other panels.';
-  let n = ownResults[0]?.n ?? null;
+  // A split's groups partition the scans, so the card's count is their sum,
+  // not whichever group happens to come first.
+  const splitIds = new Set(splitDistributionCohorts(state, panel).map(cohort => cohort.id));
+  const splitResults = cohorts.flatMap((cohort, index) => splitIds.has(cohort.id) ? [ownResults[index]] : []);
+  let n = splitResults.length > 1
+    ? splitResults.every(Boolean) ? splitResults.reduce((sum, result) => sum + result!.n, 0) : null
+    : ownResults[0]?.n ?? null;
   let meaning = analysisMeaning(x, y, n, noun);
   let cells: Array<{ x: string; y: string; label: string }> = [];
   if (panel.form === 'matrix') {
