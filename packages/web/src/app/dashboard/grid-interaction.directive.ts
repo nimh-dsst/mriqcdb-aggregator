@@ -6,7 +6,7 @@ import {
   input,
   output,
 } from '@angular/core';
-import { Graph } from '../graph/graph';
+import { Graph } from '../loop/graph';
 
 export interface GridGeometry {
   x: number;

@@ -8,7 +8,7 @@ formFromGlobal,
 sameControls,
 type ControlsValue,
 } from '../chrome/controls-form';
-import type { Command } from '../graph/commands';
+import type { Command } from './commands';
 
 type ControlsForm = ReturnType<typeof buildControlsForm>;
 

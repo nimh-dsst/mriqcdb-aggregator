@@ -1,12 +1,13 @@
 import { TestBed } from '@angular/core/testing';
 import { asColumnId, fieldsFor, metricsFor } from '@mriqc/shared';
 import { describe, expect, it, vi } from 'vitest';
-import { Graph } from '../graph/graph';
-import { defaultDashboard, reduce } from '../graph/reducer';
+import { Graph } from '../loop/graph';
+import { defaultDashboard } from '../slices/panels/defaults';
+import { reduce } from '../loop/reducer';
 import { INITIAL_STATE } from '../graph/state';
-import { decodeUrlState, encodeUrlState, urlState } from '../graph/url';
-import { panelView } from '../view/panel-view';
-import { panelQueries } from '../graph/queries';
+import { decodeUrlState, encodeUrlState, urlState } from '../url/url';
+import { panelView } from '../slices/panels/view';
+import { panelQueries } from '../slices/panels/queries';
 
 import { ColumnPicker, columnGroups } from './column-picker';
 

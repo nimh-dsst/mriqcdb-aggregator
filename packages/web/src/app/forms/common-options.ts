@@ -1,5 +1,6 @@
 import type { Panel, PanelOptions } from '../graph/state';
-import type { OptionCodecs, SchemaField } from '../graph/url-fields';
+import type { OptionCodecs } from '../slices/panels/url';
+import type { SchemaField } from '../codec/records';
 export function commonOptionFields({ enumeration, pair, roundedNumber, unsigned, optionDefault, tokenCodec,
   CLIP_TOKENS, bool, GRANULARITY_TOKENS, filterValue, shortText, list, metricToken, exactNumber }: OptionCodecs): readonly (SchemaField & { slot: number })[] {
   return [

@@ -19,8 +19,8 @@ import {
 } from '@mriqc/shared';
 import { LucideAngularModule, Plus, X } from 'lucide-angular';
 
-import { MAX_BUCKETS, OPEN_BOUND, type Bucket } from '../graph/series';
-import { OPEN_HI, OPEN_LO } from '../graph/filters';
+import { MAX_BUCKETS, OPEN_BOUND, type Bucket } from '../slices/series/model';
+import { OPEN_HI, OPEN_LO } from '../slices/filters/model';
 
 interface FieldValue {
   readonly value: string | number | boolean | null;

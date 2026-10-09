@@ -17,8 +17,8 @@ import type {
   StudyDistributionQuery,
   StudyGroupedSummaryQuery,
 } from '../api/api';
-import type { Command } from '../graph/commands';
-import { runEffects, type NeededEmission } from '../graph/effects';
+import type { Command } from '../loop/commands';
+import { runEffects, type NeededEmission } from './legacy';
 
 /** Records what was subscribed, lets a test resolve or fail each call by hand. */
 class FakeApi implements Api {

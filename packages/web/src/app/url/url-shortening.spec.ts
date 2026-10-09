@@ -2,9 +2,11 @@ import { describe, expect, it } from 'vitest';
 
 import { asColumnId } from '@mriqc/shared';
 
-import { defaultDashboard, initialState, reduce } from '../graph/reducer';
+import { defaultDashboard } from '../slices/panels/defaults';
+import { initialState, reduce } from '../loop/reducer';
 import { defaultPanelOptions } from '../graph/state';
-import { decodeUrlState, encodeUrlState, validateUrlState, type UrlState } from '../graph/url';
+import { decodeUrlState, encodeUrlState, validateUrlState } from './url';
+import { type UrlState } from '../slices/history/url-state';
 
 const roundTrip = (name: string, state: UrlState, limit: number) => {
   const token = encodeUrlState(state);

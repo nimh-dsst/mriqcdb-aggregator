@@ -5,21 +5,7 @@
  */
 
 import type { DistributionResult, Quantiles } from '@mriqc/shared';
-import {
-  MIN_BANDWIDTH_BINS,
-  allPairsKs,
-  cohortNumbers,
-  cumulativeShares,
-  densityPoints,
-  differenceNumbers,
-  differencesFrom,
-  histogramTotal,
-  ksDistance,
-  outsideShare,
-  sameGrid,
-  silvermanBandwidth,
-  worstPair,
-} from '../../graph/comparison-stats';
+import { MIN_BANDWIDTH_BINS, allPairsKs, cohortNumbers, cumulativeShares, densityPoints, differenceNumbers, differencesFrom, histogramTotal, ksDistance, outsideShare, sameGrid, silvermanBandwidth, worstPair } from './comparison-stats';
 
 function quantiles(overrides: Partial<Quantiles> = {}): Quantiles {
   return { p01: 0, p05: 1, p25: 2, p50: 3, p75: 6, p95: 9, p99: 10, ...overrides };

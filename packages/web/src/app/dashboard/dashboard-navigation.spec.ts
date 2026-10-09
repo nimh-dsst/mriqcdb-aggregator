@@ -3,9 +3,10 @@ import { RouterTestingHarness } from '@angular/router/testing';
 import { provideRouter } from '@angular/router';
 import { of } from 'rxjs';
 import { APP_ROUTES } from '../app.config';
-import { Graph } from '../graph/graph';
-import { defaultDashboard, initialState } from '../graph/reducer';
-import { encodeUrlState } from '../graph/url';
+import { Graph } from '../loop/graph';
+import { defaultDashboard } from '../slices/panels/defaults';
+import { initialState } from '../loop/reducer';
+import { encodeUrlState } from '../url/url';
 import { Dashboard } from './dashboard';
 
 describe('Dashboard query-only navigation', () => {

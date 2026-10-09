@@ -24,7 +24,8 @@ import { QuestionPicker } from '../panels/question-picker';
 import { asColumnId, metricsFor, fieldsFor } from '@mriqc/shared';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { LucideAngularModule } from 'lucide-angular';
-import { panelsWithPreferredRows, type DashboardLayout } from '../graph/layout';
+import { panelsWithPreferredRows } from '../slices/layout/view';
+import { type DashboardLayout } from '../slices/layout/geometry';
 import { GridInteractionDirective } from './grid-interaction.directive';
 import { map, distinctUntilChanged } from 'rxjs';
 import { TopBar } from '../chrome/top-bar';
@@ -34,7 +35,7 @@ import {
   gridColumns,
   matchesMedia,
 } from '../chrome/media';
-import { Graph } from '../graph/graph';
+import { Graph } from '../loop/graph';
 import { PanelCard } from '../panels/panel-card';
 import type { Panel } from '../graph/state';
 import { environment } from '../../environments/environment';

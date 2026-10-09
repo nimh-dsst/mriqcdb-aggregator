@@ -1,17 +1,12 @@
 import { asColumnId } from '@mriqc/shared';
-import { defaultDashboard } from '../graph/reducer';
-import { deriveLayout } from '../graph/layout';
+import { defaultDashboard } from '../slices/panels/defaults';
+import { deriveLayout } from '../slices/layout/geometry';
 import { defaultPanelOptions } from '../graph/state';
-import { decodeUrlState, encodeUrlState, type UrlState } from '../graph/url';
-import {
-  readRecord,
-  writeRecord,
-  readUrlRecord,
-  writeUrlRecord,
-  type Context,
-  type Schema,
-} from '../graph/url-fields';
-import { BitReader, BitWriter, enumeration, unsigned, textCodec } from '../graph/url-tokens';
+import { decodeUrlState, encodeUrlState } from './url';
+import { type UrlState } from '../slices/history/url-state';
+import { readRecord, writeRecord, type Context, type Schema } from '../codec/records';
+import { readUrlRecord, writeUrlRecord } from './fields';
+import { BitReader, BitWriter, enumeration, unsigned, textCodec } from '../codec/tokens';
 
 describe('schema-positional records', () => {
   it('walks the same random record schema in both directions', () => {

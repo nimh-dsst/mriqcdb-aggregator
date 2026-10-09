@@ -1,8 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { asColumnId } from '@mriqc/shared';
-import { defaultDashboard, initialState, reduce } from '../../graph/reducer';
-import { densityQueries } from '../../graph/queries';
-import { decodeUrlState, encodeUrlState, urlState } from '../../graph/url';
+import { defaultDashboard } from './defaults';
+import { initialState, reduce } from '../../loop/reducer';
+import { densityQueries } from './queries';
+import { decodeUrlState, encodeUrlState, urlState } from '../../url/url';
 
 const pair = () => reduce(reduce(initialState, { t: 'hydrate', url: defaultDashboard() }), {
   t: 'patchPanel', id: 'p1', patch: { y: asColumnId('snr'), form: 'heatmap' },

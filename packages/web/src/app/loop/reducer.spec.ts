@@ -1,8 +1,10 @@
 import { asColumnId, isValidMetric, queryKey, type Filter } from '@mriqc/shared';
-import type { Command } from '../graph/commands';
-import { CATALOG_KEY, needed, neededQueries, referencedKeys } from '../graph/queries';
-import { nextCohortColor } from '../graph/cohorts';
-import { defaultDashboard, initialState, reduce } from '../graph/reducer';
+import type { Command } from './commands';
+import { CATALOG_KEY } from '../slices/history/results';
+import { needed, neededQueries, referencedKeys } from '../slices/history/queries';
+import { nextCohortColor } from '../slices/cohorts/model';
+import { defaultDashboard } from '../slices/panels/defaults';
+import { initialState, reduce } from './reducer';
 import {
   EVICTION_KEEP,
   FIRST_PAGE,

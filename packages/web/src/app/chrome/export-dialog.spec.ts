@@ -1,7 +1,8 @@
 import { TestBed } from '@angular/core/testing';
 import { BehaviorSubject } from 'rxjs';
-import { Graph } from '../graph/graph';
-import { defaultDashboard, initialState } from '../graph/reducer';
+import { Graph } from '../loop/graph';
+import { defaultDashboard } from '../slices/panels/defaults';
+import { initialState } from '../loop/reducer';
 import { FIRST_PAGE } from '../graph/state';
 import { ExportDialog } from './export-dialog';
 import { exportView } from './export-view';

@@ -1,11 +1,12 @@
 import { queryKey } from '../../api/api';
 import { asColumnId } from '@mriqc/shared';
-import { defaultDashboard, reduce } from '../../graph/reducer';
-import { panelQueries } from '../../graph/queries';
+import { defaultDashboard } from '../panels/defaults';
+import { reduce } from '../../loop/reducer';
+import { panelQueries } from '../panels/queries';
 import { INITIAL_STATE, type Panel } from '../../graph/state';
-import { decodeUrlState, encodeUrlState, urlState } from '../../graph/url';
-import { readUrlRecord } from '../../graph/url-fields';
-import { METRIC_TOKENS, toToken } from '../../graph/url-tokens';
+import { decodeUrlState, encodeUrlState, urlState } from '../../url/url';
+import { readUrlRecord } from '../../url/fields';
+import { METRIC_TOKENS, toToken } from '../../codec/tokens';
 
 const fd = asColumnId('fd_mean'), tsnr = asColumnId('tsnr');
 const initial = () => reduce(INITIAL_STATE, { t: 'hydrate', url: defaultDashboard() });

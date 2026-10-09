@@ -1,8 +1,8 @@
 import { ChangeDetectionStrategy, Component, computed, inject, input, output, signal } from '@angular/core';
 import { asColumnId, type FieldDef, type MetricDef } from '@mriqc/shared';
 
-import type { Command } from '../graph/commands';
-import { Graph } from '../graph/graph';
+import type { Command } from '../loop/commands';
+import { Graph } from '../loop/graph';
 
 type QuestionId = 'distribution' | 'by' | 'time' | 'relate' | 'uploads';
 

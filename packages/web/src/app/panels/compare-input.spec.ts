@@ -4,7 +4,7 @@ import { TestBed } from '@angular/core/testing';
 import { fieldsFor } from '@mriqc/shared';
 import { describe, expect, it } from 'vitest';
 
-import { type Series, seriesKey } from '../graph/series';
+import { type Series, seriesKey } from '../slices/series/model';
 import { CompareInput } from './compare-input';
 
 const fields = fieldsFor('bold', 'raw', 'group').filter(

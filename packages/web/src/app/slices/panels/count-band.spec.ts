@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { countBand, fineGranularity, truncate } from '../../graph/count-band';
+import { countBand, fineGranularity, truncate } from './count-band';
 
 const day = (iso: string, n: number, group = 'SIEMENS') => ({ start: `${iso}T00:00:00.000Z`, group, n });
 

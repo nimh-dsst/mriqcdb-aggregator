@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { asColumnId } from '@mriqc/shared';
 import type { Form, MetricId } from '../../graph/state';
-import { FORM_ORDER, formAvailability, formsFor } from '../../graph/panel-shapes';
+import { FORM_ORDER, formAvailability } from '../../forms/registry';
+import { formsFor } from './shapes';
 
 const pairForms = ['heatmap', 'scatter', 'clusters', 'band', 'lines'] as const satisfies readonly Form[];
 const numericForms = ['histogram', 'line', 'area', 'density', 'ecdf', 'box', 'table'] as const satisfies readonly Form[];

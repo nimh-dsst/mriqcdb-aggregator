@@ -4,7 +4,7 @@ import { BehaviorSubject } from 'rxjs';
 import { asColumnId } from '@mriqc/shared';
 import { describe, expect, it, vi } from 'vitest';
 import { Theme } from '../../chrome/theme';
-import { Graph } from '../../graph/graph';
+import { Graph } from '../../loop/graph';
 import type { State } from '../../graph/state';
 import { CardProjection } from './card-projection';
 import { makePanel, makeState } from './card-test-harness';

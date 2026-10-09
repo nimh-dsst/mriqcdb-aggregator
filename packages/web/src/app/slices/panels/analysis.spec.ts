@@ -1,11 +1,11 @@
 import { queryKey } from '../../api/api';
 import { asColumnId, getAuthoredCatalog, type CompletedCatalog } from '@mriqc/shared';
-import { initialState, reduce } from '../../graph/reducer';
-import { formsFor } from '../../graph/panel-shapes';
-import { panelQueries } from '../../graph/queries';
+import { initialState, reduce } from '../../loop/reducer';
+import { formsFor } from './shapes';
+import { panelQueries } from './queries';
 import { defaultPanelOptions, type Panel, type State } from '../../graph/state';
-import { decodeUrlState, encodeUrlState, urlState, validateUrlState } from '../../graph/url';
-import { panelView } from '../../view/panel-view';
+import { decodeUrlState, encodeUrlState, urlState, validateUrlState } from '../../url/url';
+import { panelView } from './view';
 
 const metric = asColumnId('fd_mean'), second = asColumnId('tsnr');
 function panel(patch: Partial<Panel> = {}): Panel {

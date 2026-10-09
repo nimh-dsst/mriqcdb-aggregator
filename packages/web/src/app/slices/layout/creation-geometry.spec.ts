@@ -1,8 +1,9 @@
 import { asColumnId } from "@mriqc/shared";
 import { describe, expect, it } from "vitest";
 
-import { deriveLayout } from "../../graph/layout";
-import { defaultDashboard, initialState, reduce } from "../../graph/reducer";
+import { deriveLayout } from './geometry';
+import { defaultDashboard } from '../panels/defaults';
+import { initialState, reduce } from '../../loop/reducer';
 
 function hydrated() {
   return reduce(initialState, { t: "hydrate", url: defaultDashboard() });

@@ -2,8 +2,8 @@ import { asColumnId } from '@mriqc/shared';
 import { describe, expect, it } from 'vitest';
 
 import { defaultPanelOptions, type MetricId } from '../graph/state';
-import { URL_VERSION } from '../graph/url-tokens';
-import { decodeUrlState, encodeUrlState, urlState, validateUrlState } from '../graph/url';
+import { URL_VERSION } from '../codec/tokens';
+import { decodeUrlState, encodeUrlState, urlState, validateUrlState } from './url';
 
 const snr = asColumnId('snr');
 const tsnr = asColumnId('tsnr') as unknown as MetricId;

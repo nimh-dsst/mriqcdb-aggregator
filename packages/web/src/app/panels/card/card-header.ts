@@ -6,10 +6,10 @@ import { CardOptions } from './card-options';
 import { MatrixControl, type MatrixDraft } from './matrix-control';
 import { SeriesChips } from './series-chips';
 import { ContextMenuService } from './context-menu.service';
-import type { PanelView } from '../../view/panel-view';
-import type { PanelPatch } from '../../graph/commands';
+import type { PanelView } from '../../slices/panels/view';
+import type { PanelPatch } from '../../slices/panels/commands';
 import type { Form, PanelOptions } from '../../graph/state';
-import type { Series } from '../../graph/series';
+import type { Series } from '../../slices/series/model';
 import type { CardControls } from './card-projection';
 @Component({
   selector: 'app-card-header',

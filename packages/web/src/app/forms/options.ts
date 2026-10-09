@@ -1,6 +1,7 @@
 import type { ClipMode, Granularity, Modality } from '@mriqc/shared';
 import type { Panel, PanelOptions as CompatibilityOptions, SplitPresentation, CoverageWindow } from '../graph/state';
-import type { SchemaField, OptionCodecs } from '../graph/url-fields';
+import type { SchemaField } from '../codec/records';
+import type { OptionCodecs } from '../slices/panels/url';
 import type { FORM_DEFS } from './registry';
 
 export interface OptionContext { clampBins(value: unknown): number; modality?: Modality; colorScale: 'linear' | 'log' }

@@ -1,13 +1,14 @@
 import { queryKey } from '../../api/api';
 import { asColumnId, getAuthoredCatalog, type CompletedCatalog, type BinnedSummaryQuery, type BinnedSummaryResult } from '@mriqc/shared';
-import { defaultDashboard, reduce } from '../../graph/reducer';
-import { panelQueries, timeTailQuery } from '../../graph/queries';
+import { defaultDashboard } from './defaults';
+import { reduce } from '../../loop/reducer';
+import { panelQueries, timeTailQuery } from './queries';
 import { INITIAL_STATE } from '../../graph/state';
 import { LIGHT_THEME, OTHER_COLOR } from '../../panels/specs/palette';
-import { timePanelView, timeSeriesStats } from '../../view/time-view';
-import { approximateTimeTail } from '../../view/time-tail';
+import { timePanelView, timeSeriesStats } from './time-view';
+import { approximateTimeTail } from './time-tail';
 import { compile } from 'vega-lite';
-import { panelView } from '../../view/panel-view';
+import { panelView } from './view';
 
 const bucket = (start: string, group: string | null, median: number, n = 30) => ({ start, lo: (Date.parse(start) - Date.UTC(2000,0,1))/86400000, hi: (Date.parse(start) - Date.UTC(2000,0,1))/86400000+31, group, n, isOther: false, thin: n < 20, mean: median,
   quantiles: { p05: median, p25: median, p50: median, p75: median, p95: median } });

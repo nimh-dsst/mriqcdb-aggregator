@@ -1,7 +1,8 @@
 import { ChangeDetectionStrategy, Component, computed, input, output, inject, Injector, ElementRef, viewChild, afterNextRender, DestroyRef } from '@angular/core';
 import { MatSelect, MatSelectModule } from '@angular/material/select';
 import { FormGlyph } from '../form-glyphs';
-import { axisType, FORM_INFO, panelFormAvailability } from '../../graph/panel-shapes';
+import { axisType } from '../../forms/availability';
+import { FORM_INFO, panelFormAvailability } from '../../slices/panels/shapes';
 import type { Form, Panel } from '../../graph/state';
 @Component({
   selector: 'app-form-picker',

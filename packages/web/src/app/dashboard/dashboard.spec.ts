@@ -13,12 +13,13 @@ import {
 import { API, type DistributionQuery } from '../api/api';
 import { MOCK_LATENCY_MS, MockApi } from '../api/mock-api';
 import { VEGA_EMBED } from '../panels/vega-view.directive';
-import { OPEN_LO } from '../graph/filters';
-import { Graph } from '../graph/graph';
-import { resetPanelViewMemo } from '../view/panel-view';
-import { urlState } from '../graph/url';
+import { OPEN_LO } from '../slices/filters/model';
+import { Graph } from '../loop/graph';
+import { resetPanelViewMemo } from '../slices/panels/view';
+import { urlState } from '../url/url';
 import { defaultPanelOptions, type State } from '../graph/state';
-import { decodeUrlState, encodeUrlState, type UrlState } from '../graph/url';
+import { decodeUrlState, encodeUrlState } from '../url/url';
+import { type UrlState } from '../slices/history/url-state';
 import { PHONE_QUERY } from '../chrome/media';
 import { Theme, THEME_STORAGE_KEY } from '../chrome/theme';
 import { WEB_ICONS } from '../app.config';

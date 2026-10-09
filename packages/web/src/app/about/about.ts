@@ -2,10 +2,10 @@ import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { DecimalPipe } from '@angular/common';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
-import { Graph } from '../graph/graph';
+import { Graph } from '../loop/graph';
 import { ThemeToggle } from '../chrome/theme-toggle';
 import { uploadDateLabel } from '../chrome/top-bar';
-import { CATALOG_KEY } from '../graph/queries';
+import { CATALOG_KEY } from '../slices/history/results';
 
 @Component({
   selector: 'app-about',

@@ -1,8 +1,8 @@
 import { Observable } from 'rxjs';
 import { queryKey, type Density2dResult } from '@mriqc/shared';
 import type { State } from '../graph/state';
-import type { Command } from '../graph/commands';
-import { clusterKeys, densityQueries } from '../graph/queries';
+import type { Command } from '../loop/commands';
+import { clusterKeys, densityQueries } from '../slices/panels/queries';
 import { createKMeansWorker, type KMeansWorkerResponse } from './kmeans';
 
 export function runClusterEffects(states: Observable<State>): Observable<Command> {

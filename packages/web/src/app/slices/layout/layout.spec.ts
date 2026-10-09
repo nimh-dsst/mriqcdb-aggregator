@@ -1,17 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { asColumnId } from '@mriqc/shared';
-import { defaultDashboard } from '../../graph/reducer';
+import { defaultDashboard } from '../panels/defaults';
 
-import {
-  compactLayout,
-  deriveLayout,
-  moveLayout,
-  preferredSize,
-  reconcileLayout,
-  resizeLayout,
-  type DashboardLayout,
-  type LayoutPanel,
-} from '../../graph/layout';
+import { compactLayout, deriveLayout, moveLayout, preferredSize, reconcileLayout, resizeLayout, type DashboardLayout, type LayoutPanel } from './geometry';
 
 const twelveCohorts = Array.from({ length: 12 }, (_, index) => `cohort-${index}`);
 

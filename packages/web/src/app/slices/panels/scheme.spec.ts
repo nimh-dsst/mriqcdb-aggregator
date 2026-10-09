@@ -1,9 +1,10 @@
 import { asColumnId } from "@mriqc/shared";
 import { describe, expect, it } from "vitest";
 
-import { axisType, formsFor, panelForms, validForm } from "../../graph/panel-shapes";
-import { reduce } from "../../graph/reducer";
-import { seriesKey } from "../../graph/series";
+import { axisType } from '../../forms/availability';
+import { formsFor, panelForms, validForm } from './shapes';
+import { reduce } from '../../loop/reducer';
+import { seriesKey } from '../series/model';
 import {
   defaultPanelOptions,
   INITIAL_STATE,

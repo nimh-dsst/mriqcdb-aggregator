@@ -15,7 +15,7 @@ import type {
   Quantiles,
 } from '@mriqc/shared';
 import { fieldValueLabel } from '@mriqc/shared';
-import { densityPoints, type DensityPoint } from '../../graph/comparison-stats';
+import { densityPoints, type DensityPoint } from '../../slices/series/comparison-stats';
 
 /** One bar of a histogram. */
 export interface BinRow {

@@ -1,16 +1,17 @@
 import { queryKey } from '../../api/api';
 import { asColumnId, type DistributionResult } from '@mriqc/shared';
-import { defaultDashboard, initialState, reduce } from '../../graph/reducer';
+import { defaultDashboard } from '../panels/defaults';
+import { initialState, reduce } from '../../loop/reducer';
 import { defaultPanelOptions, FIRST_PAGE, type Panel, type State } from '../../graph/state';
-import { decodeUrlState, encodeUrlState, validateUrlState } from '../../graph/url';
-import { readUrlRecord, writeUrlRecord } from '../../graph/url-fields';
-import { panelQueries, panelSharedRange } from '../../graph/queries';
-import { axisEvidence } from '../../graph/axis-options';
+import { decodeUrlState, encodeUrlState, validateUrlState } from '../../url/url';
+import { readUrlRecord, writeUrlRecord } from '../../url/fields';
+import { panelQueries, panelSharedRange } from '../panels/queries';
+import { axisEvidence } from '../panels/axis-options';
 import { stackedRows, stackedHistogram } from '../../panels/specs/comparison';
 import { valueScale } from '../../panels/specs/palette';
 import { withCountRange } from '../../panels/specs/axis-ranges';
 import { distributionBins } from '../../panels/specs/rows';
-import { panelView, resetPanelViewMemo } from '../../view/panel-view';
+import { panelView, resetPanelViewMemo } from '../panels/view';
 
 const panel = (): Panel => ({ ...defaultDashboard().panels[0], options: defaultPanelOptions(), cursors: FIRST_PAGE });
 const state = (p = panel()): State => ({ ...initialState, panels: [p], dataVersion: 'v1' });

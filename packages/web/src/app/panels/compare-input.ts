@@ -14,13 +14,7 @@ import { LucideAngularModule, Plus, X } from 'lucide-angular';
 
 import { cohortColor } from './specs';
 import { SplitEditor } from './split-editor';
-import {
-  type Bucket,
-  type Series,
-  seriesDisabledReason,
-  seriesKey,
-  seriesLabel,
-} from '../graph/series';
+import { type Bucket, type Series, seriesDisabledReason, seriesKey, seriesLabel } from '../slices/series/model';
 
 interface SavedGroup {
   readonly id: string;

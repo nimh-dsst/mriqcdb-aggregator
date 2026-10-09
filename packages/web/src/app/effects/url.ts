@@ -2,9 +2,9 @@ import { ActivatedRoute,Router } from '@angular/router';
 import { concat,Observable,of } from 'rxjs';
 import { distinctUntilChanged,filter,map,tap } from 'rxjs/operators';
 
-import { type Command } from '../graph/commands';
-import { defaultDashboard } from '../graph/reducer';
-import { decodeUrlState } from '../graph/url';
+import { type Command } from '../loop/commands';
+import { defaultDashboard } from '../slices/panels/defaults';
+import { decodeUrlState } from '../url/url';
 import { urlSyncMode } from '../slices/history/history';
 
 export const URL_PARAM = 's';

@@ -1,7 +1,8 @@
 import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
 import { asColumnId } from '@mriqc/shared';
-import type { PanelView } from '../../view/panel-view';
-import type { Command, PanelPatch } from '../../graph/commands';
+import type { PanelView } from '../../slices/panels/view';
+import type { Command } from '../../loop/commands';
+import type { PanelPatch } from '../../slices/panels/commands';
 import { SampleTable } from '../sample-table';
 import { type Brush2dRange, type BrushRange, type VegaInput, VegaViewDirective } from '../vega-view.directive';
 type ChartDatum = { readonly x: string; readonly y: string };

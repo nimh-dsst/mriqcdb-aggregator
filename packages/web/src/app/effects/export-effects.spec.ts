@@ -1,9 +1,9 @@
 import { tableFromArrays, tableToIPC, tableFromIPC } from 'apache-arrow';
 import { BehaviorSubject, lastValueFrom, toArray } from 'rxjs';
 import { asColumnId } from '@mriqc/shared';
-import { exportRows, runExportEffects, tableCsv } from '../graph/effects';
-import { initialState, reduce } from '../graph/reducer';
-import type { Command } from '../graph/commands';
+import { exportRows, runExportEffects, tableCsv } from './legacy';
+import { initialState, reduce } from '../loop/reducer';
+import type { Command } from '../loop/commands';
 import type { ExportRequest } from '../graph/state';
 
 const request: ExportRequest={modality:'bold',view:'raw',filters:[],selections:[],columns:[asColumnId('id')],format:'arrow'};

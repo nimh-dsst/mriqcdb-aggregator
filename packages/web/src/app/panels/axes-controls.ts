@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
-import type { PanelView } from '../view/panel-view';
+import type { PanelView } from '../slices/panels/view';
 import type { PanelOptions } from '../graph/state';
-import { axisType } from '../graph/panel-shapes';
+import { axisType } from '../forms/availability';
 import { ElementControls } from './element-controls';
 
 @Component({

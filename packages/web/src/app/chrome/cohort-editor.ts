@@ -56,7 +56,7 @@ import {
   type View,
 } from '@mriqc/shared';
 import { API } from '../api/api';
-import { Graph } from '../graph/graph';
+import { Graph } from '../loop/graph';
 import {
   buildControlsForm,
   filtersFromForm,
@@ -66,9 +66,9 @@ import {
 import { CATEGORY_PALETTE, cohortColor } from '../panels/specs';
 import { DARK_THEME } from '../panels/specs/palette';
 import { Theme } from './theme';
-import { cohortAutoName, uniqueCohortName } from '../graph/cohort-name';
-import { mintCohortId, nextCohortColor } from '../graph/cohorts';
-import { unitNoun } from '../view/text';
+import { cohortAutoName, uniqueCohortName } from '../slices/cohorts/name';
+import { mintCohortId, nextCohortColor } from '../slices/cohorts/model';
+import { unitNoun } from '../slices/panels/text';
 import {
   CURRENT_COHORT,
   MAX_COHORTS,

@@ -1,7 +1,10 @@
 import type { Query } from '../../api/api';
 import type { Panel, State } from '../../graph/state';
 import { axisType } from '../availability';
-export type QueryServices = Pick<typeof import('../../graph/queries'), 'panelCohorts' | 'panelCohort' | 'scopedQuery' | 'samplePages' | 'groupingSeries' | 'countBandQuery' | 'cohortQuery' | 'panelSharedRange' | 'binnedQueries' | 'densityQueries'>;
+export type QueryServices =
+  Pick<typeof import('../../slices/panels/queries'), 'scopedQuery' | 'samplePages' | 'countBandQuery' | 'cohortQuery' | 'panelSharedRange' | 'binnedQueries' | 'densityQueries'> &
+  Pick<typeof import('../../slices/series/queries'), 'panelCohorts' | 'groupingSeries'> &
+  Pick<typeof import('../../slices/cohorts/queries'), 'panelCohort'>;
 
 export function countQueries(state: State, panel: Panel, services: QueryServices): readonly Query[] {
   const { panelCohorts, panelCohort, scopedQuery, samplePages, groupingSeries, countBandQuery, cohortQuery, panelSharedRange, binnedQueries, densityQueries } = services;

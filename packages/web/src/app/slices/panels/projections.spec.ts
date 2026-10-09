@@ -9,44 +9,19 @@ import {
   type View,
   type ViewDef,
 } from '@mriqc/shared';
-import { FILTER_SEARCH_THRESHOLD, chrome } from '../../view/chrome-view';
-import { panelView, resetPanelViewMemo } from '../../view/panel-view';
+import { FILTER_SEARCH_THRESHOLD, chrome } from '../filters/view';
+import { panelView, resetPanelViewMemo } from './view';
 import { DARK_THEME } from '../../panels/specs/palette';
-import { comparisonStats } from '../../view/stats';
-import {
-  clipChip,
-  countAxisTitle,
-  metricPhrase,
-  panelMeaning,
-  panelNotes,
-  significant,
-  statUnitLabel,
-  unitNoun,
-  viewNoun,
-} from '../../view/text';
-import {
-  ALL_COHORT_NAME,
-  CURRENT_COHORT_NAME,
-  allCohort,
-  cohortById,
-  cohortList,
-  cohortsOf,
-  currentCohort,
-  studyCohort,
-} from '../../graph/cohorts';
-import {
-  CATALOG_KEY,
-  cohortRange,
-  coverageFilters,
-  needed,
-  panelCohorts,
-  panelKeys,
-  panelQueries,
-  panelSharedRange,
-  sharedRange,
-  splitDistributionCohorts,
-} from '../../graph/queries';
-import { defaultDashboard, initialState, reduce } from '../../graph/reducer';
+import { comparisonStats } from '../series/view';
+import { clipChip, countAxisTitle, metricPhrase, panelMeaning, panelNotes, significant, statUnitLabel, unitNoun, viewNoun } from './text';
+import { ALL_COHORT_NAME, CURRENT_COHORT_NAME, allCohort, cohortById, cohortsOf, currentCohort, studyCohort } from '../cohorts/scopes';
+import { cohortList } from '../cohorts/view';
+import { CATALOG_KEY } from '../history/results';
+import { cohortRange, coverageFilters, panelKeys, panelQueries, panelSharedRange, sharedRange } from './queries';
+import { needed } from '../history/queries';
+import { panelCohorts, splitDistributionCohorts } from '../series/queries';
+import { defaultDashboard } from './defaults';
+import { initialState, reduce } from '../../loop/reducer';
 import {
   FIRST_PAGE,
   STUDY_COHORT,
@@ -56,7 +31,7 @@ import {
   type Panel,
   type State,
 } from '../../graph/state';
-import { decodeUrlState, encodeUrlState, urlState } from '../../graph/url';
+import { decodeUrlState, encodeUrlState, urlState } from '../../url/url';
 
 function panel(overrides: Partial<Panel> = {}): Panel {
   return {

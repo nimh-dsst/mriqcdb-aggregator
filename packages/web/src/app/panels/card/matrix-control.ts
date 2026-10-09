@@ -2,7 +2,7 @@ import { ChangeDetectionStrategy, Component, computed, input, output, model } fr
 import { asColumnId, type MetricDef } from '@mriqc/shared';
 import { MatSelectModule } from '@angular/material/select';
 import type { Panel, PanelOptions } from '../../graph/state';
-import { axisType } from '../../graph/panel-shapes';
+import { axisType } from '../../forms/availability';
 export interface MatrixDraft { open: boolean; metrics: readonly string[] }
 @Component({
   selector: 'app-matrix-control',

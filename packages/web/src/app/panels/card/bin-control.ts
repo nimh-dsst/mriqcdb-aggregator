@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
-import { axisType } from '../../graph/panel-shapes';
+import { axisType } from '../../forms/availability';
 import { MAX_BINS, MIN_BINS, type Panel, type PanelOptions } from '../../graph/state';
 const BIN_STOPS = [10, 20, 30, 40, 60, 80, 100, 150, 200];
 const SOFT_MAX_BINS = 100;

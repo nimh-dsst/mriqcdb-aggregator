@@ -4,9 +4,11 @@ import { compile } from 'vega-lite';
 import { parse, View } from 'vega';
 import { queryKey } from '../api/api';
 import { INITIAL_STATE, defaultPanelOptions, type Panel, type State } from '../graph/state';
-import { panelCohorts, panelQueries, studyFormReason } from '../graph/queries';
-import { reduce } from '../graph/reducer';
-import { panelView } from '../view/panel-view';
+import { panelCohorts } from '../slices/series/queries';
+import { panelQueries } from '../slices/panels/queries';
+import { studyFormReason } from '../slices/study/queries';
+import { reduce } from '../loop/reducer';
+import { panelView } from '../slices/panels/view';
 
 const fd = asColumnId('fd_mean'), tsnr = asColumnId('tsnr');
 const panel = (patch: Partial<Panel> = {}): Panel => ({ id: 'study-test', x: fd, y: null, form: 'histogram',

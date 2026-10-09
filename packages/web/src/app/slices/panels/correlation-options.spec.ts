@@ -1,7 +1,8 @@
 import { asColumnId } from '@mriqc/shared';
-import { correlationMetrics, defaultCorrelationMetrics } from '../../graph/correlation-options';
-import { defaultDashboard, initialState, reduce } from '../../graph/reducer';
-import { decodeUrlState, encodeUrlState, urlState } from '../../graph/url';
+import { correlationMetrics, defaultCorrelationMetrics } from './correlation-options';
+import { defaultDashboard } from './defaults';
+import { initialState, reduce } from '../../loop/reducer';
+import { decodeUrlState, encodeUrlState, urlState } from '../../url/url';
 
 describe('correlation panel settings', () => {
   it('starts with eight cross-family metrics for each modality', () => {

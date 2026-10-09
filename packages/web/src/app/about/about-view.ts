@@ -6,8 +6,8 @@ import {
   type View,
 } from '@mriqc/shared';
 import type { State } from '../graph/state';
-import { latestUpload } from '../view/chrome-view';
-import { CATALOG_KEY } from '../graph/queries';
+import { latestUpload } from '../slices/filters/view';
+import { CATALOG_KEY } from '../slices/history/results';
 
 /** A complete category partition counts all rows, including the missing-value bucket.
  * The catalog caps lists at 200, so a capped partition cannot establish a total.

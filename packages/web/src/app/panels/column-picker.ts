@@ -13,7 +13,7 @@ import {
 } from '@angular/core';
 import type { FieldDef, MetricDef } from '@mriqc/shared';
 import { asColumnId } from '@mriqc/shared';
-import { Graph } from '../graph/graph';
+import { Graph } from '../loop/graph';
 import type { Form } from '../graph/state';
 import { canSwapDrawerSlots, reduceDrawerSlots, type DrawerSlots, type DrawerSlotsAction } from './column-slots';
 

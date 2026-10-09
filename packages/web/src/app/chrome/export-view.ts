@@ -1,7 +1,7 @@
 import { fieldsFor, metricsFor, queryKey, type ColumnId, type CoverageResult } from '@mriqc/shared';
 import type { State } from '../graph/state';
-import { correlationMetrics } from '../graph/correlation-options';
-import { activeView, viewNoun } from '../view/text';
+import { correlationMetrics } from '../slices/panels/correlation-options';
+import { activeView, viewNoun } from '../slices/panels/text';
 
 export function exportCountQuery(state: State) {
   return { source: 'population' as const, proc: 'coverage' as const, ...state.global,

@@ -2,7 +2,7 @@ import { TestBed } from '@angular/core/testing';
 import { MatDialog } from '@angular/material/dialog';
 import { describe, expect, it, vi } from 'vitest';
 import { WEB_ICONS } from '../app.config';
-import { Graph } from '../graph/graph';
+import { Graph } from '../loop/graph';
 import { PanelCardShell } from './panel-card';
 import { cardControls } from './card/card-projection';
 import { makePanel, makeState, panelView } from './card/card-test-harness';

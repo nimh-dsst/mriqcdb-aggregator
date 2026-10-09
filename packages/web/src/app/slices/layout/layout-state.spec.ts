@@ -1,8 +1,9 @@
 import { describe, expect, it } from 'vitest';
 
-import { compactLayout, deriveLayout } from '../../graph/layout';
-import { defaultDashboard, initialState, reduce } from '../../graph/reducer';
-import { decodeUrlState, encodeUrlState, urlState } from '../../graph/url';
+import { compactLayout, deriveLayout } from './geometry';
+import { defaultDashboard } from '../panels/defaults';
+import { initialState, reduce } from '../../loop/reducer';
+import { decodeUrlState, encodeUrlState, urlState } from '../../url/url';
 
 function hydratedState() {
   return reduce(initialState, { t: 'hydrate', url: defaultDashboard() });

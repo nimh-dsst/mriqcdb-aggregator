@@ -3,12 +3,14 @@ import { toObservable, toSignal } from '@angular/core/rxjs-interop';
 import { fieldsFor, metricsFor } from '@mriqc/shared';
 import { distinctUntilChanged, map, switchMap } from 'rxjs';
 import { Theme } from '../../chrome/theme';
-import { Graph } from '../../graph/graph';
-import { panelCohort, panelCohorts, studyFormReason } from '../../graph/queries';
-import { seriesKey } from '../../graph/series';
+import { Graph } from '../../loop/graph';
+import { panelCohort } from '../../slices/cohorts/queries';
+import { panelCohorts } from '../../slices/series/queries';
+import { studyFormReason } from '../../slices/study/queries';
+import { seriesKey } from '../../slices/series/model';
 import type { Panel, State } from '../../graph/state';
-import { urlState } from '../../graph/url';
-import { panelView, type PanelView } from '../../view/panel-view';
+import { urlState } from '../../url/url';
+import { panelView, type PanelView } from '../../slices/panels/view';
 import { DARK_THEME, LIGHT_THEME } from '../specs/palette';
 
 /** Control and action data from the same snapshot as the chart projection. */

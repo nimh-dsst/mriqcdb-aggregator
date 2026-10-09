@@ -15,7 +15,7 @@ import { bars } from './bars';
 import { share } from './share';
 import { matrix } from './matrix';
 import type { ColumnRef, MetricId } from '../graph/state';
-import type { Series } from '../graph/series';
+import type { Series } from '../slices/series/model';
 import type { Availability, FormDef } from './types';
 
 /** Append forms here: existing indices are version-1 URL tokens. */

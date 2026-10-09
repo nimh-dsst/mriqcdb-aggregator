@@ -1,8 +1,9 @@
 import { asColumnId, type Filter } from '@mriqc/shared';
-import { BitReader, BitWriter, URL_VERSION } from '../graph/url-tokens';
-import { decodeUrlState, encodeUrlState, validateUrlState, type UrlState } from '../graph/url';
-import { OPEN_LO } from '../graph/filters';
-import { defaultDashboard } from '../graph/reducer';
+import { BitReader, BitWriter, URL_VERSION } from '../codec/tokens';
+import { decodeUrlState, encodeUrlState, validateUrlState } from './url';
+import { type UrlState } from '../slices/history/url-state';
+import { OPEN_LO } from '../slices/filters/model';
+import { defaultDashboard } from '../slices/panels/defaults';
 import { defaultPanelOptions, type Cohort } from '../graph/state';
 
 const filters: Filter[] = [

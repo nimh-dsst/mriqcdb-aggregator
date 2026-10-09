@@ -2,9 +2,10 @@ import { queryKey } from '../../api/api';
 import { asColumnId } from '@mriqc/shared';
 import { describe, expect, it } from 'vitest';
 import { INITIAL_STATE } from '../../graph/state';
-import { defaultDashboard, reduce } from '../../graph/reducer';
-import { panelQueries } from '../../graph/queries';
-import { panelView } from '../../view/panel-view';
+import { defaultDashboard } from './defaults';
+import { reduce } from '../../loop/reducer';
+import { panelQueries } from './queries';
+import { panelView } from './view';
 
 const state = () => reduce(INITIAL_STATE, { t:'hydrate', url:defaultDashboard() });
 describe('continuous form query contracts', () => {

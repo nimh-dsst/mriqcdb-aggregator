@@ -3,7 +3,7 @@ import { toSignal } from '@angular/core/rxjs-interop';
 import { DecimalPipe } from '@angular/common';
 import { map } from 'rxjs';
 import type { ColumnId } from '@mriqc/shared';
-import { Graph } from '../graph/graph';
+import { Graph } from '../loop/graph';
 import { exportView } from './export-view';
 
 @Component({

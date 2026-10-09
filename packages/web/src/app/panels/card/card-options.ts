@@ -2,8 +2,8 @@ import { ChangeDetectionStrategy, Component, computed, input, output } from '@an
 import { A11yModule } from '@angular/cdk/a11y';
 import { SettingRow } from '../setting-row';
 import type { Panel, PanelOptions } from '../../graph/state';
-import { axisType } from '../../graph/panel-shapes';
-import { canStack } from '../../graph/panels';
+import { axisType } from '../../forms/availability';
+import { canStack } from '../../slices/panels/model';
 @Component({
   selector: 'app-card-options',
   changeDetection: ChangeDetectionStrategy.OnPush,

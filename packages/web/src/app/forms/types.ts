@@ -1,12 +1,12 @@
 import type { CoverageResult } from '@mriqc/shared';
 import type { Query } from '../api/api';
 import type { ColumnRef, MetricId, Panel, State } from '../graph/state';
-import type { Series } from '../graph/series';
+import type { Series } from '../slices/series/model';
 import type { ChartInput, ChartOutput } from './shared/select';
 import type { ChartTheme } from './shared/palette';
-import type { PanelView } from '../view/panel-view';
-import type { MeaningInput } from '../view/text';
-import type { panelStats } from '../view/stats';
+import type { PanelView } from '../slices/panels/view';
+import type { MeaningInput } from '../slices/panels/text';
+import type { panelStats } from '../slices/series/view';
 import type { categoryChart } from './bars/categories';
 import type { AnyOptionSchema } from './options';
 
@@ -16,8 +16,8 @@ export interface ProjectionInput {
   panel: Panel;
   theme: ChartTheme;
   projections: {
-    analysis: typeof import('../view/analysis-view').analysisPanelView;
-    time: typeof import('../view/time-view').timePanelView;
+    analysis: typeof import('../slices/panels/analysis-view').analysisPanelView;
+    time: typeof import('../slices/panels/time-view').timePanelView;
   };
 }
 export interface FormSpec {

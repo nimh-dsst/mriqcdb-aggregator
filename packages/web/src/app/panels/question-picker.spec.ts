@@ -2,8 +2,9 @@ import { TestBed } from '@angular/core/testing';
 import { fieldsFor, metricsFor } from '@mriqc/shared';
 import { describe, expect, it, vi } from 'vitest';
 
-import { Graph } from '../graph/graph';
-import { defaultDashboard, reduce } from '../graph/reducer';
+import { Graph } from '../loop/graph';
+import { defaultDashboard } from '../slices/panels/defaults';
+import { reduce } from '../loop/reducer';
 import { INITIAL_STATE } from '../graph/state';
 import { QuestionPicker } from './question-picker';
 

@@ -14,22 +14,17 @@ shareReplay,
 import { aboutEquals,aboutView } from '../about/about-view';
 import { API } from '../api/api';
 import { buildControlsForm } from '../chrome/controls-form';
-import { cohortList,cohortListEquals } from '../graph/cohorts';
-import { type Command } from '../graph/commands';
-import {
-downloadExport,
-runEffects,
-runExportEffects,
-runStudyEffects,
-} from '../graph/effects';
-import { neededQueries } from '../graph/queries';
-import { initialState,reduce } from '../graph/reducer';
-import { encodeUrlState,urlState } from '../graph/url';
+import { cohortList, cohortListEquals } from '../slices/cohorts/view';
+import { type Command } from './commands';
+import { downloadExport, runEffects, runExportEffects, runStudyEffects } from '../effects/legacy';
+import { neededQueries } from '../slices/history/queries';
+import { initialState, reduce } from './reducer';
+import { encodeUrlState, urlState } from '../url/url';
 import { LIGHT_THEME,type ChartTheme } from '../panels/specs/palette';
 import { runClusterEffects } from '../study/cluster-effects';
 import { StudyRunner } from '../study/study-runner';
-import { chrome,chromeEquals } from '../view/chrome-view';
-import { panelView } from '../view/panel-view';
+import { chrome, chromeEquals } from '../slices/filters/view';
+import { panelView } from '../slices/panels/view';
 
 import { UrlSync } from '../effects/url';
 import { controlCommands,synchronizeControls } from './controls';

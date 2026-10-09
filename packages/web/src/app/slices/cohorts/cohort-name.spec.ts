@@ -6,7 +6,7 @@
  */
 
 import { asColumnId, type Filter, type Selection } from '@mriqc/shared';
-import { UNFILTERED_SUMMARY, cohortAutoName, uniqueCohortName, yearsOf } from '../../graph/cohort-name';
+import { UNFILTERED_SUMMARY, cohortAutoName, uniqueCohortName, yearsOf } from './name';
 
 const siemens: Filter = {
   field: asColumnId('manufacturer'),

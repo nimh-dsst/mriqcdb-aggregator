@@ -3,11 +3,11 @@ import { DecimalPipe } from '@angular/common';
 import { LucideAngularModule } from 'lucide-angular';
 import { CompareInput } from '../compare-input';
 import type { CardControls } from './card-projection';
-import type { CohortLegendEntry } from '../../view/panel-view';
+import type { CohortLegendEntry } from '../../slices/panels/view';
 import { parseGroupCohortId, type Panel } from '../../graph/state';
-import { bucketName } from '../../graph/queries';
-import { seriesKey, withoutGroup, type Series } from '../../graph/series';
-import type { PanelPatch } from '../../graph/commands';
+import { bucketName } from '../../slices/series/queries';
+import { seriesKey, withoutGroup, type Series } from '../../slices/series/model';
+import type { PanelPatch } from '../../slices/panels/commands';
 @Component({
   selector: 'app-series-chips',
   changeDetection: ChangeDetectionStrategy.OnPush,

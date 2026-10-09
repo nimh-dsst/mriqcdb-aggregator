@@ -16,11 +16,11 @@ import { asColumnId } from '@mriqc/shared';
 import { API } from '../api/api';
 import { MOCK_LATENCY_MS, MockApi } from '../api/mock-api';
 import { VEGA_EMBED } from '../panels/vega-view.directive';
-import { Graph } from '../graph/graph';
-import { resetPanelViewMemo } from '../view/panel-view';
-import { urlState } from '../graph/url';
+import { Graph } from '../loop/graph';
+import { resetPanelViewMemo } from '../slices/panels/view';
+import { urlState } from '../url/url';
 import type { State } from '../graph/state';
-import { decodeUrlState, encodeUrlState } from '../graph/url';
+import { decodeUrlState, encodeUrlState } from '../url/url';
 import { WEB_ICONS } from '../app.config';
 import { Dashboard } from '../dashboard/dashboard';
 import {

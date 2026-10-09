@@ -1,4 +1,4 @@
-import type { PanelView } from '../../view/panel-view';
+import type { PanelView } from '../../slices/panels/view';
 import { OverlayContainer } from '@angular/cdk/overlay';
 import { TestBed } from '@angular/core/testing';
 import { MatDialog } from '@angular/material/dialog';
@@ -9,12 +9,12 @@ import { describe, expect, it, vi } from 'vitest';
 
 import { WEB_ICONS } from '../../app.config';
 import { Theme } from '../../chrome/theme';
-import { Graph } from '../../graph/graph';
-import { initialState } from '../../graph/reducer';
+import { Graph } from '../../loop/graph';
+import { initialState } from '../../loop/reducer';
 import { defaultPanelOptions, type Panel, type State } from '../../graph/state';
 import { PanelCard } from '../panel-card';
-import { decodeUrlState } from '../../graph/url';
-import { panelCohorts } from '../../graph/queries';
+import { decodeUrlState } from '../../url/url';
+import { panelCohorts } from '../../slices/series/queries';
 
 import { makePanel, panelView, makeState, create, formOptionLabels } from './card-test-harness';
 

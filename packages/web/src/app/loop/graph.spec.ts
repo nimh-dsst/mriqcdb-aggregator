@@ -5,12 +5,14 @@ import { asColumnId } from '@mriqc/shared';
 import { API } from '../api/api';
 import { MockApi } from '../api/mock-api';
 import { filtersFromForm, formFromGlobal } from '../chrome/controls-form';
-import { OPEN_LO } from '../graph/filters';
-import { Graph, urlSyncMode } from '../graph/graph';
-import { deriveLayout } from '../graph/layout';
-import { urlState } from '../graph/url';
+import { OPEN_LO } from '../slices/filters/model';
+import { Graph } from './graph';
+import { urlSyncMode } from '../slices/history/history';
+import { deriveLayout } from '../slices/layout/geometry';
+import { urlState } from '../url/url';
 import { defaultPanelOptions, type State } from '../graph/state';
-import { decodeUrlState, encodeUrlState, type UrlState } from '../graph/url';
+import { decodeUrlState, encodeUrlState } from '../url/url';
+import { type UrlState } from '../slices/history/url-state';
 
 /** Past `debounceTime(150)` on the controls form, with room to spare. */
 const AFTER_DEBOUNCE_MS = 260;

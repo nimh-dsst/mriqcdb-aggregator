@@ -1,7 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { asColumnId } from '@mriqc/shared';
 import { describe, expect, it } from 'vitest';
-import { defaultForm, validForm, FORM_INFO, formsFor } from '../graph/panel-shapes';
+import { defaultForm, validForm, FORM_INFO, formsFor } from '../slices/panels/shapes';
 import { defaultPanelOptions, type Form } from '../graph/state';
 import { FormGlyph } from './form-glyphs';
 

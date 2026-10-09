@@ -1,18 +1,6 @@
-import {
-  ALPHABET,
-  CHART_TOKENS,
-  BitReader,
-  BitWriter,
-  dateCodec,
-  exactNumber,
-  roundedNumber,
-  unsigned,
-  textCodec,
-  tokenCodec,
-  tokenTable,
-  type Codec,
-} from '../graph/url-tokens';
-import { FORM_ORDER, formsFor } from '../graph/panel-shapes';
+import { ALPHABET, CHART_TOKENS, BitReader, BitWriter, dateCodec, exactNumber, roundedNumber, unsigned, textCodec, tokenCodec, tokenTable, type Codec } from './tokens';
+import { FORM_ORDER } from '../forms/registry';
+import { formsFor } from '../slices/panels/shapes';
 import { asColumnId } from '@mriqc/shared';
 
 function roundTrip<T>(codec: Codec<T>, value: T): T {

@@ -25,7 +25,7 @@ import {
   type Modality,
   type View,
 } from '@mriqc/shared';
-import { OPEN_HI, OPEN_LO } from '../graph/filters';
+import { OPEN_HI, OPEN_LO } from '../slices/filters/model';
 import type { GlobalState } from '../graph/state';
 
 /**

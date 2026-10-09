@@ -12,7 +12,7 @@ import { panelCohort } from '../cohorts/queries';
 import type { CohortChip } from '../cohorts/view';
 import { distributionResult,resultOf } from '../history/results';
 import { panelCohorts } from '../series/queries';
-import { comparisonStats,outsideRangeNotes,panelStats,type ComparisonStats,type PanelStat } from '../series/stats';
+import { comparisonStats, outsideRangeNotes, panelStats, type ComparisonStats, type PanelStat } from '../series/view';
 import { studyFormReason } from '../study/queries';
 import { analysisPanelView,type AnalysisRow } from './analysis-view';
 import { axisEvidence } from './axis-options';

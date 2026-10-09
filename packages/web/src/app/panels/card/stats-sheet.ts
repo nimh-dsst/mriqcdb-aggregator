@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
-import type { PanelView } from '../../view/panel-view';
+import type { PanelView } from '../../slices/panels/view';
 @Component({
   selector: 'app-stats-sheet',
   changeDetection: ChangeDetectionStrategy.OnPush,

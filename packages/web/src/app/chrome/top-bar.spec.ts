@@ -5,11 +5,7 @@ import {
   type Filter,
   type ViewDef,
 } from '@mriqc/shared';
-import {
-  FILTER_SEARCH_THRESHOLD,
-  type FilterFieldView,
-  type NumericFieldView,
-} from '../view/chrome-view';
+import { FILTER_SEARCH_THRESHOLD, type FilterFieldView, type NumericFieldView } from '../slices/filters/view';
 import {
   activeFilterCount,
   busyLine,

@@ -3,10 +3,10 @@ import { optionPatch, optionValues, type PanelOptions as RegistryOptions } from 
 import { options as histogramOptions } from './histogram/options';
 import { asColumnId, isValidMetric, type Modality } from '@mriqc/shared';
 import { defaultPanelOptions, type Panel, type PanelOptions } from '../graph/state';
-import { normalizedOptions, canStack } from '../graph/panels';
-import { clampBins } from '../graph/url-tokens';
+import { normalizedOptions, canStack } from '../slices/panels/model';
+import { clampBins } from '../codec/tokens';
 import { FORM_ORDER } from './registry';
-import { defaultDashboard } from '../graph/reducer';
+import { defaultDashboard } from '../slices/panels/defaults';
 
 // Behavior oracle captured before moving validation to form schemas.
 function beforeRegistry(panel: Panel, patch: Partial<PanelOptions>, modality?: Modality): PanelOptions {

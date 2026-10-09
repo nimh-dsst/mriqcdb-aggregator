@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, input } from '@angular/core';
 import { DecimalPipe } from '@angular/common';
-import type { PanelView } from '../../view/panel-view';
+import type { PanelView } from '../../slices/panels/view';
 @Component({
   selector: 'app-card-footer',
   changeDetection: ChangeDetectionStrategy.OnPush,

@@ -1,11 +1,11 @@
-import { validForm, brushable } from '../graph/panel-shapes';
+import { validForm, brushable } from '../slices/panels/shapes';
 import { defaultPanelOptions, type Form, type Panel } from '../graph/state';
-import { normalizedOptions } from '../graph/panels';
+import { normalizedOptions } from '../slices/panels/model';
 import { asColumnId } from '@mriqc/shared';
 import { FORM_DEFS, FORM_ORDER, formAvailability, formDef } from './registry';
-import { CHART_TOKENS, URL_VERSION } from '../graph/url-tokens';
-import { EXTRA_OPTION_FIELDS } from '../graph/url-fields';
-import { FORM_INFO } from '../graph/panel-shapes';
+import { CHART_TOKENS, URL_VERSION } from '../codec/tokens';
+import { EXTRA_OPTION_FIELDS } from '../slices/panels/url';
+import { FORM_INFO } from '../slices/panels/shapes';
 import { FORM_GLYPHS } from '../panels/form-glyphs';
 
 const order = ['histogram', 'line', 'area', 'density', 'ecdf', 'box', 'table',

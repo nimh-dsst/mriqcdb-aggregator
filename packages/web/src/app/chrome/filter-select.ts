@@ -29,7 +29,7 @@ import {
   type FieldValueCount,
   type FilterValue,
 } from '@mriqc/shared';
-import { FILTER_SEARCH_THRESHOLD, type FilterFieldView } from '../view/chrome-view';
+import { FILTER_SEARCH_THRESHOLD, type FilterFieldView } from '../slices/filters/view';
 
 /** Keys that belong to the select panel, not to the search box inside it. */
 const PANEL_KEYS = new Set(['Escape', 'Tab', 'Enter', 'ArrowUp', 'ArrowDown']);

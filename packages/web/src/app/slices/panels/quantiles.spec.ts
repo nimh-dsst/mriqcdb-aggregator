@@ -1,10 +1,12 @@
 import { asColumnId } from '@mriqc/shared';
 import { describe, expect, it, vi } from 'vitest';
-import { defaultDashboard, reduce } from '../../graph/reducer';
+import { defaultDashboard } from './defaults';
+import { reduce } from '../../loop/reducer';
 import { INITIAL_STATE } from '../../graph/state';
-import { decodeUrlState, encodeUrlState, urlState } from '../../graph/url';
-import { EXTRA_OPTION_FIELDS, writeRecord } from '../../graph/url-fields';
-import { BitWriter } from '../../graph/url-tokens';
+import { decodeUrlState, encodeUrlState, urlState } from '../../url/url';
+import { EXTRA_OPTION_FIELDS } from './url';
+import { writeRecord } from '../../codec/records';
+import { BitWriter } from '../../codec/tokens';
 
 describe('quantile options', () => {
   it.each(['band', 'lines'] as const)('preserves both settings through reducer and URL for %s', form => {

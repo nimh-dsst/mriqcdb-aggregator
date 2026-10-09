@@ -1,14 +1,7 @@
 import { asColumnId } from "@mriqc/shared";
 import { describe, expect, it } from "vitest";
 
-import {
-  normalizeSeries,
-  withoutGroup,
-  seriesDisabledReason,
-  seriesLabel,
-  seriesSlots,
-  type Series,
-} from "../../graph/series";
+import { normalizeSeries, withoutGroup, seriesDisabledReason, seriesLabel, seriesSlots, type Series } from './model';
 
 const manufacturer = asColumnId("Manufacturer");
 

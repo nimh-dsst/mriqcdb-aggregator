@@ -17,7 +17,7 @@ import { ChangeDetectionStrategy, Component, input, output, signal } from '@angu
 import { MatMenuModule } from '@angular/material/menu';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import type { SampleRow } from '@mriqc/shared';
-import type { PanelTable } from '../view/panel-view';
+import type { PanelTable } from '../slices/panels/view';
 
 /** How many columns the table shows before the reader asks for more. */
 export const DEFAULT_COLUMNS = 5;
