@@ -5,6 +5,30 @@ import { describe, expect, it } from 'vitest';
 import { attachAxisBandGestures, invertAxisRange } from './axis-band-gestures';
 
 describe('invertAxisRange', () => {
+  it('opens menus from both real axis bands and the compiled color legend', async () => {
+    const compiled = compile({ width: 300, height: 200,
+      data: { values: [{ x: 1, y: 2, n: 3 }, { x: 2, y: 3, n: 8 }] }, mark: 'point',
+      encoding: { x: { field: 'x', type: 'quantitative' }, y: { field: 'y', type: 'quantitative' },
+        color: { field: 'n', type: 'quantitative', scale: { type: 'log' }, legend: { type: 'gradient' } } },
+    } as never).spec;
+    const view = new View(parse(compiled), { renderer: 'none' }); await view.runAsync();
+    const host = document.createElement('div'); document.body.append(host);
+    const events: string[] = [];
+    host.addEventListener('elementcontext', event => events.push((event as CustomEvent<{axis: string}>).detail.axis));
+    const controller = attachAxisBandGestures(host, view, () => undefined);
+    try {
+      for (const [selector, axis] of [['.vega-axis-band-x', 'x'], ['.vega-axis-band-y', 'y'], ['.vega-color-legend-band', 'color']]) {
+        const band = host.querySelector<HTMLElement>(selector);
+        expect(band, selector).not.toBeNull();
+        expect(band!.tabIndex).toBe(0);
+        band!.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true }));
+        band!.dispatchEvent(new KeyboardEvent('keydown', { key: 'F10', shiftKey: true, bubbles: true }));
+        band!.dispatchEvent(new KeyboardEvent('keydown', { key: 'ContextMenu', bubbles: true }));
+        band!.querySelector('button')!.click();
+        expect(events.slice(-4)).toEqual([axis, axis, axis, axis]);
+      }
+    } finally { controller.destroy(); view.finalize(); host.remove(); }
+  });
   it('uses a linear Vega scale to convert horizontal pixels', () => {
     const linear = scale('linear')().domain([0, 100]).range([20, 220]);
 

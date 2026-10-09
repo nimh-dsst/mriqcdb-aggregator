@@ -1,5 +1,5 @@
 import { brushable } from './panel-shapes';
-import { deriveLayout, moveLayout, resizeLayout, reconcileLayout, panelsWithPreferredRows } from './layout';
+import { compactLayout, deriveLayout, moveLayout, resizeLayout, reconcileLayout, panelsWithPreferredRows } from './layout';
 /**
  * The reducer: `(state, command) => state`, pure, and the only writer of state.
  *
@@ -190,7 +190,7 @@ export function reduce(state: State, command: Command): State {
       return evict({
         ...state,
         panels,
-        ...(state.layout ? { layout: reconcileLayout(state.layout, panelsWithPreferredRows({...state, panels}), 3) } : {}),
+        layout: reconcileLayout(state.layout, panelsWithPreferredRows({...state, panels}), 3),
       });
     }
 
@@ -199,7 +199,7 @@ export function reduce(state: State, command: Command): State {
       if (panels.length === state.panels.length) return state;
       const selections = state.selections.filter(selection => selection.from !== command.id);
       return evict({ ...state, panels, selections,
-        ...(state.layout ? { layout: reconcileLayout(state.layout, panelsWithPreferredRows({...state, panels}), 3) } : {}),
+        layout: compactLayout(reconcileLayout(state.layout, panelsWithPreferredRows({...state, panels}), 3)),
         ...(state.maximizedPanel === command.id ? { maximizedPanel: null } : {}),
       });
     }
@@ -218,7 +218,7 @@ export function reduce(state: State, command: Command): State {
       // cohort would sit in the comparison empty state and write that id into
       // the shared link.
       return evict({ ...state, panels: pruneCohortRefs(panels, state),
-        ...(state.layout ? { layout: reconcileLayout(state.layout, panelsWithPreferredRows({...state, panels}), 3) } : {}),
+        layout: reconcileLayout(command.layout ?? state.layout, panelsWithPreferredRows({...state, panels}), 3),
       });
     }
 
@@ -233,7 +233,7 @@ export function reduce(state: State, command: Command): State {
       return { ...state, layout: resizeLayout(layout, command.id, command.w, command.h) };
     }
     case 'resetLayout':
-      return { ...state, layout: null };
+      return { ...state, layout: deriveLayout(panelsWithPreferredRows(state), 3) };
     case 'maximizePanel':
       return command.id === null || state.panels.some(panel => panel.id === command.id)
         ? { ...state, maximizedPanel: command.id } : state;
@@ -386,7 +386,7 @@ export function reduce(state: State, command: Command): State {
           { ...state, global: url.global, cohorts: url.cohorts },
         ),
         selections: url.selections,
-        layout: url.layout ?? null,
+        layout: reconcileLayout(url.layout, url.panels, 3),
         maximizedPanel: url.maximizedPanel ?? null,
         notice: command.notice ?? (omittedStudy ? STUDY_LINK_NOTICE : null),
       });
@@ -483,7 +483,7 @@ export function reduce(state: State, command: Command): State {
     /* ----------------------------------------------------------------- export */
 
     case 'openExport':
-      return { ...state, exportDialogOpen: true };
+      return { ...state, exportDialogOpen: true, exportPanelId: command.panelId };
 
     case 'requestExport':
       return { ...state, export: { status: 'running', rows: 0, request: {

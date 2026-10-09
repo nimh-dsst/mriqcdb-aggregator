@@ -23,7 +23,7 @@ import { ColumnPicker } from '../panels/column-picker';
 import { asColumnId, metricsFor, fieldsFor } from '@mriqc/shared';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { LucideAngularModule } from 'lucide-angular';
-import { deriveLayout, panelsWithPreferredRows } from '../graph/layout';
+import { panelsWithPreferredRows, type DashboardLayout } from '../graph/layout';
 import { GridInteractionDirective } from './grid-interaction.directive';
 import { map, distinctUntilChanged } from 'rxjs';
 import { TopBar } from '../chrome/top-bar';
@@ -50,6 +50,7 @@ interface RemovedPanel {
   panel: Panel;
   at: number;
   title: string;
+  layout?: DashboardLayout;
 }
 
 @Component({
@@ -95,7 +96,7 @@ export class Dashboard {
   /** 1 below 900px, 2 from 900, 3 from 1500. */
   protected readonly columns = computed(() => gridColumns(this.twoColumns(), this.threeColumns()));
 
-  protected readonly geometry = computed(() => this.gridState()?.layout ?? deriveLayout(this.gridState()?.panels ?? [], this.columns()));
+  protected readonly geometry = computed(() => this.gridState()?.layout ?? {});
   protected readonly visiblePanels = computed(() => {
     const panels = this.panels();
     if (this.maximized()) return panels.filter(panel => panel.id === this.maximized());
@@ -133,7 +134,7 @@ export class Dashboard {
   protected undoRemove(): void {
     const entry = this.removed();
     if (!entry) return;
-    this.graph.dispatch({ t: 'restorePanel', panel: entry.panel, at: entry.at });
+    this.graph.dispatch({ t: 'restorePanel', panel: entry.panel, at: entry.at, layout: entry.layout });
     this.dismissUndo();
   }
 

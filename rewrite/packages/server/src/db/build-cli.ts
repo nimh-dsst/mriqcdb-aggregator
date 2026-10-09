@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 /**
  * `pnpm --filter @mriqc/server build:db [-- --sample N] [--data-dir DIR]
- * [--out FILE] [--memory-limit SIZE] [--threads N] [--canonical-from-parquet]`
+ * [--from-dumps DIR] [--out FILE] [--memory-limit SIZE] [--threads N] [--canonical-from-parquet]`
  *
- * Builds the serving DuckDB file from the Parquet directory. `--sample N` loads
+ * Builds the serving DuckDB file from JSON dumps or a Parquet directory. `--sample N` loads
  * only the first N rows of each observation table, which turns a minutes-long
  * full build into a seconds-long development one.
  *
@@ -20,6 +20,8 @@
 // `UV_THREADPOOL_SIZE` once, the first time its threadpool is used.
 import '../bootstrap.js';
 import { freemem } from 'node:os';
+import { resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { buildDatabase } from './build.js';
 
 /**
@@ -33,15 +35,17 @@ function defaultMemoryLimit(): string {
   return `${Math.max(1, Math.floor(gib * 10) / 10)}GiB`;
 }
 
-function parseArgs(argv: readonly string[]): {
+export function parseArgs(argv: readonly string[]): {
   sample: number | null;
   dataDir?: string;
+  fromDumps?: string;
   outPath?: string;
   settings: Record<string, string>;
   canonicalFromParquet: boolean;
 } {
   let sample: number | null = null;
   let dataDir: string | undefined;
+  let fromDumps: string | undefined;
   let outPath: string | undefined;
   let memoryLimit: string | undefined;
   let threads: string | undefined;
@@ -51,7 +55,7 @@ function parseArgs(argv: readonly string[]): {
     const arg = argv[i] as string;
     const next = (): string => {
       const value = argv[i + 1];
-      if (value === undefined) throw new Error(`${arg} needs a value`);
+      if (value === undefined || value.startsWith('--')) throw new Error(`${arg} needs a value`);
       i += 1;
       return value;
     };
@@ -70,6 +74,9 @@ function parseArgs(argv: readonly string[]): {
       case '--data-dir':
         dataDir = next();
         break;
+      case '--from-dumps':
+        fromDumps = next();
+        break;
       case '--out':
         outPath = next();
         break;
@@ -86,10 +93,21 @@ function parseArgs(argv: readonly string[]): {
         throw new Error(`unknown argument ${JSON.stringify(arg)}`);
     }
   }
+  if (fromDumps !== undefined && dataDir !== undefined) {
+    throw new Error('--from-dumps cannot be combined with --data-dir');
+  }
+  if (fromDumps !== undefined && canonicalFromParquet) {
+    throw new Error('--from-dumps cannot be combined with --canonical-from-parquet');
+  }
   return {
     sample,
     ...(dataDir === undefined ? {} : { dataDir }),
-    ...(outPath === undefined ? {} : { outPath }),
+    ...(fromDumps === undefined ? {} : {
+      fromDumps: resolve(process.env['INIT_CWD'] ?? process.cwd(), fromDumps),
+    }),
+    ...(outPath === undefined ? {} : {
+      outPath: fromDumps === undefined ? outPath : resolve(process.env['INIT_CWD'] ?? process.cwd(), outPath),
+    }),
     settings: {
       memory_limit: memoryLimit ?? defaultMemoryLimit(),
       ...(threads === undefined ? {} : { threads }),
@@ -98,9 +116,11 @@ function parseArgs(argv: readonly string[]): {
   };
 }
 
-const options = parseArgs(process.argv.slice(2));
-console.log(
-  `build:db: canonical from ${options.canonicalFromParquet ? 'the Parquet artifacts' : 'the policy views'}` +
-    `, memory_limit ${options.settings['memory_limit']}`,
-);
-await buildDatabase(options);
+if (process.argv[1] !== undefined && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  const options = parseArgs(process.argv.slice(2));
+  console.log(
+    `build:db: canonical from ${options.canonicalFromParquet ? 'the Parquet artifacts' : 'the policy views'}` +
+      `, memory_limit ${options.settings['memory_limit']}`,
+  );
+  await buildDatabase(options);
+}

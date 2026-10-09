@@ -5,7 +5,7 @@ import { binnedQueries, panelCohort, panelCohorts, panelQueries, resultOf, scope
 import type { Panel, State } from '../graph/state';
 import { bandChart, type BinnedSeries } from '../panels/specs/band';
 import { axisEvidence } from '../graph/axis-options';
-import { OTHER_COLOR, type ChartTheme } from '../panels/specs/palette';
+import { OTHER_COLOR, valueScale, type ChartTheme } from '../panels/specs/palette';
 import type { PanelStatus, PanelView } from './panel-view';
 import { activeView, metricDef, panelNotes, significant, unitNoun } from './text';
 
@@ -45,7 +45,8 @@ export function timePanelView(state: State, panel: Panel, theme: ChartTheme): Pa
   const evidence = axisEvidence(state, panel);
   const chart = bandChart(series, label, { label: xLabel, theme, logScale: false,
     xScale: time ? 'time' : panel.options.xScale === 'log' && !evidence.positive ? 'symlog' : panel.options.xScale,
-    xRange: panel.options.xRange, constant: evidence.constant, granularity: panel.options.granularity, countTitle: 'Scans' }, panel.form === 'lines' ? 'lines' : 'band', panel.options.quantiles);
+    xRange: panel.options.xRange, constant: evidence.constant, granularity: panel.options.granularity, countTitle: 'Scans' }, panel.form === 'lines' ? 'lines' : 'band', panel.options.quantiles,
+    valueScale(panel.options.yScale, panel.options.yRange));
   const aggregate = resultFor(panelCohort(state,panel));
   const n = aggregate?.buckets.reduce((sum,bucket) => sum + bucket.n,0) ?? null;
   const rows = series.map(item => {

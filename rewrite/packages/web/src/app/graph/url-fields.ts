@@ -369,6 +369,9 @@ const series = list(
 
 const optionDefault = (key: keyof PanelOptions) => () => defaultPanelOptions()[key];
 export const EXTRA_OPTION_FIELDS: Schema = [
+  { field: 'colorScale', codec: enumeration(['linear', 'log', 'sqrt']), default: undefined },
+  { field: 'colorDomain', codec: pair(roundedNumber), default: 'auto' },
+  { field: 'cells', codec: enumeration([30, 60, 120]), default: 60 },
   { field: 'quantiles', codec: enumeration(['quartiles', 'tails'], 1), default: optionDefault('quantiles') },
   {
     field: 'bins',
@@ -580,7 +583,8 @@ export function writeUrlRecord(url: UrlState): string {
       y,
       form,
       series,
-      options,
+      options: Object.fromEntries(Object.entries(options).filter(([key, value]) =>
+        !(key === 'colorScale' && value === (form === 'matrix' ? 'linear' : 'log')))),
       ...(reference === undefined ? {} : { reference }),
     })),
     selections: url.selections,

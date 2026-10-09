@@ -1,0 +1,4802 @@
+[
+{
+  "_id": {
+    "$oid": "5b0ebd7f36635100081c7a13"
+  },
+  "rating": "3",
+  "md5sum": "2f99084224c070814535d701a8eea5a0",
+  "_etag": "db565b257421a48712791da3fe7bc04904e4cf29",
+  "_updated": {
+    "$date": "2018-05-30T15:04:31.000Z"
+  },
+  "comment": "",
+  "_created": {
+    "$date": "2018-05-30T15:04:31.000Z"
+  },
+  "name": ""
+},
+{
+  "_id": {
+    "$oid": "5b0ec7ac366351000713a38f"
+  },
+  "rating": "3",
+  "md5sum": "d36d90f8060f0632378d0ae933225ff0",
+  "_etag": "982f43b34af22d091ba62b927ebd4e446c645250",
+  "_updated": {
+    "$date": "2018-05-30T15:47:56.000Z"
+  },
+  "comment": "",
+  "_created": {
+    "$date": "2018-05-30T15:47:56.000Z"
+  },
+  "name": "oesteban@stanford.edu"
+},
+{
+  "_id": {
+    "$oid": "5b0ec8a9366351000713a3f2"
+  },
+  "rating": "3",
+  "md5sum": "b5f948763132d9ef7075aa11d27d7e19",
+  "_etag": "2968ad2be9ab2e877922c5833dd8dd5e45951d56",
+  "_updated": {
+    "$date": "2018-05-30T15:52:09.000Z"
+  },
+  "comment": "Ringing artifact (see axial view 98-101 and top of brain of most of coronal views)",
+  "_created": {
+    "$date": "2018-05-30T15:52:09.000Z"
+  },
+  "name": "oesteban@stanford.edu"
+},
+{
+  "_id": {
+    "$oid": "5b0ec92e366351000713a486"
+  },
+  "rating": "1",
+  "md5sum": "ac1f5c8516a42b8e09180d95339332f9",
+  "_etag": "8c67105f819a4d101b898940de55c2b87f63acdf",
+  "_updated": {
+    "$date": "2018-05-30T15:54:22.000Z"
+  },
+  "comment": "Heavy motion",
+  "_created": {
+    "$date": "2018-05-30T15:54:22.000Z"
+  },
+  "name": "oesteban@stanford.edu"
+},
+{
+  "_id": {
+    "$oid": "5b0ecd0036635100081c7e64"
+  },
+  "rating": "3",
+  "md5sum": "f02f68761c4e7e1a6aa19a8790283182",
+  "_etag": "2bec203992a7627b4295fef1f52ab39dc4a16d0f",
+  "_updated": {
+    "$date": "2018-05-30T16:10:40.000Z"
+  },
+  "comment": "eye spill-over through the AP axis",
+  "_created": {
+    "$date": "2018-05-30T16:10:40.000Z"
+  },
+  "name": "oesteban@stanford.edu"
+},
+{
+  "_id": {
+    "$oid": "5b0ecd4f366351000713a554"
+  },
+  "rating": "1",
+  "md5sum": "1123978dae4834c8d5f433b49c85f53b",
+  "_etag": "c58f81a5f854bd50e299bcb865d9eccd61221737",
+  "_updated": {
+    "$date": "2018-05-30T16:11:59.000Z"
+  },
+  "comment": "Ringing artifacts, moderate motion artifacts and ghosting",
+  "_created": {
+    "$date": "2018-05-30T16:11:59.000Z"
+  },
+  "name": "oesteban@stanford.edu"
+},
+{
+  "_id": {
+    "$oid": "5b1168163663510008909f78"
+  },
+  "md5sum": "a4659436ffd8a134966f794224fb75d2",
+  "rating": "1",
+  "_etag": "b56aa1d7f767eea269168a097c533f1627d4e415",
+  "_updated": {
+    "$date": "2018-06-01T15:36:54.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "built-in denoising or similar technique removed background and degrade some slices at the height of the brain stem. Ringing artifacts in cortical GM, specially around the central sulcus, when reaching dorsal regions",
+  "_created": {
+    "$date": "2018-06-01T15:36:54.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b1169043663510008909f79"
+  },
+  "md5sum": "b7c388162ec9331fea4c888463081b69",
+  "rating": "3",
+  "_etag": "1293f30418f143ec7bc596bef8a830da73080bdd",
+  "_updated": {
+    "$date": "2018-06-01T15:40:52.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "pulsation artifact axial 36-38",
+  "_created": {
+    "$date": "2018-06-01T15:40:52.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b1169b63663510008909f7a"
+  },
+  "md5sum": "0123b5bcb9aed2a5f932ce76d55bcd6f",
+  "rating": "1",
+  "_etag": "7bf6dd74ee04486f194d9fe80a51af144da91419",
+  "_updated": {
+    "$date": "2018-06-01T15:43:50.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "Distortions at the frontal pole (see 57-59), ringing artifacts, poor SNR, cerebellar cyst ",
+  "_created": {
+    "$date": "2018-06-01T15:43:50.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b116d543663510008909f7b"
+  },
+  "md5sum": "02ff0fcf34ed46fbf67642a6179f137d",
+  "rating": "1",
+  "_etag": "433971a175e56108d81b3ac1dec15588a9181d96",
+  "_updated": {
+    "$date": "2018-06-01T15:59:16.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "Axial 55-60 contain weird-looking structure at the frontal pole (built-in scanner denoising artifact?). Pulsation artifact 17-23. Poor general contrast",
+  "_created": {
+    "$date": "2018-06-01T15:59:16.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b116db036635100077ebb34"
+  },
+  "md5sum": "3a59cc39770fe991e54c1aa537969e4c",
+  "rating": "1",
+  "_etag": "297e2d1616ac48704ca5b0422c5d525ca8eaeb77",
+  "_updated": {
+    "$date": "2018-06-01T16:00:48.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "head-motion, weird artifact showing intensity stripes through AP axis.",
+  "_created": {
+    "$date": "2018-06-01T16:00:48.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b116e153663510008909f7c"
+  },
+  "md5sum": "0d2df9ff37aa5e0186f891782fe773c2",
+  "rating": "1",
+  "_etag": "63da24ab6af306cd5b8371e271d8ce20e7027c38",
+  "_updated": {
+    "$date": "2018-06-01T16:02:29.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "textured noise, EM spike?",
+  "_created": {
+    "$date": "2018-06-01T16:02:29.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b116ffe3663510008909f7d"
+  },
+  "md5sum": "a840d04fc0cde4a4beb7a1d11e1c5a62",
+  "rating": "2",
+  "_etag": "c8f1d1ba831344d860d3f2641106b4aa6b2029c2",
+  "_updated": {
+    "$date": "2018-06-01T16:10:38.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-01T16:10:38.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b11728a3663510008909f7f"
+  },
+  "md5sum": "ed234644f3430d215b906e425118aafb",
+  "rating": "1",
+  "_etag": "b8a214c11480c4e72e68dbdfd7734de3091b37a4",
+  "_updated": {
+    "$date": "2018-06-01T16:21:30.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "eyes spill-over, seemingly artifactual distortions in dorsal area, poor contrast, some head motion ringing.",
+  "_created": {
+    "$date": "2018-06-01T16:21:30.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b1172cd3663510008909f80"
+  },
+  "md5sum": "47eced60cd4c61892bb3abd0c7d51dfb",
+  "rating": "1",
+  "_etag": "2684b6d50432d54f6f1abecf8e8bb0a9258d6df5",
+  "_updated": {
+    "$date": "2018-06-01T16:22:37.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "eye spillover, motion",
+  "_created": {
+    "$date": "2018-06-01T16:22:37.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b11735c36635100077ebb36"
+  },
+  "md5sum": "bbb4a0b3d4f7ca29fb3b87b548ece1b4",
+  "rating": "1",
+  "_etag": "515b5305ed4435dae9354d9eb826f76c629f4ff8",
+  "_updated": {
+    "$date": "2018-06-01T16:25:00.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "artifact at occipital area, axial 55-58",
+  "_created": {
+    "$date": "2018-06-01T16:25:00.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b1173b73663510008909f81"
+  },
+  "md5sum": "9b0e9bc54183bfff00d6093b87844e35",
+  "rating": "2",
+  "_etag": "65b0fdb9f58351af0cd0fc83cf7dd2c6b7aaea3a",
+  "_updated": {
+    "$date": "2018-06-01T16:26:31.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-01T16:26:31.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b1173d23663510008909f82"
+  },
+  "md5sum": "9b0e9bc54183bfff00d6093b87844e35",
+  "rating": "2",
+  "_etag": "0dd5f0d489efb27ef18c2120c5c91a43b041b746",
+  "_updated": {
+    "$date": "2018-06-01T16:26:58.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "artifact outside head",
+  "_created": {
+    "$date": "2018-06-01T16:26:58.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b11743236635100077ebb37"
+  },
+  "md5sum": "d79621ff1cc401e58411bfb029a5390e",
+  "rating": "2",
+  "_etag": "b3185dc9c10c446424be5516d3b77c756fa02266",
+  "_updated": {
+    "$date": "2018-06-01T16:28:34.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "some motion w/ ringing artifact",
+  "_created": {
+    "$date": "2018-06-01T16:28:34.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b11747a36635100077ebb38"
+  },
+  "md5sum": "20799810661ffbd09acecd8c0c22dca7",
+  "rating": "3",
+  "_etag": "f1ecc2430c300b43e6124031f27b9c70a12bc957",
+  "_updated": {
+    "$date": "2018-06-01T16:29:46.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-01T16:29:46.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b1174fb36635100077ebb39"
+  },
+  "md5sum": "7ada2194a7f8c9adce5508591489a54e",
+  "rating": "3",
+  "_etag": "596d64dc9385ca87204bd3e7d298f857442a7742",
+  "_updated": {
+    "$date": "2018-06-01T16:31:55.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-01T16:31:55.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b11754836635100077ebb3a"
+  },
+  "md5sum": "6ef73096cc8303252e11ecb9f31b26c9",
+  "rating": "1",
+  "_etag": "01e37afe0e16c43871034e896f621aae9ef8be03",
+  "_updated": {
+    "$date": "2018-06-01T16:33:12.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "excessive bias, very noisy",
+  "_created": {
+    "$date": "2018-06-01T16:33:12.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b11759736635100077ebb3b"
+  },
+  "md5sum": "08bf8ecdff720c87d05ff6bd1d387694",
+  "rating": "2",
+  "_etag": "a79ceb300c155c1ff5c1e72a9952835cd844269e",
+  "_updated": {
+    "$date": "2018-06-01T16:34:31.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-01T16:34:31.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b1176573663510008909f83"
+  },
+  "md5sum": "104d79acebc714d446ce1b934ee53c69",
+  "rating": "2",
+  "_etag": "6e0b33eb77d6f05cabbe16bd92b52d0062e81ef6",
+  "_updated": {
+    "$date": "2018-06-01T16:37:43.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "ghost axial 54-57, left",
+  "_created": {
+    "$date": "2018-06-01T16:37:43.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b1176b536635100077ebb3c"
+  },
+  "md5sum": "d17a331257939d4e38d0ffb92b42757b",
+  "rating": "1",
+  "_etag": "2c38bd1555c39c8bd2b9b8f6d2e36d5dd6918790",
+  "_updated": {
+    "$date": "2018-06-01T16:39:17.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "motion artifact",
+  "_created": {
+    "$date": "2018-06-01T16:39:17.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b1177103663510008909f84"
+  },
+  "md5sum": "e7adf76b015a0628f8debe63945cfb4b",
+  "rating": "1",
+  "_etag": "6d8dc62ffe0e03156d0eda201cc63310c3534253",
+  "_updated": {
+    "$date": "2018-06-01T16:40:48.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "strong ringing axial 58, 66",
+  "_created": {
+    "$date": "2018-06-01T16:40:48.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b1177383663510008909f85"
+  },
+  "md5sum": "84724db1ef77c4dd24ff0b2427959b2b",
+  "rating": "1",
+  "_etag": "a74d6c8d527a7fd634d231f49188bf1edf7b5c40",
+  "_updated": {
+    "$date": "2018-06-01T16:41:28.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "motion",
+  "_created": {
+    "$date": "2018-06-01T16:41:28.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b1177773663510008909f86"
+  },
+  "md5sum": "cf782bff85ed5aad09f3ca31159e24c6",
+  "rating": "2",
+  "_etag": "4d98353f585467c1835131a3bbe22347b07240f2",
+  "_updated": {
+    "$date": "2018-06-01T16:42:31.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "excessive denoising",
+  "_created": {
+    "$date": "2018-06-01T16:42:31.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b1177c93663510008909f87"
+  },
+  "md5sum": "641c46f18dfd2f032946e5f65426dca3",
+  "rating": "2",
+  "_etag": "14b0af53ebea2a4eee1546e79fb3492669c28322",
+  "_updated": {
+    "$date": "2018-06-01T16:43:53.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "Pulsation artifact",
+  "_created": {
+    "$date": "2018-06-01T16:43:53.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b11781036635100077ebb3d"
+  },
+  "md5sum": "ac551b01325f1dae0f9d7423b6e82c6d",
+  "rating": "2",
+  "_etag": "4ca2db3ad6d3d8944b5abeacffa6ccb6fa65d0d4",
+  "_updated": {
+    "$date": "2018-06-01T16:45:04.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-01T16:45:04.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b11783a3663510008909f88"
+  },
+  "md5sum": "3d18d639334ad7f9113d028dda4c9b50",
+  "rating": "1",
+  "_etag": "f7b293e6cc0c2a8d44a101900ca53e457a5c7f0e",
+  "_updated": {
+    "$date": "2018-06-01T16:45:46.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "motion",
+  "_created": {
+    "$date": "2018-06-01T16:45:46.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b11785f36635100077ebb3e"
+  },
+  "md5sum": "319edd5c1488a0ebdb67e94d3c3d67be",
+  "rating": "1",
+  "_etag": "cadd8ae9f296318f6049f1959ba3886b272a6d7e",
+  "_updated": {
+    "$date": "2018-06-01T16:46:23.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "motion",
+  "_created": {
+    "$date": "2018-06-01T16:46:23.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b1178c83663510008909f89"
+  },
+  "md5sum": "1123978dae4834c8d5f433b49c85f53b",
+  "rating": "1",
+  "_etag": "6252fc30d6d315364ffd4f6a6c5319bba543b103",
+  "_updated": {
+    "$date": "2018-06-01T16:48:08.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-01T16:48:08.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b1178db36635100077ebb40"
+  },
+  "md5sum": "4dcf3edcf5649e3d6f1cbb3360a72c28",
+  "rating": "1",
+  "_etag": "2843783c283ee879b41d936d74bc5ece0d2680ab",
+  "_updated": {
+    "$date": "2018-06-01T16:48:27.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-01T16:48:27.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b1178ee36635100077ebb41"
+  },
+  "md5sum": "f04dee401a34c41587b42cf1c409b939",
+  "rating": "1",
+  "_etag": "184e4e98e67286aee09b9bac2dee57ec1e13f5fd",
+  "_updated": {
+    "$date": "2018-06-01T16:48:46.000Z"
+  },
+  "name": "",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-01T16:48:46.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b1179073663510008909f8a"
+  },
+  "md5sum": "88bc0ed85c10a2e9f9778999bf2b698c",
+  "rating": "1",
+  "_etag": "8a6fa3bc57968d7ade1322da0ce020d62d61fd39",
+  "_updated": {
+    "$date": "2018-06-01T16:49:11.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-01T16:49:11.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b11791a3663510008909f8b"
+  },
+  "md5sum": "0ce07964be903c8eb6d10a447e32b69d",
+  "rating": "1",
+  "_etag": "8f6cc46466e4a33e8eb5345a93b5c6884346bde9",
+  "_updated": {
+    "$date": "2018-06-01T16:49:30.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-01T16:49:30.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b11793636635100077ebb42"
+  },
+  "md5sum": "3f8157b89b193af4252e491d2dbdabb9",
+  "rating": "1",
+  "_etag": "d09dde094322f13a69d831a71cdc3a9edb73ef32",
+  "_updated": {
+    "$date": "2018-06-01T16:49:58.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-01T16:49:58.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b11794936635100077ebb43"
+  },
+  "md5sum": "2887453f20299517548d554c28cff359",
+  "rating": "1",
+  "_etag": "d7056cb6df9251211f3aab1f3e1c4279ea36e166",
+  "_updated": {
+    "$date": "2018-06-01T16:50:17.000Z"
+  },
+  "name": "",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-01T16:50:17.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b11794936635100077ebb44"
+  },
+  "md5sum": "2887453f20299517548d554c28cff359",
+  "rating": "1",
+  "_etag": "d7056cb6df9251211f3aab1f3e1c4279ea36e166",
+  "_updated": {
+    "$date": "2018-06-01T16:50:17.000Z"
+  },
+  "name": "",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-01T16:50:17.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b1179613663510008909f8c"
+  },
+  "md5sum": "776f4b759db2148b1d35092f931dc30c",
+  "rating": "1",
+  "_etag": "d3e2ff4cd0ece972b1ef6398f5144afad57c8bce",
+  "_updated": {
+    "$date": "2018-06-01T16:50:41.000Z"
+  },
+  "name": "",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-01T16:50:41.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b11796c3663510008909f8d"
+  },
+  "md5sum": "2f2ac357bcf006f5ae67dd5ba3ce6bf1",
+  "rating": "1",
+  "_etag": "c7909498a4fd155be21584a72859807bcf42864d",
+  "_updated": {
+    "$date": "2018-06-01T16:50:52.000Z"
+  },
+  "name": "",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-01T16:50:52.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b11797436635100077ebb45"
+  },
+  "md5sum": "9f8ba18e469611a5be48a48b5c4da1b1",
+  "rating": "1",
+  "_etag": "4f519266fba2873730007fa45cf57a05757d9a00",
+  "_updated": {
+    "$date": "2018-06-01T16:51:00.000Z"
+  },
+  "name": "",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-01T16:51:00.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b11797c36635100077ebb46"
+  },
+  "md5sum": "81cda4f09d8780c575dc7e6181131168",
+  "rating": "1",
+  "_etag": "a64bac1d52fc7e72e983ed026059838dc3d3df31",
+  "_updated": {
+    "$date": "2018-06-01T16:51:08.000Z"
+  },
+  "name": "",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-01T16:51:08.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b11798536635100077ebb47"
+  },
+  "md5sum": "88a39640b0641f227ec8677f67c22255",
+  "rating": "1",
+  "_etag": "9d581b40e7aaa060882e3abbf939b3afe42fc6cf",
+  "_updated": {
+    "$date": "2018-06-01T16:51:17.000Z"
+  },
+  "name": "",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-01T16:51:17.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b1179903663510008909f8e"
+  },
+  "md5sum": "57cd35190da3c813a3c3dadccd8a4ad7",
+  "rating": "1",
+  "_etag": "5698d8707b30077d50fb62c07db130cd5aba69c6",
+  "_updated": {
+    "$date": "2018-06-01T16:51:28.000Z"
+  },
+  "name": "",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-01T16:51:28.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b1179be36635100077ebb48"
+  },
+  "md5sum": "5b44838a8dcb29e4f0e34b53f98bf5e2",
+  "rating": "1",
+  "_etag": "645246b836c0bb776fd06c67a3be79a5e45a5713",
+  "_updated": {
+    "$date": "2018-06-01T16:52:14.000Z"
+  },
+  "name": "",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-01T16:52:14.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b1179ca36635100077ebb49"
+  },
+  "md5sum": "b78ccfef2dfd8ddf2b0b337453aa2622",
+  "rating": "1",
+  "_etag": "3819ef30133c41093f51e149b7e61c94bf21ee10",
+  "_updated": {
+    "$date": "2018-06-01T16:52:26.000Z"
+  },
+  "name": "",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-01T16:52:26.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b1179e036635100077ebb4a"
+  },
+  "md5sum": "5ef4669425ca38c42aa9649d256853e8",
+  "rating": "1",
+  "_etag": "ecf552ab7a734836c40577aff002b45e2622cf04",
+  "_updated": {
+    "$date": "2018-06-01T16:52:48.000Z"
+  },
+  "name": "",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-01T16:52:48.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b1179ed3663510008909f8f"
+  },
+  "md5sum": "3ef577401635576e51ece97fa09c5496",
+  "rating": "1",
+  "_etag": "9ed0ce814a0ed9620c84f7128e58e30fcfe2d4b0",
+  "_updated": {
+    "$date": "2018-06-01T16:53:01.000Z"
+  },
+  "name": "",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-01T16:53:01.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b1179fa3663510008909f90"
+  },
+  "md5sum": "ee9639100ce3e64c4b45fccfeef81b54",
+  "rating": "1",
+  "_etag": "db10d7a8222e94ca842dbfa6672661560f8f344b",
+  "_updated": {
+    "$date": "2018-06-01T16:53:14.000Z"
+  },
+  "name": "",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-01T16:53:14.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b117a0636635100077ebb4b"
+  },
+  "md5sum": "911432c24dcf6193ab488377bc499ed1",
+  "rating": "1",
+  "_etag": "155ecddec7951baf1cd137f75d4676708464c25c",
+  "_updated": {
+    "$date": "2018-06-01T16:53:26.000Z"
+  },
+  "name": "",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-01T16:53:26.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b117a3f36635100077ebb4c"
+  },
+  "md5sum": "be71fcf9b884c67f703dbf8dbf6e3d21",
+  "rating": "2",
+  "_etag": "4a97b998cfeee4f1f0163e8df15d96db4d0c6745",
+  "_updated": {
+    "$date": "2018-06-01T16:54:23.000Z"
+  },
+  "name": "",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-01T16:54:23.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b117ab23663510008909f91"
+  },
+  "md5sum": "b8c513461c6cd6ec11ecec932817e757",
+  "rating": "1",
+  "_etag": "ded270e9ce0626f42f83d37659faaef585b119a0",
+  "_updated": {
+    "$date": "2018-06-01T16:56:18.000Z"
+  },
+  "name": "",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-01T16:56:18.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b117ad73663510008909f92"
+  },
+  "md5sum": "71040e89acd5c4b393b3e6d96a499c68",
+  "rating": "1",
+  "_etag": "32e3390e8e05ba6c183fa568f1c705a53741b9ff",
+  "_updated": {
+    "$date": "2018-06-01T16:56:55.000Z"
+  },
+  "name": "",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-01T16:56:55.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b117b0036635100077ebb4d"
+  },
+  "md5sum": "a3d0ea8db4572460a2f8d0e91afcd382",
+  "rating": "1",
+  "_etag": "7a3258634d037b4bcd0c34f83d27d7c35ea0605d",
+  "_updated": {
+    "$date": "2018-06-01T16:57:36.000Z"
+  },
+  "name": "",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-01T16:57:36.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b117b2d36635100077ebb4e"
+  },
+  "md5sum": "3a7a6f97b1d5ba4e42dbff2a42d7a02c",
+  "rating": "1",
+  "_etag": "779063f08caec744eec987f6607cab6c2194f1a0",
+  "_updated": {
+    "$date": "2018-06-01T16:58:21.000Z"
+  },
+  "name": "",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-01T16:58:21.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b118e7e36635100077ebb4f"
+  },
+  "md5sum": "c0a39f4b996e9e897f197eb0d326795e",
+  "rating": "1",
+  "_etag": "76839d4bdeb27cd9fffdf2e295aa89dc98f7836f",
+  "_updated": {
+    "$date": "2018-06-01T18:20:46.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-01T18:20:46.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b118eb63663510008909f95"
+  },
+  "md5sum": "6bb2acf0be85806cf16fc27d1db4a16e",
+  "rating": "1",
+  "_etag": "9cf1b9ce35363d4fde7ad8e773b44cb1338b922c",
+  "_updated": {
+    "$date": "2018-06-01T18:21:42.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-01T18:21:42.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b118eed36635100077ebb50"
+  },
+  "md5sum": "a6dac52d07a986b16757ed029c0f834e",
+  "rating": "2",
+  "_etag": "876c33b6edf1108bd0bdab6221965bd81bfc8771",
+  "_updated": {
+    "$date": "2018-06-01T18:22:37.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-01T18:22:37.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b118f783663510008909f96"
+  },
+  "md5sum": "590eee6739c7703e15a647a59f92f5f9",
+  "rating": "1",
+  "_etag": "4186fb902920f6eaf65527e03f48f349172d2297",
+  "_updated": {
+    "$date": "2018-06-01T18:24:56.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-01T18:24:56.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b118fbb36635100077ebb51"
+  },
+  "md5sum": "3105ee5f92cba38a5c83b11ab235385c",
+  "rating": "2",
+  "_etag": "3e48937a872f2a2ffd2d69d4770b68d5bdbcf64a",
+  "_updated": {
+    "$date": "2018-06-01T18:26:03.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-01T18:26:03.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b118ff436635100077ebb52"
+  },
+  "md5sum": "20f9fc4e4a98c89f8a6c60daeca6c5bf",
+  "rating": "1",
+  "_etag": "776298c41a44958d4fa2b89973a6c24998898854",
+  "_updated": {
+    "$date": "2018-06-01T18:27:00.000Z"
+  },
+  "name": "",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-01T18:27:00.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b11904436635100077ebb53"
+  },
+  "md5sum": "e3a66457d9b2cb1145108ec2a0f76eca",
+  "rating": "2",
+  "_etag": "10ff4203054f2e19adcb11644b1668af7fa7b3e3",
+  "_updated": {
+    "$date": "2018-06-01T18:28:20.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-01T18:28:20.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b11909f36635100077ebb54"
+  },
+  "md5sum": "b25c4677d52117563a5be15102a0d82f",
+  "rating": "2",
+  "_etag": "a1875d44bc8ed3ee1ddc90cbcfa42c245c6e0f8b",
+  "_updated": {
+    "$date": "2018-06-01T18:29:51.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "axial 182 - possible artifact / extraneous structure",
+  "_created": {
+    "$date": "2018-06-01T18:29:51.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b1190db36635100077ebb55"
+  },
+  "md5sum": "91b088d48b8fc92c3abe3513e0dee89e",
+  "rating": "1",
+  "_etag": "4734743fe30d1de79102018379edcdaae29795b3",
+  "_updated": {
+    "$date": "2018-06-01T18:30:51.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "blurring",
+  "_created": {
+    "$date": "2018-06-01T18:30:51.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b1190f136635100077ebb56"
+  },
+  "md5sum": "930c7fe7d251aa250d9c407cab636f22",
+  "rating": "1",
+  "_etag": "a1496b01bf7778730379e3930cea74e458992bdf",
+  "_updated": {
+    "$date": "2018-06-01T18:31:13.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "blurring",
+  "_created": {
+    "$date": "2018-06-01T18:31:13.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b11912d36635100077ebb57"
+  },
+  "md5sum": "299fc71f1d04c5640f8c40acaf0773b3",
+  "rating": "2",
+  "_etag": "17d04ff4dad6c2a45533684e86e5e79cec31bc09",
+  "_updated": {
+    "$date": "2018-06-01T18:32:13.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "noisy",
+  "_created": {
+    "$date": "2018-06-01T18:32:13.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b11916b36635100077ebb58"
+  },
+  "md5sum": "a62a09eee16fce888edc70bd6081f1f3",
+  "rating": "2",
+  "_etag": "1dfaf0a61d3e933d5d6aa813a7c3c7f2e4284d1d",
+  "_updated": {
+    "$date": "2018-06-01T18:33:15.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "motion, noise",
+  "_created": {
+    "$date": "2018-06-01T18:33:15.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b1191a33663510008909f97"
+  },
+  "md5sum": "301d95fc64b05cd7126f007f0070cacf",
+  "rating": "2",
+  "_etag": "22b5d1e1c41280e8cb3117aca7aaab9aba804b80",
+  "_updated": {
+    "$date": "2018-06-01T18:34:11.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-01T18:34:11.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b1192233663510008909f98"
+  },
+  "md5sum": "be91aecfd1218a8cb479f58cb811a74c",
+  "rating": "2",
+  "_etag": "7ce8d427c955ff9b2ed146263f46dfb19f4e4fc0",
+  "_updated": {
+    "$date": "2018-06-01T18:36:19.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-01T18:36:19.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b11927036635100077ebb59"
+  },
+  "md5sum": "68572aa3ef31d03bf79533aebb75cd07",
+  "rating": "2",
+  "_etag": "d49326966eca992e2ecbc33bb6436c632b601806",
+  "_updated": {
+    "$date": "2018-06-01T18:37:36.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-01T18:37:36.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b11929d36635100077ebb5a"
+  },
+  "md5sum": "4d308cce7095f9a83d2ffb04b9fb9995",
+  "rating": "2",
+  "_etag": "401044b2878f3c7c02ff427d9cce180541b33a10",
+  "_updated": {
+    "$date": "2018-06-01T18:38:21.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-01T18:38:21.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b1192eb36635100077ebb5b"
+  },
+  "md5sum": "0336893c0df5b3470f152416b7893370",
+  "rating": "2",
+  "_etag": "ae36cee72cfca33ec5555e2bcccbf1b35976616d",
+  "_updated": {
+    "$date": "2018-06-01T18:39:39.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-01T18:39:39.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b11932436635100077ebb5c"
+  },
+  "md5sum": "66d3ff4b54b6ea0bbca8dc3e3cb028c1",
+  "rating": "2",
+  "_etag": "b4e90cd7bb558c99f03edf526b299733ac629477",
+  "_updated": {
+    "$date": "2018-06-01T18:40:36.000Z"
+  },
+  "name": "",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-01T18:40:36.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b11938c36635100077ebb5d"
+  },
+  "md5sum": "bdf78ef3688ac55ab11b45ecfc6d7e5a",
+  "rating": "2",
+  "_etag": "86c51591876f11429778ee51264731939f84dbf1",
+  "_updated": {
+    "$date": "2018-06-01T18:42:20.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "axial-41 ringing artifact",
+  "_created": {
+    "$date": "2018-06-01T18:42:20.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b1193ed36635100077ebb5e"
+  },
+  "md5sum": "740b87e638fd1bbce645013763ce5e2b",
+  "rating": "2",
+  "_etag": "1810d65b5feffc65e38540d8707b1b3592da5df6",
+  "_updated": {
+    "$date": "2018-06-01T18:43:57.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "some eye spillover",
+  "_created": {
+    "$date": "2018-06-01T18:43:57.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b1194f436635100077ebb60"
+  },
+  "md5sum": "b4f08042fb0b345b4e1beacf1420b970",
+  "rating": "1",
+  "_etag": "594787b5ac2c353be91299e0ae205a1330a839d4",
+  "_updated": {
+    "$date": "2018-06-01T18:48:20.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-01T18:48:20.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b11957636635100077ebb64"
+  },
+  "md5sum": "4e5704ff66ad85bbd71c69384e78f09e",
+  "rating": "1",
+  "_etag": "5fff1510b8cbb40b27c147656ce37932f0e94381",
+  "_updated": {
+    "$date": "2018-06-01T18:50:30.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "very clear motion",
+  "_created": {
+    "$date": "2018-06-01T18:50:30.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b1195e33663510008909fa1"
+  },
+  "md5sum": "67d9d06b90739df3e98999f69a52e455",
+  "rating": "2",
+  "_etag": "3b885c5b3a43af172120b6a7d2f0834447cb46c7",
+  "_updated": {
+    "$date": "2018-06-01T18:52:19.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-01T18:52:19.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b11960b3663510008909fa2"
+  },
+  "md5sum": "9eb5d98adf613162ff55e0003dd6e867",
+  "rating": "1",
+  "_etag": "3efe1d20655937132143445d79911c00312b34f8",
+  "_updated": {
+    "$date": "2018-06-01T18:52:59.000Z"
+  },
+  "name": "",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-01T18:52:59.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b1196563663510008909fa3"
+  },
+  "md5sum": "190f9e298d9d1c43d4ecef04f569b0a9",
+  "rating": "2",
+  "_etag": "200a6ffb0932e2d82c2d4b7a03ce28f31f9821bb",
+  "_updated": {
+    "$date": "2018-06-01T18:54:14.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-01T18:54:14.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b1196933663510008909fa5"
+  },
+  "md5sum": "ab410c7e29844afe5433f5e036073dc8",
+  "rating": "1",
+  "_etag": "ccac7592ac9b4e45c7dc3e8485466c74705300c6",
+  "_updated": {
+    "$date": "2018-06-01T18:55:15.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-01T18:55:15.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b1196bc3663510008909fa6"
+  },
+  "md5sum": "ae8fd802ec2692fb20f5f83968e9b7ea",
+  "rating": "2",
+  "_etag": "c950661a85a4bab7acae6a278c467c76fc49491f",
+  "_updated": {
+    "$date": "2018-06-01T18:55:56.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "motion",
+  "_created": {
+    "$date": "2018-06-01T18:55:56.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b1196ea3663510008909fa7"
+  },
+  "md5sum": "eebac4d1981489e76ce95efecbed9120",
+  "rating": "1",
+  "_etag": "45f6c17c273f3b6fc2d2ac5db586a3da269b54b8",
+  "_updated": {
+    "$date": "2018-06-01T18:56:42.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-01T18:56:42.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b1197173663510008909fa8"
+  },
+  "md5sum": "ac76fb2e60ee3563cb02fa2de31519c7",
+  "rating": "2",
+  "_etag": "ab603ec926d07b3524e0497f40e1fcad25d0470e",
+  "_updated": {
+    "$date": "2018-06-01T18:57:27.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-01T18:57:27.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b11973e3663510008909fa9"
+  },
+  "md5sum": "6018986f9d2cc308ffeebbc880872ee6",
+  "rating": "2",
+  "_etag": "8911bc3c5f479a4962f81534b185fcb94682ae3f",
+  "_updated": {
+    "$date": "2018-06-01T18:58:06.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-01T18:58:06.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b11977e3663510008909faa"
+  },
+  "md5sum": "1e35a04035e8a7b19cf3896ea697a266",
+  "rating": "1",
+  "_etag": "905ac70206cc9c9782983ebdd4d8c95cd2ab764f",
+  "_updated": {
+    "$date": "2018-06-01T18:59:10.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-01T18:59:10.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b1197a03663510008909fab"
+  },
+  "md5sum": "9d7f61dff61002ee99481ef2981a2303",
+  "rating": "2",
+  "_etag": "5516d71ee190aeff7cc99e976d4d71f3d6a91d01",
+  "_updated": {
+    "$date": "2018-06-01T18:59:44.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-01T18:59:44.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b1197cb3663510008909fac"
+  },
+  "md5sum": "2e9637a511b33dcc81d6e22a40466e87",
+  "rating": "2",
+  "_etag": "a62fdf08251c0878645276ecee9ec2f18cc56252",
+  "_updated": {
+    "$date": "2018-06-01T19:00:27.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-01T19:00:27.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b11995c36635100077ebb6e"
+  },
+  "md5sum": "bb9595e22af3a78f772d512c48e4a075",
+  "rating": "1",
+  "_etag": "59c19eff492f3791e23d5d639fe53ba799395916",
+  "_updated": {
+    "$date": "2018-06-01T19:07:08.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-01T19:07:08.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b1199773663510008909fad"
+  },
+  "md5sum": "648655b23420070b08b1b6057a8a7129",
+  "rating": "1",
+  "_etag": "9c32a107ef4981b9923b615b1d07547e78021159",
+  "_updated": {
+    "$date": "2018-06-01T19:07:35.000Z"
+  },
+  "name": "",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-01T19:07:35.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b11997a3663510008909fae"
+  },
+  "md5sum": "648655b23420070b08b1b6057a8a7129",
+  "rating": "1",
+  "_etag": "38d21a441e7bc4afb8b22aaa14738d54333330ff",
+  "_updated": {
+    "$date": "2018-06-01T19:07:38.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-01T19:07:38.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b11999a36635100077ebb6f"
+  },
+  "md5sum": "9a396afe0ce7c811b87aa451d88885f1",
+  "rating": "2",
+  "_etag": "744da7faf54ddd3e182edb84e13913c64ae917ea",
+  "_updated": {
+    "$date": "2018-06-01T19:08:10.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-01T19:08:10.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b1199de3663510008909fb0"
+  },
+  "md5sum": "6772deb4fa7c6f0d1fa40c990ee7c303",
+  "rating": "1",
+  "_etag": "ab70364138a44098d708f394d5bfd02a4baf4776",
+  "_updated": {
+    "$date": "2018-06-01T19:09:18.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-01T19:09:18.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b119af73663510008909fb1"
+  },
+  "md5sum": "ab3a34f712a96853885cb5582760ee74",
+  "rating": "2",
+  "_etag": "bc8509f051176cba6e296b3c8ae093aad8a52f74",
+  "_updated": {
+    "$date": "2018-06-01T19:13:59.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-01T19:13:59.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b119b3e3663510008909fb3"
+  },
+  "md5sum": "9db2fc01cdcb9cd33d85ef8f1511727a",
+  "rating": "2",
+  "_etag": "37995d7b23e3855dbbdb12aa4e05796dad7d7de2",
+  "_updated": {
+    "$date": "2018-06-01T19:15:10.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-01T19:15:10.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b119b8c3663510008909fb4"
+  },
+  "md5sum": "8e0b9f2cd16c73be1cba1d5974aa444b",
+  "rating": "1",
+  "_etag": "c1eb927a57ecbb6d5ed612abd8359215693de6df",
+  "_updated": {
+    "$date": "2018-06-01T19:16:28.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "blur & motion",
+  "_created": {
+    "$date": "2018-06-01T19:16:28.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b119be43663510008909fb5"
+  },
+  "md5sum": "634cab922c026486e6331f81b4bfad8f",
+  "rating": "2",
+  "_etag": "9e8417ad5af60269fe09a5785f4986a11695a098",
+  "_updated": {
+    "$date": "2018-06-01T19:17:56.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "LR wraparound",
+  "_created": {
+    "$date": "2018-06-01T19:17:56.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b119c3436635100077ebb70"
+  },
+  "md5sum": "db6b500ac1265d017ada8a6ba71a3823",
+  "rating": "1",
+  "_etag": "fcb8756580c65df178968b2181958e329d8bd8e4",
+  "_updated": {
+    "$date": "2018-06-01T19:19:16.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "heavy motion artifact",
+  "_created": {
+    "$date": "2018-06-01T19:19:16.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b119c7636635100077ebb71"
+  },
+  "md5sum": "4a079bfc62f3e2f1651c915d4e2006d7",
+  "rating": "2",
+  "_etag": "a51d616c71f1fd0926d2a74268fda9ad839828b6",
+  "_updated": {
+    "$date": "2018-06-01T19:20:22.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-01T19:20:22.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b119cae36635100077ebb72"
+  },
+  "md5sum": "0d794dc2504b46856c6c80cec7a733ad",
+  "rating": "2",
+  "_etag": "f33d2b98b980196c1ed01c05be97bbe57935f56d",
+  "_updated": {
+    "$date": "2018-06-01T19:21:18.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-01T19:21:18.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b119cd536635100077ebb73"
+  },
+  "md5sum": "bb8e3a7c8990c9fd7ef324ea325b23fb",
+  "rating": "1",
+  "_etag": "71565e665a26f72ee4a5a709ecca92e6a64cdf07",
+  "_updated": {
+    "$date": "2018-06-01T19:21:57.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "noisy",
+  "_created": {
+    "$date": "2018-06-01T19:21:57.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b119d2b3663510008909fb6"
+  },
+  "md5sum": "a01af059ae35960f11a74dfaf7e6a3a8",
+  "rating": "1",
+  "_etag": "5318aed498c0bbe17ea97c16582c9a7c317db4ec",
+  "_updated": {
+    "$date": "2018-06-01T19:23:23.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-01T19:23:23.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b119d543663510008909fb7"
+  },
+  "md5sum": "da92007b1bf2e40ec767a52ab669f9e2",
+  "rating": "2",
+  "_etag": "e7ec172c56ddfc0ffce9bd0f5dde07e50ca30dca",
+  "_updated": {
+    "$date": "2018-06-01T19:24:04.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-01T19:24:04.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b119d7a3663510008909fb8"
+  },
+  "md5sum": "8c6e74f8790c0f73f756842c29bb6935",
+  "rating": "2",
+  "_etag": "ba23169dbb06d3ec5795370122094e107b0f8369",
+  "_updated": {
+    "$date": "2018-06-01T19:24:42.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-01T19:24:42.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b119daa3663510008909fb9"
+  },
+  "md5sum": "0862727acf9313d970f1cb2c4fdf083b",
+  "rating": "2",
+  "_etag": "a38c25a0e668d3a15285885142cf66895a455550",
+  "_updated": {
+    "$date": "2018-06-01T19:25:30.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-01T19:25:30.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b119dc836635100077ebb74"
+  },
+  "md5sum": "da9e11a360b178483f4bf4acf2d3837b",
+  "rating": "2",
+  "_etag": "a0dc3cf3b096d7d8ab4585086c41a94f95a8e85a",
+  "_updated": {
+    "$date": "2018-06-01T19:26:00.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-01T19:26:00.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b119de93663510008909fba"
+  },
+  "md5sum": "0911bcdcd34bbd3c540fbbe584bc3e68",
+  "rating": "2",
+  "_etag": "39b1f44af4349e24417eeaf5ae4f7fdb589a1018",
+  "_updated": {
+    "$date": "2018-06-01T19:26:33.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-01T19:26:33.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b119e0a36635100077ebb75"
+  },
+  "md5sum": "decba1bee58d3ed235f86bc6f7e8ade4",
+  "rating": "1",
+  "_etag": "02b7df3340eeaee4b47839cd46df6423f8c268a6",
+  "_updated": {
+    "$date": "2018-06-01T19:27:06.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-01T19:27:06.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b119e4c36635100077ebb76"
+  },
+  "md5sum": "a57d85600b612b96d15249d40e7b046e",
+  "rating": "1",
+  "_etag": "763f7efdd1425bc3f092e7e15bbc37d351f2b8d3",
+  "_updated": {
+    "$date": "2018-06-01T19:28:12.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-01T19:28:12.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b119e9f36635100077ebb77"
+  },
+  "md5sum": "e981fe11a5394972cdb417c63d6f8f81",
+  "rating": "1",
+  "_etag": "951630ab4c91be0afb524c1f3d2dc7678a4e423e",
+  "_updated": {
+    "$date": "2018-06-01T19:29:35.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-01T19:29:35.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b119edb36635100077ebb78"
+  },
+  "md5sum": "53a7e07fbea924a43698af138b40574b",
+  "rating": "1",
+  "_etag": "1393449a8bd923521d82b21ac9f8cdaa3cf431a6",
+  "_updated": {
+    "$date": "2018-06-01T19:30:35.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-01T19:30:35.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b119f0f36635100077ebb79"
+  },
+  "md5sum": "cb417868fda26833241a782797fc8829",
+  "rating": "1",
+  "_etag": "4b29edb59feb184e6a02279c8f44e5df10d5c56a",
+  "_updated": {
+    "$date": "2018-06-01T19:31:27.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-01T19:31:27.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b119f7236635100077ebb7a"
+  },
+  "md5sum": "24d02e11650b6838575961cf374299ca",
+  "rating": "2",
+  "_etag": "714412e79df2f308110efe882f4f7f0d522f236c",
+  "_updated": {
+    "$date": "2018-06-01T19:33:06.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-01T19:33:06.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b119fb536635100077ebb7b"
+  },
+  "md5sum": "b5063c3be69eb9384e79a4afff7279a8",
+  "rating": "2",
+  "_etag": "eb333f8afba02f30b9f3df36e2f0d2dd378daa6e",
+  "_updated": {
+    "$date": "2018-06-01T19:34:13.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-01T19:34:13.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b119fe036635100077ebb7c"
+  },
+  "md5sum": "bc352211ba6432dd6b8bb9da581847bf",
+  "rating": "1",
+  "_etag": "68b18fb9f9cf2d90b5983bc96b3bf9569b1322f0",
+  "_updated": {
+    "$date": "2018-06-01T19:34:56.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-01T19:34:56.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b119fed36635100077ebb7d"
+  },
+  "md5sum": "bc352211ba6432dd6b8bb9da581847bf",
+  "rating": "1",
+  "_etag": "bc771978545f62068cec6eb7ff092300e150bd68",
+  "_updated": {
+    "$date": "2018-06-01T19:35:09.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "fat-ghost, eyes spillover",
+  "_created": {
+    "$date": "2018-06-01T19:35:09.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b11a04836635100077ebb7e"
+  },
+  "md5sum": "d40576f743ef5bc6cb376a37164c430d",
+  "rating": "2",
+  "_etag": "2c7d739cabef029890586930f349a07dc80746b4",
+  "_updated": {
+    "$date": "2018-06-01T19:36:40.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-01T19:36:40.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b11a0773663510008909fbb"
+  },
+  "md5sum": "435a02180f1d37d16ff3ee22a498f1cb",
+  "rating": "3",
+  "_etag": "11912626491bf6047522538e2cf8a346252b28f2",
+  "_updated": {
+    "$date": "2018-06-01T19:37:27.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-01T19:37:27.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b11b3fb3663510008909fc4"
+  },
+  "md5sum": "a19dab5e644b57da54cfab6da03c9b3e",
+  "rating": "2",
+  "_etag": "95275916dbd8faabc5238d16afb7e56230c0f11d",
+  "_updated": {
+    "$date": "2018-06-01T21:00:43.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-01T21:00:43.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b11b42d36635100077ebb8b"
+  },
+  "md5sum": "ed9f78448d87861f0eb2b98d1b7dfb4f",
+  "rating": "2",
+  "_etag": "fd36607024b6862e44e5af65bbac9e433aa4c217",
+  "_updated": {
+    "$date": "2018-06-01T21:01:33.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-01T21:01:33.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b11b46236635100077ebb8c"
+  },
+  "md5sum": "61e477a643337d3b28713f04a8bcd805",
+  "rating": "2",
+  "_etag": "a285eefbb7d09f43ac13b91077fce1d16ce84234",
+  "_updated": {
+    "$date": "2018-06-01T21:02:26.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-01T21:02:26.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b11b48d36635100077ebb8d"
+  },
+  "md5sum": "eac4bed87894128b314308062283faeb",
+  "rating": "2",
+  "_etag": "d1a22e314f1029bf0c74706c14f342625ea07ca1",
+  "_updated": {
+    "$date": "2018-06-01T21:03:09.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-01T21:03:09.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b11b4f336635100077ebb8e"
+  },
+  "md5sum": "27bd6dda206f5a7e138e78348f15c2d7",
+  "rating": "2",
+  "_etag": "c392ec29c7be8202a5a3b66ad4602e1cd6150604",
+  "_updated": {
+    "$date": "2018-06-01T21:04:51.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-01T21:04:51.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b11b51d36635100077ebb8f"
+  },
+  "md5sum": "0697c3b9b2effd8702174d7b95b113b8",
+  "rating": "2",
+  "_etag": "0b5a1821467bc7fecaf5fe6312a6c4d196564326",
+  "_updated": {
+    "$date": "2018-06-01T21:05:33.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-01T21:05:33.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b11b54d36635100077ebb90"
+  },
+  "md5sum": "5099afa926f99ac605992b4f31dc635b",
+  "rating": "2",
+  "_etag": "09f60885fb5d338ea8014259f20d7f9ce60196f4",
+  "_updated": {
+    "$date": "2018-06-01T21:06:21.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-01T21:06:21.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b11b58136635100077ebb91"
+  },
+  "md5sum": "b1845bfbaf291fa0d2a18deb27586b93",
+  "rating": "2",
+  "_etag": "15fd58ca394667034ab034019fa98bfc8fe5c0d6",
+  "_updated": {
+    "$date": "2018-06-01T21:07:13.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-01T21:07:13.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b11b5ad36635100077ebb92"
+  },
+  "md5sum": "33f0fd0e0e446fe5bca9c79e5472a06e",
+  "rating": "1",
+  "_etag": "d3ea3ecb1d9e89f0b26448f8e62ac0d054bb890a",
+  "_updated": {
+    "$date": "2018-06-01T21:07:57.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-01T21:07:57.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b11b5d53663510008909fc5"
+  },
+  "md5sum": "35614b8e583769cd186d06a1dfaf2c66",
+  "rating": "1",
+  "_etag": "15954cda16b08a29b0afaa7263dafe99378eee3e",
+  "_updated": {
+    "$date": "2018-06-01T21:08:37.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-01T21:08:37.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b11b5ec3663510008909fc6"
+  },
+  "md5sum": "2bf5c44ee605c0a7d8436f8d7fe9c24d",
+  "rating": "1",
+  "_etag": "d438d5444b85b21b08aa0d1ee755fe0e9dec72a5",
+  "_updated": {
+    "$date": "2018-06-01T21:09:00.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-01T21:09:00.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b11b60b36635100077ebb93"
+  },
+  "md5sum": "9f6d9aaff753d0969ddb33f567d1f725",
+  "rating": "1",
+  "_etag": "ffb13db99479e21411a16dc08d56223e70b515b6",
+  "_updated": {
+    "$date": "2018-06-01T21:09:31.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-01T21:09:31.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b11b68e36635100077ebb94"
+  },
+  "md5sum": "a586182a50ab477abd8db667a05b5274",
+  "rating": "2",
+  "_etag": "b07f81e75a122991bd0639ac88326c7e77fac725",
+  "_updated": {
+    "$date": "2018-06-01T21:11:42.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-01T21:11:42.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b11b6cf3663510008909fc7"
+  },
+  "md5sum": "8b64edb2a5d075dbde040ea545016c82",
+  "rating": "2",
+  "_etag": "0a1c358efbfb699bede3213df16037c121c6109d",
+  "_updated": {
+    "$date": "2018-06-01T21:12:47.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "artifact crossing thalamus and dGM structures (parallel to LR axis)",
+  "_created": {
+    "$date": "2018-06-01T21:12:47.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b11b6fe36635100077ebb95"
+  },
+  "md5sum": "a07d6462d77c32a6ec64d83c03532745",
+  "rating": "2",
+  "_etag": "0badbb0f29e6dbd8458fb9aee67a5d3a26fc1ba9",
+  "_updated": {
+    "$date": "2018-06-01T21:13:34.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "fat ghost (axial 98-99)",
+  "_created": {
+    "$date": "2018-06-01T21:13:34.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b11b7523663510008909fc8"
+  },
+  "md5sum": "526c5a8a672fa2c94236de7b567b4e71",
+  "rating": "1",
+  "_etag": "0ba7d2ab09d964a09283ddf8426cfdc00f715e26",
+  "_updated": {
+    "$date": "2018-06-01T21:14:58.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "fat/wraparound ghost",
+  "_created": {
+    "$date": "2018-06-01T21:14:58.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b11b7a13663510008909fc9"
+  },
+  "md5sum": "056c1c71371f338bfeb9800207ee3029",
+  "rating": "1",
+  "_etag": "61b9341a889f4befc4e34e95ca20420f9773d707",
+  "_updated": {
+    "$date": "2018-06-01T21:16:17.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "bright region frontal pole (axial 66), ghost (67-90)",
+  "_created": {
+    "$date": "2018-06-01T21:16:17.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b11b7c236635100077ebb96"
+  },
+  "md5sum": "9985b736cfc168a41385de50ee052e3c",
+  "rating": "2",
+  "_etag": "9cceda78a0384ebaac9e64c3ce117cb9ef51063f",
+  "_updated": {
+    "$date": "2018-06-01T21:16:50.000Z"
+  },
+  "name": "oesteban",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-01T21:16:50.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b11b85436635100077ebb97"
+  },
+  "md5sum": "7cc983d704ab9cbcfee9197d07ce9746",
+  "rating": "1",
+  "_etag": "8a7953a6263cd57cd829c7fd5695d1ce4586f11a",
+  "_updated": {
+    "$date": "2018-06-01T21:19:16.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-01T21:19:16.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b11b8923663510008909fca"
+  },
+  "md5sum": "ac48542d854ea5b183075d6a849a08c8",
+  "rating": "1",
+  "_etag": "63f50f8ed3da652d7f7b1857fac6aaf4fab0c278",
+  "_updated": {
+    "$date": "2018-06-01T21:20:18.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-01T21:20:18.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b11b8943663510008909fcb"
+  },
+  "md5sum": "ac48542d854ea5b183075d6a849a08c8",
+  "rating": "1",
+  "_etag": "a2b058dde1da71532cd6ef7c73e298d7f3e73cb4",
+  "_updated": {
+    "$date": "2018-06-01T21:20:20.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-01T21:20:20.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b11b8d93663510008909fcc"
+  },
+  "md5sum": "1dd43f8a1c0e506cd278f20ed816d141",
+  "rating": "1",
+  "_etag": "a22b90238d2a1ef0eba09856272f848dd389715a",
+  "_updated": {
+    "$date": "2018-06-01T21:21:29.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-01T21:21:29.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b11b9023663510008909fcd"
+  },
+  "md5sum": "34ecfa858282f75432f91b37509d3654",
+  "rating": "1",
+  "_etag": "9b7c4a69457e7406e01c57ecef3c16fdc264c94b",
+  "_updated": {
+    "$date": "2018-06-01T21:22:10.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-01T21:22:10.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b154d5b366351000890a009"
+  },
+  "md5sum": "0098ad2237bb0bc8e1caded43e43e37a",
+  "rating": "2",
+  "_etag": "7024ce4d507365270c25b04735f95629fd34c801",
+  "_updated": {
+    "$date": "2018-06-04T14:31:55.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-04T14:31:55.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b1555903663510013fd834d"
+  },
+  "md5sum": "1046bc727ef302ac7e99552703f47f75",
+  "rating": "2",
+  "_etag": "c04290be9ec9c15650c8cf7e3994c8887ab4490c",
+  "_updated": {
+    "$date": "2018-06-04T15:06:56.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-04T15:06:56.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b1556283663510013fd834e"
+  },
+  "md5sum": "3f47112c69fe36633d3d5c1f5b84cfed",
+  "rating": "1",
+  "_etag": "750b8e6732e1b8a25ef1810d09a26f0ee5211d3d",
+  "_updated": {
+    "$date": "2018-06-04T15:09:28.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-04T15:09:28.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b1556673663510013fd834f"
+  },
+  "md5sum": "ca384706ccc197fd4823c0c5f286941d",
+  "rating": "2",
+  "_etag": "b79ea24c836030203d7385f7b199530ea3a48576",
+  "_updated": {
+    "$date": "2018-06-04T15:10:31.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-04T15:10:31.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b1556ac366351000890a01e"
+  },
+  "md5sum": "f53a190651974d763f6ad522005ad48a",
+  "rating": "2",
+  "_etag": "420caffc5c1c7fc32a6aac2557a9401fa5550d5d",
+  "_updated": {
+    "$date": "2018-06-04T15:11:40.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-04T15:11:40.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b15572e366351000890a01f"
+  },
+  "md5sum": "792cfe1c3c54137133749b7fac24a2de",
+  "rating": "1",
+  "_etag": "cbd2b7f92b855e6fb02b0daa691920ece66f9b0d",
+  "_updated": {
+    "$date": "2018-06-04T15:13:50.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-04T15:13:50.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b1557613663510013fd8350"
+  },
+  "md5sum": "c2ab58876552ab82acdd2b721abedfcc",
+  "rating": "1",
+  "_etag": "effe264cfe26af1a1b33c98896f060cda2582b1f",
+  "_updated": {
+    "$date": "2018-06-04T15:14:41.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-04T15:14:41.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b15578a3663510013fd8351"
+  },
+  "md5sum": "b88f681839afbd7c6160c1f949959e6f",
+  "rating": "1",
+  "_etag": "5c4e493c93a8c5e34777625aff81719c2a02fb8d",
+  "_updated": {
+    "$date": "2018-06-04T15:15:22.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-04T15:15:22.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b1557bf3663510013fd8352"
+  },
+  "md5sum": "ccffab7890a4479b9d3dbd4f6b70b224",
+  "rating": "1",
+  "_etag": "d09ce1d8ddb7e6aec0198168dac7a879b50a160b",
+  "_updated": {
+    "$date": "2018-06-04T15:16:15.000Z"
+  },
+  "name": "",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-04T15:16:15.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b1557c2366351000890a020"
+  },
+  "md5sum": "ccffab7890a4479b9d3dbd4f6b70b224",
+  "rating": "1",
+  "_etag": "3d12723a0bf63b1db262a6779400ffbf7a509e06",
+  "_updated": {
+    "$date": "2018-06-04T15:16:18.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-04T15:16:18.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b155b06366351000890a021"
+  },
+  "md5sum": "551a7b903f16af7c642db80ae7d0cf02",
+  "rating": "2",
+  "_etag": "44f991e99bb385f52d0ca5d594542cee3aea8403",
+  "_updated": {
+    "$date": "2018-06-04T15:30:14.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-04T15:30:14.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b155ba63663510013fd8354"
+  },
+  "md5sum": "35879764d92e5f8747b48acac9c4ae0c",
+  "rating": "2",
+  "_etag": "0d233e791e04a2f9cf76e122c6549ffe6c4aafaf",
+  "_updated": {
+    "$date": "2018-06-04T15:32:54.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-04T15:32:54.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b155be6366351000890a022"
+  },
+  "md5sum": "fe0b75a8c4898bc1b2a7e17c2f31a842",
+  "rating": "2",
+  "_etag": "14d4e67026a70cc3d77081fb4470a88e54b1f700",
+  "_updated": {
+    "$date": "2018-06-04T15:33:58.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-04T15:33:58.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b155c533663510013fd8355"
+  },
+  "md5sum": "9317533e643a5d35a3c4c07cc8be95ad",
+  "rating": "1",
+  "_etag": "d0f8816402dc34803e2ec8a055d1ada5ec6af915",
+  "_updated": {
+    "$date": "2018-06-04T15:35:47.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-04T15:35:47.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b155c683663510013fd8356"
+  },
+  "md5sum": "5551a6129165e3ccafa649a7efa41945",
+  "rating": "2",
+  "_etag": "8f80b798c5dbfb313a992c18d69c11aed7a4fd8f",
+  "_updated": {
+    "$date": "2018-06-04T15:36:08.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-04T15:36:08.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b155c8f366351000890a023"
+  },
+  "md5sum": "471c54fd38bb8c8ddc9e83d01c5339a0",
+  "rating": "1",
+  "_etag": "792d929722d96c3a7835716ff49fc3a966909f12",
+  "_updated": {
+    "$date": "2018-06-04T15:36:47.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-04T15:36:47.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b155cbd3663510013fd8357"
+  },
+  "md5sum": "14c56af581ab8fe7b653a0c4a5dbf5c9",
+  "rating": "1",
+  "_etag": "599b39561347b5251c6959008016a04975908b7d",
+  "_updated": {
+    "$date": "2018-06-04T15:37:33.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-04T15:37:33.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b155cec366351000890a024"
+  },
+  "md5sum": "8c6b7341889186685e0fda332cbe5656",
+  "rating": "2",
+  "_etag": "a034b6c69860f5c224fb333fc4f8b71bf11dacad",
+  "_updated": {
+    "$date": "2018-06-04T15:38:20.000Z"
+  },
+  "name": "",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-04T15:38:20.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b155d15366351000890a025"
+  },
+  "md5sum": "96848477657567f05c82c596f401d016",
+  "rating": "1",
+  "_etag": "efce83eb7fbdb7a1895e6e1a7503fa7722071bd1",
+  "_updated": {
+    "$date": "2018-06-04T15:39:01.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-04T15:39:01.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b155d5e366351000890a026"
+  },
+  "md5sum": "f18824b7ff11408d43e2ade7e80c4dca",
+  "rating": "1",
+  "_etag": "c4f868cfb10ab00f6eca04d29c4955d56c13a335",
+  "_updated": {
+    "$date": "2018-06-04T15:40:14.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "artifact in dorsal",
+  "_created": {
+    "$date": "2018-06-04T15:40:14.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b155dd7366351000890a027"
+  },
+  "md5sum": "bff12e67a3ac1e5a5a11c120d36412c0",
+  "rating": "1",
+  "_etag": "5fbe43f774ce8cee21ef77ade32e004d0fe411f3",
+  "_updated": {
+    "$date": "2018-06-04T15:42:15.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "blood pulsation artifact, motion ripples ",
+  "_created": {
+    "$date": "2018-06-04T15:42:15.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b155e233663510013fd835a"
+  },
+  "md5sum": "0550c241043b6c61b331002e17a6315e",
+  "rating": "1",
+  "_etag": "679edbf1682639cd0cfe7a5bba154e37bc89bc34",
+  "_updated": {
+    "$date": "2018-06-04T15:43:31.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "pulsation artifact axial-74",
+  "_created": {
+    "$date": "2018-06-04T15:43:31.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b155e51366351000890a028"
+  },
+  "md5sum": "a990253da68dc819362b542832522342",
+  "rating": "3",
+  "_etag": "41ef4a5c1a9b51f25676728393b2f923412510be",
+  "_updated": {
+    "$date": "2018-06-04T15:44:17.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-04T15:44:17.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b155e89366351000890a029"
+  },
+  "md5sum": "b3c444b750c2adc4a2e9a7913392c949",
+  "rating": "1",
+  "_etag": "a5c17fc2978b5b38fc3699f472ecd7c7e4188591",
+  "_updated": {
+    "$date": "2018-06-04T15:45:13.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-04T15:45:13.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b155ef1366351000890a02b"
+  },
+  "md5sum": "dce98c76b3f2eddde5a9339d1804e623",
+  "rating": "1",
+  "_etag": "781ba8cd15388553077194a642ce2d3ec3b22285",
+  "_updated": {
+    "$date": "2018-06-04T15:46:57.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "artifact",
+  "_created": {
+    "$date": "2018-06-04T15:46:57.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b155f5b3663510013fd835d"
+  },
+  "md5sum": "451c09ee2d56d0cefb2a1306874d6baa",
+  "rating": "3",
+  "_etag": "a2d49a71937f23192625c6641ca35ed5d9ae047a",
+  "_updated": {
+    "$date": "2018-06-04T15:48:43.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-04T15:48:43.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b155f9b366351000890a02e"
+  },
+  "md5sum": "d28e5db4d07c9097cb3516afa0181b9c",
+  "rating": "1",
+  "_etag": "733e77a54b7405ee391a80e925e991459f65b118",
+  "_updated": {
+    "$date": "2018-06-04T15:49:47.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-04T15:49:47.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b155fca366351000890a030"
+  },
+  "md5sum": "5b77a5956bd095dd99954fb5eccb288a",
+  "rating": "1",
+  "_etag": "94193b024c0cfee112d3843e2ca52fb6202a419b",
+  "_updated": {
+    "$date": "2018-06-04T15:50:34.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-04T15:50:34.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b155fef366351000890a032"
+  },
+  "md5sum": "575b9c58813287db0b9ca217e4416952",
+  "rating": "3",
+  "_etag": "3d05c75f7014b3cc296e93663d391e3bd2586b2e",
+  "_updated": {
+    "$date": "2018-06-04T15:51:11.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-04T15:51:11.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b15600e366351000890a033"
+  },
+  "md5sum": "d223bd2420a05f058c675bf5d9ec9b4e",
+  "rating": "1",
+  "_etag": "758b85ed8a3c49c66893d5b62ebc82f84b517fc8",
+  "_updated": {
+    "$date": "2018-06-04T15:51:42.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-04T15:51:42.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b15602d3663510013fd8362"
+  },
+  "md5sum": "5a69f4083c5dcc1eea289f43d9984b0c",
+  "rating": "1",
+  "_etag": "3d4d765b2d48d6f2a37d3cd095cd5ddf3d007490",
+  "_updated": {
+    "$date": "2018-06-04T15:52:13.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-04T15:52:13.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b156060366351000890a036"
+  },
+  "md5sum": "b4858a659bc0b2025a3479abdeac9122",
+  "rating": "2",
+  "_etag": "2ac71df188d78c7d08ed47851ddeae83dec7471b",
+  "_updated": {
+    "$date": "2018-06-04T15:53:04.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-04T15:53:04.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b1560913663510013fd8364"
+  },
+  "md5sum": "07429fbf022c0eae0040205be4e2259c",
+  "rating": "2",
+  "_etag": "7bfa2e9f787eb6c54cb044a624aa7f18dbcb47a7",
+  "_updated": {
+    "$date": "2018-06-04T15:53:53.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-04T15:53:53.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b1560ed366351000890a03a"
+  },
+  "md5sum": "a8182dbd9228b7d08a6589dfe163ca64",
+  "rating": "2",
+  "_etag": "b2560f53025cc47f3190c60df79e2aac008162ab",
+  "_updated": {
+    "$date": "2018-06-04T15:55:25.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-04T15:55:25.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b15611a366351000890a03c"
+  },
+  "md5sum": "63e2064f49bd239da695d2e809372694",
+  "rating": "2",
+  "_etag": "2eb111b27c0bc360bd407fc40d82ac257d34f465",
+  "_updated": {
+    "$date": "2018-06-04T15:56:10.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-04T15:56:10.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b156159366351000890a03d"
+  },
+  "md5sum": "714538ba3caefd82f8a7ea1d213b4b0a",
+  "rating": "3",
+  "_etag": "1dd4f8475945b4af08ca199c78253f71f761e0b7",
+  "_updated": {
+    "$date": "2018-06-04T15:57:13.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-04T15:57:13.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b15618a3663510013fd8368"
+  },
+  "md5sum": "96158787abaf0d211d03912dc43e8e66",
+  "rating": "3",
+  "_etag": "13d3071187e03cd53d0f788b5d8d9ace10c29eea",
+  "_updated": {
+    "$date": "2018-06-04T15:58:02.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-04T15:58:02.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b1561d53663510013fd836b"
+  },
+  "md5sum": "e41a9bfa8a2f6b3d82ab7931572e2883",
+  "rating": "3",
+  "_etag": "c5296482ffad5532350f9930d3f94abc03ce5f1a",
+  "_updated": {
+    "$date": "2018-06-04T15:59:17.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-04T15:59:17.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b1562233663510013fd836d"
+  },
+  "md5sum": "cfc0b8a5c066ec4d53dfd4ba732a1e2d",
+  "rating": "3",
+  "_etag": "3b8b4cb1be6cef6346283a66cbafcc02ea96e630",
+  "_updated": {
+    "$date": "2018-06-04T16:00:35.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-04T16:00:35.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b1562763663510013fd836f"
+  },
+  "md5sum": "bea011728fbc38056d020c3737560c79",
+  "rating": "2",
+  "_etag": "d7074e12e6072dfe8dfbac98387751fb1aeaacc9",
+  "_updated": {
+    "$date": "2018-06-04T16:01:58.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-04T16:01:58.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b1562b6366351000890a045"
+  },
+  "md5sum": "3cf4400058f0d7734a192f9a425ef51e",
+  "rating": "2",
+  "_etag": "408a2f71187e2331cb18e59f692fbed5b6a3a5d0",
+  "_updated": {
+    "$date": "2018-06-04T16:03:02.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-04T16:03:02.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b1562f03663510013fd8371"
+  },
+  "md5sum": "8dcd16fafb95cc5a955b93be9697a965",
+  "rating": "2",
+  "_etag": "fdc920f83ccbd72214cd5c2863e280bc2bd9407d",
+  "_updated": {
+    "$date": "2018-06-04T16:04:00.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-04T16:04:00.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b15634c3663510013fd8372"
+  },
+  "md5sum": "5ddd6eeeed45a86a9c08a3bac1a7f5ef",
+  "rating": "3",
+  "_etag": "571cb715b880dbbbf07361cc256c6ac1b51e8a7b",
+  "_updated": {
+    "$date": "2018-06-04T16:05:32.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "lesion / no-contrast area in white matter",
+  "_created": {
+    "$date": "2018-06-04T16:05:32.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b15637f366351000890a047"
+  },
+  "md5sum": "7426bd76fbe0fc3ebbf7a3f6411f5352",
+  "rating": "1",
+  "_etag": "465e3cdf8af6e710dcb9b8147ab6b724bb464348",
+  "_updated": {
+    "$date": "2018-06-04T16:06:23.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-04T16:06:23.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b1563a5366351000890a048"
+  },
+  "md5sum": "aa899db49d8bcb787a39a6f050a98d4d",
+  "rating": "3",
+  "_etag": "05645c9d99f30ed14084af321aceded178bc4cb6",
+  "_updated": {
+    "$date": "2018-06-04T16:07:01.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-04T16:07:01.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b1564fb366351000890a049"
+  },
+  "md5sum": "baeba2f2b1c298312039ba7ad6342229",
+  "rating": "1",
+  "_etag": "ee09d08935eb0cec284e36f0cb3e7820dd97f6d1",
+  "_updated": {
+    "$date": "2018-06-04T16:12:43.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-04T16:12:43.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b15653d3663510013fd8376"
+  },
+  "md5sum": "b1b55f561b78785fe402f116ee6368d6",
+  "rating": "1",
+  "_etag": "6f40604798bd484d5aa63576f0cf28d684d93b15",
+  "_updated": {
+    "$date": "2018-06-04T16:13:49.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-04T16:13:49.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b16fd8c3663510013fd8662"
+  },
+  "md5sum": "13fde72caeff1b098d1d2becab04ae14",
+  "rating": "1",
+  "_etag": "e01118f06225c786459a518ac75fe48e0ae40f66",
+  "_updated": {
+    "$date": "2018-06-05T21:15:56.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-05T21:15:56.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b1700b83663510013fd866a"
+  },
+  "md5sum": "9eec2686381f8c6f7e1c45248fc3b64c",
+  "rating": "1",
+  "_etag": "0c67e5c8525b53901bf33722f03241df7e79cba5",
+  "_updated": {
+    "$date": "2018-06-05T21:29:28.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-05T21:29:28.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b1701233663510013fd866b"
+  },
+  "md5sum": "f88a8bcf3cca972d4845643224432b6b",
+  "rating": "1",
+  "_etag": "09e849104ac0aa01277e48d6e10d4075589b611c",
+  "_updated": {
+    "$date": "2018-06-05T21:31:15.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-05T21:31:15.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b17014d3663510013fd866c"
+  },
+  "md5sum": "651b6cc4193b7e16c548a2341674b69b",
+  "rating": "1",
+  "_etag": "99a34e89c9fa9ec47a0c727c7f5647365bb4078d",
+  "_updated": {
+    "$date": "2018-06-05T21:31:57.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-05T21:31:57.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b1701533663510013fd866d"
+  },
+  "md5sum": "651b6cc4193b7e16c548a2341674b69b",
+  "rating": "1",
+  "_etag": "1a9c3285ac90c332e765132dfce957d068f41350",
+  "_updated": {
+    "$date": "2018-06-05T21:32:03.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-05T21:32:03.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b170199366351000890a32c"
+  },
+  "md5sum": "144c1108098de9fa6a0a739acadf75a6",
+  "rating": "1",
+  "_etag": "d9310dbcdc67f00e96d0a5cbdedf21c83b57a4b7",
+  "_updated": {
+    "$date": "2018-06-05T21:33:13.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-05T21:33:13.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b1701d3366351000890a32d"
+  },
+  "md5sum": "657623192644d2f9e26b8c98898e8a8e",
+  "rating": "2",
+  "_etag": "8fae54d0be7a4b996eb9162c1f8dc175c2b43c03",
+  "_updated": {
+    "$date": "2018-06-05T21:34:11.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-05T21:34:11.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b1702083663510013fd8671"
+  },
+  "md5sum": "b701ff77285dd647f6649a30fddc11d4",
+  "rating": "2",
+  "_etag": "5f5afe8bb150a2bc77c5b87eebc55d7e739671a3",
+  "_updated": {
+    "$date": "2018-06-05T21:35:04.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-05T21:35:04.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b170235366351000890a32f"
+  },
+  "md5sum": "e27c627e5ed6d4a1d5e444459f6b3b59",
+  "rating": "2",
+  "_etag": "ad3a18c335ce7456b84b641ac173220ef47f039e",
+  "_updated": {
+    "$date": "2018-06-05T21:35:49.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-05T21:35:49.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b170259366351000890a330"
+  },
+  "md5sum": "cf390786577516b2b8443d3f4d3a60ae",
+  "rating": "2",
+  "_etag": "b16d72ddac7f9be68467c8c38a47841d7e301484",
+  "_updated": {
+    "$date": "2018-06-05T21:36:25.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-05T21:36:25.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b1702933663510013fd8673"
+  },
+  "md5sum": "3243d4f0953b01251c066749eef161c0",
+  "rating": "1",
+  "_etag": "729064fd60ca25790920a26627e0c6d18fe423a4",
+  "_updated": {
+    "$date": "2018-06-05T21:37:23.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-05T21:37:23.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b1702d1366351000890a331"
+  },
+  "md5sum": "962e65ab584f963b8b170b5b41ccbcfa",
+  "rating": "1",
+  "_etag": "e9d1d5c8698ce2bedc57a7b2f1a1ed40cefffb4f",
+  "_updated": {
+    "$date": "2018-06-05T21:38:25.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-05T21:38:25.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b170319366351000890a333"
+  },
+  "md5sum": "be330e954d4f15131d363ae9b5983aaa",
+  "rating": "1",
+  "_etag": "72ac3114d0e7e02997fff36b4561fc787e1ddcb9",
+  "_updated": {
+    "$date": "2018-06-05T21:39:37.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "artifact in frontal wm, axial 80-85.",
+  "_created": {
+    "$date": "2018-06-05T21:39:37.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b170356366351000890a335"
+  },
+  "md5sum": "ace64a91a13e8a57d447d018e2dc90fd",
+  "rating": "1",
+  "_etag": "be01669609a8d450915947db17e8f4196254238a",
+  "_updated": {
+    "$date": "2018-06-05T21:40:38.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "GM local inhomogeneity frontal",
+  "_created": {
+    "$date": "2018-06-05T21:40:38.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b17039e366351000890a336"
+  },
+  "md5sum": "7bd1f8e1b757435e04b4e0d5b0fdc754",
+  "rating": "2",
+  "_etag": "5ac2c9c5e4f7c1ccfbbb6e62b9dc85c563544bf7",
+  "_updated": {
+    "$date": "2018-06-05T21:41:50.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-05T21:41:50.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b1703bf3663510013fd8677"
+  },
+  "md5sum": "0ace330237c3558dec868c59c87758af",
+  "rating": "1",
+  "_etag": "bf97cde51cece599df79bbbdcd1a8be7f8c0420c",
+  "_updated": {
+    "$date": "2018-06-05T21:42:23.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-05T21:42:23.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b1703e13663510013fd8678"
+  },
+  "md5sum": "316df97ab90f34f112ac3f106bdf934f",
+  "rating": "2",
+  "_etag": "ba785c7ad044d63861d05ca5d3c7f086145b95cc",
+  "_updated": {
+    "$date": "2018-06-05T21:42:57.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-05T21:42:57.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b1704113663510013fd8679"
+  },
+  "md5sum": "6a3f1d0763bf4be4a5afeb3384117092",
+  "rating": "3",
+  "_etag": "4d2f1626bd45351b4be933e9db08881450e634c0",
+  "_updated": {
+    "$date": "2018-06-05T21:43:45.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-05T21:43:45.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b17044b3663510013fd867b"
+  },
+  "md5sum": "2b6894febe3089bc1af88fc8d964c09c",
+  "rating": "1",
+  "_etag": "4d477085ed56d04676f36581dbdcfb1e1e3a9b0e",
+  "_updated": {
+    "$date": "2018-06-05T21:44:43.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-05T21:44:43.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b170488366351000890a33a"
+  },
+  "md5sum": "4130cf0a6a4565da526b7bf2a56cc092",
+  "rating": "1",
+  "_etag": "3460189853e171be1f6c0b80dddb56e750c88d71",
+  "_updated": {
+    "$date": "2018-06-05T21:45:44.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-05T21:45:44.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b1704b93663510013fd867d"
+  },
+  "md5sum": "e2773e5dc703066a71cec545287e0897",
+  "rating": "1",
+  "_etag": "613b3528559120e0657bcaf55cde0a3fde24a182",
+  "_updated": {
+    "$date": "2018-06-05T21:46:33.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-05T21:46:33.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b1704e1366351000890a33b"
+  },
+  "md5sum": "a3d39c80f3865567450ab793c91cd182",
+  "rating": "3",
+  "_etag": "13670ebbd2383e1d555ac97c3642bda739e94d63",
+  "_updated": {
+    "$date": "2018-06-05T21:47:13.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-05T21:47:13.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b1704ff366351000890a33c"
+  },
+  "md5sum": "dc22001bf46bc2391f283b6d266ae50e",
+  "rating": "2",
+  "_etag": "5aaee87360a1e4271ce633bf86b14921b96b71ae",
+  "_updated": {
+    "$date": "2018-06-05T21:47:43.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-05T21:47:43.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b170533366351000890a33d"
+  },
+  "md5sum": "fef818446fb6cd8a349ec4084f1f5406",
+  "rating": "1",
+  "_etag": "899fddaa4d5655e7ae2e214723f1b966f52fb3a1",
+  "_updated": {
+    "$date": "2018-06-05T21:48:35.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-05T21:48:35.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b1706313663510013fd8681"
+  },
+  "md5sum": "54f5b5dca010495abd7fb4d7287ce8d8",
+  "rating": "1",
+  "_etag": "18f80aaaf6987897c84c7f7c03fe49de1dca1974",
+  "_updated": {
+    "$date": "2018-06-05T21:52:49.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-05T21:52:49.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b1706503663510013fd8682"
+  },
+  "md5sum": "9083085e2df28abe7ba631e206f64a02",
+  "rating": "2",
+  "_etag": "4cf7d1743fe64beb2b2287eacd6b132961733aed",
+  "_updated": {
+    "$date": "2018-06-05T21:53:20.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-05T21:53:20.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b17067c3663510013fd8684"
+  },
+  "md5sum": "e47ff3afd6aef0b9e7f76969a6615171",
+  "rating": "2",
+  "_etag": "5502d28f84a80fc9bc22c90f0458910b2c76e128",
+  "_updated": {
+    "$date": "2018-06-05T21:54:04.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-05T21:54:04.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b1706b0366351000890a342"
+  },
+  "md5sum": "0273385d9c9e8221d2b829680cf4e000",
+  "rating": "2",
+  "_etag": "200ce50b8b4f5bc652a7fa201b555543f1a3b518",
+  "_updated": {
+    "$date": "2018-06-05T21:54:56.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-05T21:54:56.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b1706de366351000890a343"
+  },
+  "md5sum": "c9eed44f4f20ae767393baea86ff504f",
+  "rating": "1",
+  "_etag": "1adce0c3909656e48f132011ee847b58163ef944",
+  "_updated": {
+    "$date": "2018-06-05T21:55:42.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-05T21:55:42.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b1706fb366351000890a344"
+  },
+  "md5sum": "6795ca655e684067451d6dd942e8946e",
+  "rating": "1",
+  "_etag": "e56b98b8453b58fee318951afd3742cfad10431d",
+  "_updated": {
+    "$date": "2018-06-05T21:56:11.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-05T21:56:11.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b17074e366351000890a346"
+  },
+  "md5sum": "8f947e6e008dd55c77b3d6702791a4ea",
+  "rating": "1",
+  "_etag": "fc2f7301c8d565b62470c19d650a998320a320d0",
+  "_updated": {
+    "$date": "2018-06-05T21:57:34.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-05T21:57:34.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b1707643663510013fd8688"
+  },
+  "md5sum": "1d81f0b048d3a27626fc23cfc19780c1",
+  "rating": "1",
+  "_etag": "2ab1c041f420b39f82a0312ab2d28698880c7845",
+  "_updated": {
+    "$date": "2018-06-05T21:57:56.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-05T21:57:56.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b170775366351000890a348"
+  },
+  "md5sum": "a89aba226ae086ebad4665433eac0701",
+  "rating": "1",
+  "_etag": "75d08a92e7a4f5cc3abe274094a5ee91802d20e0",
+  "_updated": {
+    "$date": "2018-06-05T21:58:13.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-05T21:58:13.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b17078a3663510013fd8689"
+  },
+  "md5sum": "8ce62b97dae329dfadf3ed53776cf5b2",
+  "rating": "2",
+  "_etag": "9afa438690c44570844ba0b0e974cc31c50353ab",
+  "_updated": {
+    "$date": "2018-06-05T21:58:34.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-05T21:58:34.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b170810366351000890a34a"
+  },
+  "md5sum": "62d16dac1821f20aabc3629bc34e5590",
+  "rating": "1",
+  "_etag": "31349334e9966303a8227d4a5f266a81f29bd9c6",
+  "_updated": {
+    "$date": "2018-06-05T22:00:48.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-05T22:00:48.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b170834366351000890a34b"
+  },
+  "md5sum": "0a54cbb220f2a7def662d97d98891cee",
+  "rating": "2",
+  "_etag": "bc8825b467e31237ca8cdcf416f70b8348d3550a",
+  "_updated": {
+    "$date": "2018-06-05T22:01:24.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-05T22:01:24.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b170851366351000890a34c"
+  },
+  "md5sum": "977837283a255e0df728960d75084be2",
+  "rating": "1",
+  "_etag": "534054df48f3a4380e74a1fffd4e959a3c969d83",
+  "_updated": {
+    "$date": "2018-06-05T22:01:53.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-05T22:01:53.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b170879366351000890a34d"
+  },
+  "md5sum": "153ff596ae2128872c35bb6852276000",
+  "rating": "2",
+  "_etag": "cbe87bb8e64edca80b09e8cc4cf44214c4a2a097",
+  "_updated": {
+    "$date": "2018-06-05T22:02:33.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-05T22:02:33.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b1708b13663510013fd868e"
+  },
+  "md5sum": "408b791cf3383cca5f9960e755dd8fbb",
+  "rating": "2",
+  "_etag": "a59883db1f503da2dd69c3fec56e4b5a88923126",
+  "_updated": {
+    "$date": "2018-06-05T22:03:29.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-05T22:03:29.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b1708f8366351000890a350"
+  },
+  "md5sum": "29406f3976bc4a712bfa13f8777cecbd",
+  "rating": "1",
+  "_etag": "e5800b2f3517ef3a97f7284aaef5644eb008889f",
+  "_updated": {
+    "$date": "2018-06-05T22:04:40.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-05T22:04:40.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b17090f3663510013fd868f"
+  },
+  "md5sum": "4d8c300ce83561f56f2c8423fc85108e",
+  "rating": "1",
+  "_etag": "a365480da4891c163905a0807c64c1dee5046e23",
+  "_updated": {
+    "$date": "2018-06-05T22:05:03.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-05T22:05:03.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b17092c366351000890a352"
+  },
+  "md5sum": "f2e9f77c4f939f20c16a68edcdbfb9a7",
+  "rating": "1",
+  "_etag": "9a4ec55edb532395d3d327a6f540c28e3b19ae5c",
+  "_updated": {
+    "$date": "2018-06-05T22:05:32.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-05T22:05:32.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b1709463663510013fd8690"
+  },
+  "md5sum": "87d2c9817005a7ed85ebf88e44308d25",
+  "rating": "2",
+  "_etag": "033230753cfd220e62e7bf4229ce9b79e0acde43",
+  "_updated": {
+    "$date": "2018-06-05T22:05:58.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-05T22:05:58.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b17097f3663510013fd8691"
+  },
+  "md5sum": "8f0407b5314fa246187eaadfc9b5f28b",
+  "rating": "1",
+  "_etag": "a28082dcd3780c3e0e4be26a928eb80c290e177e",
+  "_updated": {
+    "$date": "2018-06-05T22:06:55.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "artifact axial 93",
+  "_created": {
+    "$date": "2018-06-05T22:06:55.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b170990366351000890a355"
+  },
+  "md5sum": "23e55ab2378f44acc7c6844cb7b3e6f3",
+  "rating": "1",
+  "_etag": "fc37b339d3b14b58eff05b9c7173cd0a19391eb3",
+  "_updated": {
+    "$date": "2018-06-05T22:07:12.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-05T22:07:12.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b17099f3663510013fd8693"
+  },
+  "md5sum": "45715fe4cecd4655e0ca673ccc8864a6",
+  "rating": "1",
+  "_etag": "28e9e320fc57191f39dfce5c9bd3e29c8fb08c36",
+  "_updated": {
+    "$date": "2018-06-05T22:07:27.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-05T22:07:27.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b1709c53663510013fd8694"
+  },
+  "md5sum": "a084787778756bec41d685858b702269",
+  "rating": "1",
+  "_etag": "dd9bc0126b5032b4e448c908476d82df257ed76b",
+  "_updated": {
+    "$date": "2018-06-05T22:08:05.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-05T22:08:05.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b1709d9366351000890a357"
+  },
+  "md5sum": "6e5c68dcbf24d53966032d42f67ad07e",
+  "rating": "1",
+  "_etag": "55988fc5a6a018e062effb8880c8a3b05994f5e1",
+  "_updated": {
+    "$date": "2018-06-05T22:08:25.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-05T22:08:25.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b1709ec366351000890a358"
+  },
+  "md5sum": "3657ee0108ae7f35de8c3eb36d5901d9",
+  "rating": "1",
+  "_etag": "f903fa7311acd072e9bc8f5515ebf8f0c58d3bc0",
+  "_updated": {
+    "$date": "2018-06-05T22:08:44.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-05T22:08:44.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b1709fc3663510013fd8696"
+  },
+  "md5sum": "f5411b5362efe11e245f98f3b7f70133",
+  "rating": "1",
+  "_etag": "e4b7d176e9899890fe2438b4429b831796a6e177",
+  "_updated": {
+    "$date": "2018-06-05T22:09:00.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-05T22:09:00.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b170a10366351000890a359"
+  },
+  "md5sum": "c9a6ba2d4ecf5814c1b05f83eaf296b9",
+  "rating": "1",
+  "_etag": "56d5bf448522b6f6b97111384d2c9f347347faf0",
+  "_updated": {
+    "$date": "2018-06-05T22:09:20.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-05T22:09:20.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b170a293663510013fd8697"
+  },
+  "md5sum": "45217e06513bf0ca3635a646ff4f2e9d",
+  "rating": "1",
+  "_etag": "e570952b257a09ebd34d6599d04e04786ec6b7aa",
+  "_updated": {
+    "$date": "2018-06-05T22:09:45.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-05T22:09:45.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b170a3b3663510013fd8698"
+  },
+  "md5sum": "1936900f097b63e8af7a5dcaf8e29014",
+  "rating": "1",
+  "_etag": "a9a63fe39243b2bdead2f875c40c4487cc604d0a",
+  "_updated": {
+    "$date": "2018-06-05T22:10:03.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-05T22:10:03.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b170a4b366351000890a35a"
+  },
+  "md5sum": "23685905760b60b1bd4125dc2432b8bf",
+  "rating": "1",
+  "_etag": "4bdf8a339c43eea1ba66661ea3f377d886520666",
+  "_updated": {
+    "$date": "2018-06-05T22:10:19.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-05T22:10:19.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b170a88366351000890a35b"
+  },
+  "md5sum": "77c1676df4e7655122eeeda07da7a9e9",
+  "rating": "2",
+  "_etag": "b4cc4a76e3d3d82548505cc2b2e722eb49f08acd",
+  "_updated": {
+    "$date": "2018-06-05T22:11:20.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-05T22:11:20.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b170a9b366351000890a35c"
+  },
+  "md5sum": "2982055b5584b4fc5ef6356c99c31f37",
+  "rating": "2",
+  "_etag": "a39d8662e6be9a2c60e2b77abb54ca011c8637cf",
+  "_updated": {
+    "$date": "2018-06-05T22:11:39.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-05T22:11:39.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b170aca366351000890a35d"
+  },
+  "md5sum": "e30423900446e9a4d0fb86a67d281c08",
+  "rating": "2",
+  "_etag": "e9081774b3d5de107b2157d8a893730f20b864d8",
+  "_updated": {
+    "$date": "2018-06-05T22:12:26.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-05T22:12:26.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b170ade366351000890a35e"
+  },
+  "md5sum": "dd988acbfd39d6baea1598240cb04703",
+  "rating": "1",
+  "_etag": "9a0a89496c83ebd9e71f598e83fc9a45c456822f",
+  "_updated": {
+    "$date": "2018-06-05T22:12:46.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-05T22:12:46.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b170afe366351000890a35f"
+  },
+  "md5sum": "174b0da7c016f9d8cc656a8b119f80e0",
+  "rating": "1",
+  "_etag": "cdef0bff1a99603af32c31438f593526ae42f6ef",
+  "_updated": {
+    "$date": "2018-06-05T22:13:18.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-05T22:13:18.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b170b203663510013fd8699"
+  },
+  "md5sum": "3f8a3473d8b22972b8494c933ede69af",
+  "rating": "1",
+  "_etag": "7365dd2dd1e29f249969b35b8efe16ac4ca4679f",
+  "_updated": {
+    "$date": "2018-06-05T22:13:52.000Z"
+  },
+  "name": "",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-05T22:13:52.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b170b233663510013fd869a"
+  },
+  "md5sum": "3f8a3473d8b22972b8494c933ede69af",
+  "rating": "1",
+  "_etag": "7ed3713f1c5559817be79a21c40347a5c1c182d4",
+  "_updated": {
+    "$date": "2018-06-05T22:13:55.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-05T22:13:55.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b170b2f3663510013fd869b"
+  },
+  "md5sum": "bf9465d2603eee35f7d04f96711ed401",
+  "rating": "1",
+  "_etag": "98cf3e522c4aff719104b2fda82f977f34ccbba1",
+  "_updated": {
+    "$date": "2018-06-05T22:14:07.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-05T22:14:07.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b170b443663510013fd869c"
+  },
+  "md5sum": "dee23dcb97b8f5ce3173b4e67e3c2389",
+  "rating": "1",
+  "_etag": "e0672b4acfd6e82162aaf6b800f5fb849050c1f3",
+  "_updated": {
+    "$date": "2018-06-05T22:14:28.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-05T22:14:28.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b170b52366351000890a360"
+  },
+  "md5sum": "c4cd746bdf1238bf377d151adca68b47",
+  "rating": "1",
+  "_etag": "cca24614d4a28f20bb1e4189f3f2b7292ae3b47b",
+  "_updated": {
+    "$date": "2018-06-05T22:14:42.000Z"
+  },
+  "name": "",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-05T22:14:42.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b170b683663510013fd869d"
+  },
+  "md5sum": "acb901a3cd243b4760fd5f6026f5ee88",
+  "rating": "1",
+  "_etag": "9135a7e26325f2b5f5af9099d2d6921545adf673",
+  "_updated": {
+    "$date": "2018-06-05T22:15:04.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-05T22:15:04.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b170b7c366351000890a361"
+  },
+  "md5sum": "bdd5182b1846c210e5a017fd6ec45b64",
+  "rating": "2",
+  "_etag": "bf989e16e8bbab86ee6d5d6c0b420c059e6693e8",
+  "_updated": {
+    "$date": "2018-06-05T22:15:24.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-05T22:15:24.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b170b9d3663510013fd869e"
+  },
+  "md5sum": "ab941b49e3e3c4634cc0eed06e982a3d",
+  "rating": "2",
+  "_etag": "888caddcde792be1b45ec7f35ceb61e75d689fe6",
+  "_updated": {
+    "$date": "2018-06-05T22:15:57.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-05T22:15:57.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b170bf3366351000890a362"
+  },
+  "md5sum": "9e03eaeb0e2c4b46019689e181bf7ebd",
+  "rating": "2",
+  "_etag": "10c94f9579f586ddfbe44d3ba65d4d3305d7fda2",
+  "_updated": {
+    "$date": "2018-06-05T22:17:23.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-05T22:17:23.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b170c15366351000890a363"
+  },
+  "md5sum": "0767239756f29a70080a19fc81b9d444",
+  "rating": "1",
+  "_etag": "7b9df45b1ca9740315bfdacb8cbef55820fdc39f",
+  "_updated": {
+    "$date": "2018-06-05T22:17:57.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-05T22:17:57.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b170c25366351000890a364"
+  },
+  "md5sum": "f3f48063d5492b28a56f99cf8e270698",
+  "rating": "2",
+  "_etag": "c664863f3ad29b4d1c0e2c6b369687bcc6b01661",
+  "_updated": {
+    "$date": "2018-06-05T22:18:13.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-05T22:18:13.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b170c3c3663510013fd869f"
+  },
+  "md5sum": "ac35c8efff2e87707bfff7429da9db0a",
+  "rating": "2",
+  "_etag": "4ce79a087f84ac7331ca8c9b751fc18ad8b96316",
+  "_updated": {
+    "$date": "2018-06-05T22:18:36.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-05T22:18:36.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b170c553663510013fd86a0"
+  },
+  "md5sum": "d124dfc097feb5ffbb4f735bf3dc26f7",
+  "rating": "1",
+  "_etag": "ada0c494d2a6be26241c6f52b103155287124902",
+  "_updated": {
+    "$date": "2018-06-05T22:19:01.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-05T22:19:01.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b170c763663510013fd86a1"
+  },
+  "md5sum": "18bc8df33d62bcebeb07b062fb98a518",
+  "rating": "2",
+  "_etag": "1cb853f4764a6d869a0eb65fde0fbedb27318e11",
+  "_updated": {
+    "$date": "2018-06-05T22:19:34.000Z"
+  },
+  "name": "oesteban",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-05T22:19:34.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b170c9b366351000890a365"
+  },
+  "md5sum": "e337e4b6564752a51fce022fc8cccacc",
+  "rating": "2",
+  "_etag": "be822e97a512e9a58ff86fcdc6070eceb95d7dd5",
+  "_updated": {
+    "$date": "2018-06-05T22:20:11.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-05T22:20:11.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b170cba366351000890a366"
+  },
+  "md5sum": "3aa326e1e6ff2e77f88c022db0ac915d",
+  "rating": "2",
+  "_etag": "0b248c0b9272dd5d518258505cfb48251f032e76",
+  "_updated": {
+    "$date": "2018-06-05T22:20:42.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-05T22:20:42.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b170cf33663510013fd86a2"
+  },
+  "md5sum": "d3861fad1063085c4d4689f06ad72d40",
+  "rating": "2",
+  "_etag": "e302a6806914b43def9dae6d9ca6e78b120f1b31",
+  "_updated": {
+    "$date": "2018-06-05T22:21:39.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-05T22:21:39.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b170d0c3663510013fd86a3"
+  },
+  "md5sum": "896344c9a67de131650cd10910ad733a",
+  "rating": "1",
+  "_etag": "df1382b7358ef85a2d262e0309060adeb87d7228",
+  "_updated": {
+    "$date": "2018-06-05T22:22:04.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-05T22:22:04.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b170d263663510013fd86a4"
+  },
+  "md5sum": "d6e6862ccd1fe28003a604730e96ece1",
+  "rating": "2",
+  "_etag": "8a8422daf6f6c06b3bb9e8cead71b952515aaa1d",
+  "_updated": {
+    "$date": "2018-06-05T22:22:30.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-05T22:22:30.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b170d63366351000890a367"
+  },
+  "md5sum": "89b09310d6bc7222d1955ffd31eae80d",
+  "rating": "2",
+  "_etag": "7951f48fa0105268c849c4c963e0d65742bb10e7",
+  "_updated": {
+    "$date": "2018-06-05T22:23:31.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-05T22:23:31.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b1ec5a9366351000890a51e"
+  },
+  "md5sum": "16f8ff606c121eb2c144823e2b43bb50",
+  "rating": "2",
+  "_etag": "c533c8cb8811d27491b6bb5ec272203a96625025",
+  "_updated": {
+    "$date": "2018-06-11T18:55:37.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-11T18:55:37.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b1ec5e43663510013fd8855"
+  },
+  "md5sum": "6a5c10896f6bf80b75485831d92c8434",
+  "rating": "3",
+  "_etag": "644e0c41dedf201f38d60562142b14cd72ad9b9d",
+  "_updated": {
+    "$date": "2018-06-11T18:56:36.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-11T18:56:36.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b1ec615366351000890a51f"
+  },
+  "md5sum": "f46968338a24a5c01121e5fefe449222",
+  "rating": "2",
+  "_etag": "8e07a130b11468cbf6a24fffa8c54db9cf4967e0",
+  "_updated": {
+    "$date": "2018-06-11T18:57:25.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-11T18:57:25.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b1ec615366351000890a520"
+  },
+  "md5sum": "f46968338a24a5c01121e5fefe449222",
+  "rating": "2",
+  "_etag": "8e07a130b11468cbf6a24fffa8c54db9cf4967e0",
+  "_updated": {
+    "$date": "2018-06-11T18:57:25.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-11T18:57:25.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b1ec6513663510013fd8856"
+  },
+  "md5sum": "8f307f8e23cf8aa633bfeb87e1deb85a",
+  "rating": "3",
+  "_etag": "ffb8f130d2f0d8bb87803a5bfd7256288fd2ce56",
+  "_updated": {
+    "$date": "2018-06-11T18:58:25.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-11T18:58:25.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b1ec6bb3663510013fd8857"
+  },
+  "md5sum": "4491cb57fc3ceec543bbbec91d3c07c9",
+  "rating": "2",
+  "_etag": "eef641103efb611e50706f099950c1d47a36f14e",
+  "_updated": {
+    "$date": "2018-06-11T19:00:11.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-11T19:00:11.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b1ec6e4366351000890a521"
+  },
+  "md5sum": "6f338408f698d9c4a8dc1778c345fc62",
+  "rating": "3",
+  "_etag": "cb8cfa323a2f49016715f25404a6d84e049e3036",
+  "_updated": {
+    "$date": "2018-06-11T19:00:52.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-11T19:00:52.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b1ec721366351000890a522"
+  },
+  "md5sum": "b200b504edbe262ee753c4e5948bef15",
+  "rating": "2",
+  "_etag": "af11ddd2a7ba155b64e8d289e30423c19a805de7",
+  "_updated": {
+    "$date": "2018-06-11T19:01:53.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-11T19:01:53.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b1ec74e3663510013fd8858"
+  },
+  "md5sum": "e0824b0aa9309ba85f072b85e65a383a",
+  "rating": "2",
+  "_etag": "d57399ac26981a7767f46981e8cdda92aef790ba",
+  "_updated": {
+    "$date": "2018-06-11T19:02:38.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "minor ghost overlap",
+  "_created": {
+    "$date": "2018-06-11T19:02:38.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b1ec784366351000890a523"
+  },
+  "md5sum": "830f42d6ceb41f0da8a86e449e0a6c39",
+  "rating": "3",
+  "_etag": "453f8a0108e55800cf6dbf70d8dae07ccfd1e636",
+  "_updated": {
+    "$date": "2018-06-11T19:03:32.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-11T19:03:32.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b1ec7b13663510013fd8859"
+  },
+  "md5sum": "95472156ac4691f5daf483192da23b0c",
+  "rating": "3",
+  "_etag": "bf12aa0ae620f355c7fa443a070f2479b8d953a8",
+  "_updated": {
+    "$date": "2018-06-11T19:04:17.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-11T19:04:17.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b1ec7e3366351000890a524"
+  },
+  "md5sum": "2ba11e19d0b174bfebfa9276a73df4f1",
+  "rating": "3",
+  "_etag": "31a520ec836fe04074e1cb75ddeba82142ec647d",
+  "_updated": {
+    "$date": "2018-06-11T19:05:07.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-11T19:05:07.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b1ec834366351000890a525"
+  },
+  "md5sum": "e62af586f776cdc9eb25caba886f3dcb",
+  "rating": "3",
+  "_etag": "a209e16f46e1ff19bc0922cc53105ee3a4607514",
+  "_updated": {
+    "$date": "2018-06-11T19:06:28.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-11T19:06:28.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b1ec85b3663510013fd885a"
+  },
+  "md5sum": "3f0686a655ee373ede8f2aa251a0737d",
+  "rating": "2",
+  "_etag": "0c7dc74128a78299b43558a5881e8156524382f0",
+  "_updated": {
+    "$date": "2018-06-11T19:07:07.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-11T19:07:07.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b1ec88f366351000890a526"
+  },
+  "md5sum": "af989af4527e2cd2ae7c5fe20fabf8f2",
+  "rating": "1",
+  "_etag": "77c98623c8828f5b97cc48c0637849046dc45370",
+  "_updated": {
+    "$date": "2018-06-11T19:07:59.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-11T19:07:59.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b1ec8c03663510013fd885b"
+  },
+  "md5sum": "3856c3183428d1567493878470f3d2e2",
+  "rating": "2",
+  "_etag": "e7bff166a763d8b0d973c8823a05775a28b1d64f",
+  "_updated": {
+    "$date": "2018-06-11T19:08:48.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-11T19:08:48.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b1ec8e13663510013fd885c"
+  },
+  "md5sum": "f357a0a605231c6a504eed0dd817d0c4",
+  "rating": "3",
+  "_etag": "51d8e90b9cbb2b7481034eb61592a9b840c74c75",
+  "_updated": {
+    "$date": "2018-06-11T19:09:21.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-11T19:09:21.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b1ec906366351000890a527"
+  },
+  "md5sum": "c6a63b3c4eee6b660565abae04ceb15b",
+  "rating": "3",
+  "_etag": "7217f8f8322234f17ada64171f63a685b5fc8caa",
+  "_updated": {
+    "$date": "2018-06-11T19:09:58.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-11T19:09:58.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b1ec92c3663510013fd885d"
+  },
+  "md5sum": "dffa66107c6a7e1e1523ab78fd478af5",
+  "rating": "3",
+  "_etag": "ccf877e47b51ef1b4b89daa45480c282b532b2d8",
+  "_updated": {
+    "$date": "2018-06-11T19:10:36.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-11T19:10:36.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b1ec9493663510013fd885e"
+  },
+  "md5sum": "9abb67147f9b2f86cf747037ef1c22f3",
+  "rating": "3",
+  "_etag": "b57473a4c87a3924ba119d35e02100cf070ff4fa",
+  "_updated": {
+    "$date": "2018-06-11T19:11:05.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-11T19:11:05.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b1ec982366351000890a528"
+  },
+  "md5sum": "73cb47f5bd66500d9b3e075f8fff0128",
+  "rating": "3",
+  "_etag": "709602a81e814125763f077d92d6c9ceb12455ad",
+  "_updated": {
+    "$date": "2018-06-11T19:12:02.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-11T19:12:02.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b1ec985366351000890a529"
+  },
+  "md5sum": "73cb47f5bd66500d9b3e075f8fff0128",
+  "rating": "3",
+  "_etag": "032ccf19f6e2183c522368c19670a1a684d17d02",
+  "_updated": {
+    "$date": "2018-06-11T19:12:05.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-11T19:12:05.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b1ec9b23663510013fd885f"
+  },
+  "md5sum": "7abadff22a76d3b46bdb0cf026d4e54b",
+  "rating": "2",
+  "_etag": "7caf36ae53be31e399f5b6f6d75c2eeb8409de97",
+  "_updated": {
+    "$date": "2018-06-11T19:12:50.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "minimal ghost overlap",
+  "_created": {
+    "$date": "2018-06-11T19:12:50.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b1ec9d23663510013fd8860"
+  },
+  "md5sum": "ec062db30da2eb6569dc88aed4b67f01",
+  "rating": "3",
+  "_etag": "8ba59b53dd1e32df8743a89165974371ce120d71",
+  "_updated": {
+    "$date": "2018-06-11T19:13:22.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-11T19:13:22.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b1eca04366351000890a52a"
+  },
+  "md5sum": "64765a28175ae2a4e6f357b31543b281",
+  "rating": "2",
+  "_etag": "14c6a26796be893375ed5136ea0e77b65ad9cd38",
+  "_updated": {
+    "$date": "2018-06-11T19:14:12.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "important ghost overlap",
+  "_created": {
+    "$date": "2018-06-11T19:14:12.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b1eca29366351000890a52b"
+  },
+  "md5sum": "67e7fbf528f983e3171d8781f832660c",
+  "rating": "3",
+  "_etag": "b732a7d7893fd423bbd9f55fcdf34ad268db62a8",
+  "_updated": {
+    "$date": "2018-06-11T19:14:49.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-11T19:14:49.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b1eca47366351000890a52c"
+  },
+  "md5sum": "b39f594d9bcbe49204c004353a7ba660",
+  "rating": "3",
+  "_etag": "885b5ad0a08c6841ead52eff77cb7ee3c84084a2",
+  "_updated": {
+    "$date": "2018-06-11T19:15:19.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-11T19:15:19.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b1ecac8366351000890a52d"
+  },
+  "md5sum": "6fffb7ac06c5dc1b65496fbe82b38611",
+  "rating": "2",
+  "_etag": "2aace3a95fd65b869ab30bc69d3478a9217ad68a",
+  "_updated": {
+    "$date": "2018-06-11T19:17:28.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "subtle head motion ripples",
+  "_created": {
+    "$date": "2018-06-11T19:17:28.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b1ecaf23663510013fd8861"
+  },
+  "md5sum": "8766c6a8fccb5d7342cb4c04db46d588",
+  "rating": "3",
+  "_etag": "5cbc8a408b656d61e1625451795bfb9498e49e42",
+  "_updated": {
+    "$date": "2018-06-11T19:18:10.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-11T19:18:10.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b1ecb72366351000890a52e"
+  },
+  "md5sum": "7d668e9fec19b0384024e4d8c0b7fdb3",
+  "rating": "3",
+  "_etag": "313f61ba2256ce069a3c76229e17356a9b7084d0",
+  "_updated": {
+    "$date": "2018-06-11T19:20:18.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "",
+  "_created": {
+    "$date": "2018-06-11T19:20:18.000Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "5b1ecbb63663510013fd8862"
+  },
+  "md5sum": "fd8aa4c85adb51300834dcec7f1f9969",
+  "rating": "2",
+  "_etag": "9be351706c6d9e55a81081ff6ab3467253c8ca44",
+  "_updated": {
+    "$date": "2018-06-11T19:21:26.000Z"
+  },
+  "name": "oesteban@stanford.edu",
+  "comment": "minor ghost of headset overlap",
+  "_created": {
+    "$date": "2018-06-11T19:21:26.000Z"
+  }
+}
+]

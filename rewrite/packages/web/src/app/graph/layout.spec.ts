@@ -118,7 +118,7 @@ describe('dashboard layout', () => {
     expect(compactLayout(moved, 'a')).toEqual(moved);
   });
 
-  it('adds in the first free position and compacts after removal', () => {
+  it('adds in the first free position and preserves surviving geometry during reconciliation', () => {
     const a = panel('a');
     const b = panel('b');
     const added = reconcileLayout({ a: { x: 0, y: 0, w: 4, h: 10 } }, [a, b], 3);
@@ -133,7 +133,7 @@ describe('dashboard layout', () => {
         [b],
         3,
       ),
-    ).toEqual({ b: { x: 0, y: 0, w: 4, h: 10 } });
+    ).toEqual({ b: { x: 0, y: 10, w: 4, h: 10 } });
   });
 
   it('clamps geometry and compaction is idempotent', () => {

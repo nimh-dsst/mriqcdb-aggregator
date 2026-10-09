@@ -83,6 +83,7 @@ export type Query =
       proc: 'density2d';
       x: ColumnRef;
       y: ColumnId;
+      grid?: number;
       bins: number;
       clip: ClipMode;
       range?: { x: [number, number]; y: [number, number] };
@@ -242,7 +243,7 @@ export function queryKey(query: Query): QueryKey {
         ...scopeParams(query),
         ['x', encodeURIComponent(query.x)],
         ['y', encodeURIComponent(query.y)],
-        ['bins', formatNumber(query.bins)],
+        ['bins', formatNumber(query.grid ?? query.bins ?? 60)],
         ['clip', query.clip],
         ['range', query.range === undefined ? '' : formatDensity2dRange(query.range)],
         ['sampleSize', formatNumber(query.sampleSize)],

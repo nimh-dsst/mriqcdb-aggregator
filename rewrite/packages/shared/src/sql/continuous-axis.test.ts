@@ -32,6 +32,16 @@ describe.each(['metric', 'time'] as const)('shared SQL with %s x', kind => {
   const holes = () => ({ table: 'study', x: axis(kind === 'time' ? 'created_at' : 'metric_x', kind),
     y: axis('metric_y', 'metric'), where: 'TRUE' });
 
+  it.each([30, 60, 120])('executes the same density template text for grid %i', async (grid) => {
+    const text = sql('density2d', 'histogram', holes());
+    const result = (await connection.runAndReadAll(text,
+      [0, 3, grid, grid, 0, 3 / grid, 1, 7, grid, grid, 1, 6 / grid])).getRowObjectsJS();
+    expect(result.map(row => [Number(row['bx']), Number(row['by']), Number(row['n'])])
+      .sort((a, b) => a[0]! - b[0]!)).toEqual([
+      [0, 0, 1], [grid / 3, grid / 3, 1], [2 * grid / 3, 2 * grid / 3, 1], [grid - 1, grid - 1, 1],
+    ]);
+  });
+
   it('executes the density text unchanged on study columns, excluding nonfinite pairs', async () => {
     const common = { ...holes(), seed: '1', sample_size: '4' };
     const stats = (await connection.runAndReadAll(sql('density2d', 'stats', common))).getRowObjectsJS();

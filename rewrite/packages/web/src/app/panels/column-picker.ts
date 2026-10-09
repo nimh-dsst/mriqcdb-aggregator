@@ -183,14 +183,16 @@ let nextColumnPickerId = 0;
                 (focus)="focusSlot(slot)" (click)="focusSlot(slot)"
                 (input)="searchSlot(slot, $event)" (keydown)="slotKey(slot, $event)" />
               </label>
-              @if (slots()[slot]) {
+              @if (slots()[slot] && (slot === 'y' || !panelId())) {
                 <button type="button" class="btn btn-quiet" [attr.aria-label]="'Clear ' + slot.toUpperCase() + ' slot'"
                   (click)="slotAction({ type: 'clear', slot })">✕</button>
               }
             </div>
           }
           <button type="button" class="btn btn-quiet" aria-label="Swap X and Y" [disabled]="!canSwap()" (click)="slotAction({ type: 'swap' })">⇄</button>
-          <button type="button" class="btn" [disabled]="!slots().x" (click)="commit($event)">{{ panelId() ? 'Apply' : 'Create panel' }}</button>
+        @if (!panelId()) {
+          <button type="button" class="btn" [disabled]="!slots().x" (click)="commit($event)">Create panel</button>
+        }
         </div>
       }
       @if (!drawer()) {
@@ -281,7 +283,7 @@ let nextColumnPickerId = 0;
             <p>Unit: category</p>
           }
           <ng-content />
-          <p class="text-caption">Choose X and optionally a continuous Y, then {{ panelId() ? 'Apply' : 'Create panel' }}. Hold Shift when creating to keep this drawer open.</p>
+        <p class="text-caption">Choose X and optionally a continuous Y{{ panelId() ? '.' : ', then create the panel. Hold Shift when creating to keep this drawer open.' }}</p>
         </aside>
       }
       </div>
@@ -321,6 +323,8 @@ export class ColumnPicker {
     .find(column => column.id === (this.preview() ?? this.selected())) ?? uploadTime);
   readonly activeMetric = computed(() => this.metrics().find(metric => metric.id === this.activeColumn().id));
   readonly activeField = computed(() => this.fields().find(field => field.id === this.activeColumn().id));
+  private initializedPanel: string | null | undefined;
+  private previousFocusY = false;
   constructor() {
     effect(() => {
       // Catalog refreshes must not discard picks in an open drawer. Only the
@@ -330,9 +334,13 @@ export class ColumnPicker {
         const column = columns.find(column => column.id === id);
         return column ? this.slotColumn(column) : null;
       };
+      const first = this.initializedPanel !== this.panelId();
+      const focusChanged = this.previousFocusY !== this.focusY();
       this.slots.set({ x: this.panelId() ? find(this.selected()) : null, y: this.panelId() ? find(this.y()) : null,
-        focused: this.focusY() ? 'y' : 'x' });
-      this.selectedFamily.set(this.panelId() ? find(this.selected())?.family ?? 'Time' : 'Time');
+        focused: first || focusChanged ? (this.focusY() ? 'y' : 'x') : untracked(this.slots).focused });
+      if (first) this.selectedFamily.set(this.panelId() ? find(this.selected())?.family ?? 'Time' : 'Time');
+      this.initializedPanel = this.panelId();
+      this.previousFocusY = this.focusY();
       this.editingSlot.set(null);
       this.query.set('');
     });
@@ -347,6 +355,7 @@ export class ColumnPicker {
     if (action.type !== 'focus') {
       this.query.set('');
       this.editingSlot.set(null);
+      this.applyLive();
     }
   }
 
@@ -465,17 +474,25 @@ export class ColumnPicker {
   }
 
   commit(event?: MouseEvent): void {
+    if (this.panelId()) return;
     const { x: column, y: second } = this.slots();
     if (!column) return;
     const x = asColumnId(column.id);
     const y = column.source === 'field' || !second || second.id === column.id ? null : asColumnId(second.id);
-    const graph = this.injector.get(Graph);
-    const id = this.panelId();
-    const form = this.pendingForm();
-    if (id) graph.dispatch({ t: 'patchPanel', id, patch: { x, y, ...(form && y ? { form } : {}) } });
-    else graph.dispatch({ t: 'addPanel', x, y });
-    if (id || !event?.shiftKey) this.closed.emit();
+    this.injector.get(Graph).dispatch({ t: 'addPanel', x, y });
+    if (!event?.shiftKey) this.closed.emit();
     else this.slots.set({ x: null, y: null, focused: 'x' });
+  }
+
+  private applyLive(): void {
+    const id = this.panelId();
+    if (!id) return;
+    const { x: column, y: second } = this.slots();
+    if (!column) return;
+    const x = asColumnId(column.id);
+    const y = column.source === 'field' || !second || second.id === column.id ? null : asColumnId(second.id);
+    const form = this.pendingForm();
+    this.injector.get(Graph).dispatch({ t: 'patchPanel', id, patch: { x, y, ...(form && y ? { form } : {}) } });
   }
 
   pick(column: ColumnPickerColumn, event?: MouseEvent): void {
@@ -484,7 +501,6 @@ export class ColumnPicker {
         this.slotAction({ type: 'pick', column: this.slotColumn(column) });
         this.selectedFamily.set(column.family);
         this.preview.set(column.id);
-        if (this.pendingForm() && this.slots().y) this.commit(event);
       }
       this.picked.emit(column.id);
     }

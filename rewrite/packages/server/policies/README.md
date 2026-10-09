@@ -1,9 +1,29 @@
 # Frozen policy artifacts
 
-Two kinds live here: the per-policy canonicalization **scales**, and the vendor
-**mapping** that normalizes the free-text manufacturer string. Both are frozen —
+Three kinds live here: the serving **column catalog**, per-policy canonicalization
+**scales**, and the vendor **mapping** that normalizes the free-text manufacturer string. These are frozen —
 the build reads them, never recomputes them — and both are part of
-`data_version`, so editing either invalidates every cached answer.
+`data_version`, so editing them invalidates cached answers (the column catalog is
+hashed by dump builds).
+
+## Frozen column catalog
+
+`columns.csv` records modality, serving table, column, dotted source name, DuckDB
+type, JSON extraction path and nullability, in serving-column order. Raw and
+canonical columns are distinguished by table; only raw/auxiliary tables are
+created from it. Canonical tables are computed from the policies as usual.
+
+Captured on 2026-10-09 from a 300-row-per-modality build of the original August
+Parquet files, using the build's `columns` table joined to each serving table's
+`DESCRIBE`. The active API's database could not be opened or copied because of
+its writer lock. Sampling changes rows, not the Parquet-derived column schema.
+
+Check with `pnpm --filter @mriqc/server check:columns -- --database <parquet-built.duckdb>`.
+The default checks `DUCKDB_PATH`, skipping if absent or locked. To deliberately
+recapture the policy, add `--write`; review that CSV change as a schema migration.
+The JSON path is the flattener's extraction path; extended-JSON wrappers are
+unwrapped afterward. Canonical-only, scale and scanner fields are derived, not
+additional MongoDB collections.
 
 ## Frozen canonicalization scales
 

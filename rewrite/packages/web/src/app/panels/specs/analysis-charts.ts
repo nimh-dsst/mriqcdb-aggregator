@@ -11,6 +11,7 @@ import {
   FILLS_CONTAINER,
   LIGHT_THEME,
   OTHER_COLOR,
+  valueScale,
   type ChartTheme,
   VL_SCHEMA,
 } from "./palette";
@@ -170,11 +171,11 @@ function extent(series: readonly AnalysisSeries[], axis: "x" | "y"): [number, nu
 }
 
 /** Aggregate retained samples into a pointy-top hexagonal lattice in data space. */
-function hexRows(series: readonly AnalysisSeries[]): HexRow[] {
+function hexRows(series: readonly AnalysisSeries[], cells = 60): HexRow[] {
   const xExtent = extent(series, "x");
   const yExtent = extent(series, "y");
-  const xRadius = Math.max((xExtent[1] - xExtent[0]) / 28, Number.EPSILON);
-  const yRadius = Math.max((yExtent[1] - yExtent[0]) / 28, Number.EPSILON);
+  const xRadius = Math.max((xExtent[1] - xExtent[0]) / (1.5 * cells), Number.EPSILON);
+  const yRadius = Math.max((yExtent[1] - yExtent[0]) / (Math.sqrt(3) * cells), Number.EPSILON);
   const buckets = new Map<string, HexRow>();
 
   for (const point of sampleRows(series)) {
@@ -219,6 +220,9 @@ function densityChartData(
     yLabel: string;
     xScale?: Record<string, unknown>;
     yScale?: Record<string, unknown>;
+    colorScale?: 'linear' | 'log' | 'sqrt';
+    colorDomain?: 'auto' | readonly [number, number];
+    cells?: number;
     form: "heatmap" | "scatter" | "hexbin";
     showPoints: boolean;
     theme?: ChartTheme;
@@ -233,7 +237,10 @@ function densityChartData(
   const allGrid = series.flatMap(gridRows);
   const points = sampleRows(series);
   const contours = series.length > 1 ? contourRows(series) : [];
-  const hexagons = hexRows(series);
+  const hexagons = hexRows(series, opts.cells);
+  const colorType = opts.colorScale ?? 'log';
+  const colorScale = { type: colorType, range: batlowRange(8), clamp: true,
+    ...(opts.colorDomain && opts.colorDomain !== 'auto' ? { domain: [...opts.colorDomain] } : colorType === 'log' ? { domainMin: 1 } : { zero: true }) };
   const colors = series.map((item) => item.color);
   const brush = opts.brush
     ? {
@@ -285,16 +292,15 @@ function densityChartData(
         ...FILLS_CONTAINER,
         params,
         data: { name: "hex-samples" },
-        mark: { type: "point", filled: true, shape: HEXAGON_PATH, opacity: 0.85, clip: true },
+        mark: { type: "point", filled: true, shape: HEXAGON_PATH, size: { expr: `pow(min(width, height) / ${opts.cells ?? 60}, 2) * 2` }, opacity: 0.85, clip: true },
         encoding: {
           x,
           y,
-          size: { field: "sampleCount", type: "quantitative", title: "Sample count", scale: { range: [20, 400] } },
           color: {
-            field: "seriesId",
-            type: "nominal",
-            title: "Cohort",
-            scale: { domain: series.map((item) => item.id), range: colors },
+            field: "sampleCount",
+            type: "quantitative",
+            title: `Count (${colorType})`,
+            scale: colorScale,
           },
           tooltip: [
             { field: "series", type: "nominal", title: "Cohort" },
@@ -315,10 +321,10 @@ function densityChartData(
     y: { ...y, field: "y" },
     y2: { field: "y2" },
     color: {
-      field: "logCount",
+      field: colorType === 'log' ? 'logCount' : 'count',
       type: "quantitative",
-      title: "Count (log)",
-      scale: { type: "log", domainMin: 1, range: batlowRange(8), clamp: true },
+      title: `Count (${colorType})`,
+      scale: colorScale,
       legend: { gradientLength: 110 },
     },
     tooltip: [
@@ -487,6 +493,7 @@ export function correlationChart(
   order: boolean,
   theme: ChartTheme = LIGHT_THEME,
   coefficient: "spearman" | "pearson" = "spearman",
+  colorOptions: { colorScale?: 'linear' | 'log' | 'sqrt'; colorDomain?: 'auto' | readonly [number, number] } = {},
 ): AnalysisChartResult {
   const correlation = asCorrelation(result);
   const source = correlation[coefficient] ?? [];
@@ -522,6 +529,11 @@ export function correlationChart(
 
   const labelDomain = metrics.map((metric) => wrapCorrelationLabel(labels[metric] ?? metric));
   const coefficientTitle = coefficient === "spearman" ? "Spearman ρ" : "Pearson r";
+  const colorType = colorOptions.colorScale ?? 'linear';
+  const domain = colorOptions.colorDomain && colorOptions.colorDomain !== 'auto' ? colorOptions.colorDomain : colorType === 'log' ? [0.001, 1] : [-1, 1];
+  const colorDomain = VIK_11.map((_, i) => colorType === 'log'
+    ? Math.exp(Math.log(Math.max(Number.MIN_VALUE, domain[0])) + i / 10 * (Math.log(domain[1]) - Math.log(Math.max(Number.MIN_VALUE, domain[0]))))
+    : domain[0] + (domain[1] - domain[0]) * i / 10);
   const matrixScale = { domain: labelDomain, paddingInner: 0, paddingOuter: 0,
     range: [0, { expr: "min(width, height)" }] };
   return {
@@ -539,10 +551,11 @@ export function correlationChart(
             color: {
               field: "value",
               type: "quantitative",
-              title: coefficientTitle,
+              title: `${coefficientTitle} (${colorType})`,
               legend: { orient: "right" },
               scale: {
-                domain: [-1, -0.8, -0.6, -0.4, -0.2, 0, 0.2, 0.4, 0.6, 0.8, 1],
+                type: colorType,
+                domain: colorDomain,
                 range: VIK_11,
                 clamp: true,
               },
@@ -580,6 +593,7 @@ function clustersChartData(
   xLabel: string,
   yLabel: string,
   theme: ChartTheme = LIGHT_THEME,
+  scales: { x?: Record<string, unknown>; y?: Record<string, unknown> } = {},
 ): AnalysisChartResult {
   const clusterById = new Map(clustering.clusters.map((cluster) => [cluster.id, cluster]));
   const displayCluster = (id: number) => (id < 0 || id >= 6 ? "Other" : `Cluster ${id + 1}`);
@@ -627,8 +641,8 @@ function clustersChartData(
           data: { name: "cluster-points" },
           mark: { type: "point", filled: true, size: 20, opacity: 0.65 },
           encoding: {
-            x: { field: "x", type: "quantitative", axis: { title: xLabel, grid: false } },
-            y: { field: "y", type: "quantitative", axis: { title: yLabel, grid: false } },
+            x: { field: "x", type: "quantitative", axis: { title: xLabel, grid: false }, scale: scales.x },
+            y: { field: "y", type: "quantitative", axis: { title: yLabel, grid: false }, scale: scales.y },
             color: { field: "cluster", type: "nominal", scale: { domain: clusterNames, range: clusterColors } },
             tooltip: [
               { field: "cluster", type: "nominal", title: "Cluster" },
@@ -643,8 +657,8 @@ function clustersChartData(
           data: { name: "cluster-centroids" },
           mark: { type: "point", filled: true, fill: theme.surface, stroke: theme.labelInk, size: 130, strokeWidth: 2.5 },
           encoding: {
-            x: { field: "x", type: "quantitative" },
-            y: { field: "y", type: "quantitative" },
+            x: { field: "x", type: "quantitative", scale: scales.x },
+            y: { field: "y", type: "quantitative", scale: scales.y },
             tooltip: [
               { field: "cluster", type: "nominal", title: "Centroid" },
               { field: "clusterN", type: "quantitative", title: "Cluster size" },
@@ -661,9 +675,12 @@ function clustersChartData(
 }
 
 export function clustersChart(points: Parameters<typeof clustersChartData>[0], clustering: AnalysisClustering,
-  xLabel: string, yLabel: string, theme: ChartTheme = LIGHT_THEME, xScale: MetricAxis['xScale'] = 'linear'): AnalysisChartResult {
-  if (xScale !== 'time') return clustersChartData(points, clustering, xLabel, yLabel, theme);
+  xLabel: string, yLabel: string, theme: ChartTheme = LIGHT_THEME, xScale: MetricAxis['xScale'] = 'linear',
+  options: { xRange?: 'auto' | readonly [number, number]; yRange?: 'auto' | readonly [number, number]; yScale?: 'linear' | 'log' | 'symlog' } = {}): AnalysisChartResult {
+  const scales = { x: valueScale(xScale ?? 'linear', options.xRange ?? 'auto'), y: valueScale(options.yScale ?? 'linear', options.yRange ?? 'auto') };
+  if (xScale !== 'time') return clustersChartData(points, clustering, xLabel, yLabel, theme, scales);
+  if (options.xRange && options.xRange !== 'auto') scales.x = { ...scales.x, domain: options.xRange.map(epochDate) };
   const chart = clustersChartData(points.map(point => { const p = normalizePoint(point); return { x: epochDate(p.x), y: p.y }; }),
-    { ...clustering, centroids: clustering.centroids.map(([x, y]) => [epochDate(x), y]) }, xLabel, yLabel, theme);
+    { ...clustering, centroids: clustering.centroids.map(([x, y]) => [epochDate(x), y]) }, xLabel, yLabel, theme, scales);
   return { ...chart, spec: continuousAxisSpec(chart.spec, { label: xLabel, xScale: 'time', logScale: false, countTitle: 'Scans' }) };
 }

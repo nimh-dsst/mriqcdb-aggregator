@@ -380,6 +380,8 @@ export interface PolicyRecord {
 
 /** Options for {@link buildDatabase}. Every one has a configured default. */
 export interface BuildOptions {
+  /** Bootstrap from mongoexport JSON files, adopting files without manifest entries. */
+  fromDumps?: string;
   /** Parquet directory; defaults to `MRIQC_DATA_DIR`. */
   dataDir?: string;
   /** Destination DuckDB file; defaults to `DUCKDB_PATH`. */
@@ -671,6 +673,12 @@ export function removeStaleBuilds(outPath: string): string[] {
  * idempotent and never leaves the server reading a partial file.
  */
 export async function buildDatabase(options: BuildOptions = {}): Promise<BuildResult> {
+  if (options.fromDumps !== undefined) {
+    if (options.dataDir !== undefined) throw new Error('--from-dumps cannot be combined with --data-dir');
+    if (options.canonicalFromParquet) throw new Error('--from-dumps cannot be combined with --canonical-from-parquet');
+    const { buildFromDumps } = await import('./build-dumps.js');
+    return buildFromDumps(options);
+  }
   const started = Date.now();
   const dataDir = (options.dataDir ?? MRIQC_DATA_DIR).replace(/\\/g, '/');
   const outPath = options.outPath ?? DUCKDB_PATH;

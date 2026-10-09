@@ -154,6 +154,54 @@ function pixels(node: HTMLElement, left: number, top: number, width: number, hei
   node.style.left = `${left}px`; node.style.top = `${top}px`; node.style.width = `${Math.max(0, width)}px`; node.style.height = `${Math.max(0, height)}px`;
 }
 
+function contextAffordance(band: HTMLElement, axis: 'x' | 'y' | 'color'): void {
+  band.tabIndex = 0;
+  band.setAttribute('role', 'group');
+  band.setAttribute('aria-label', axis === 'color' ? 'Colour legend' : `${axis.toUpperCase()} axis`);
+  const open = (event: Event): void => {
+    event.preventDefault(); event.stopPropagation();
+    const rect = band.getBoundingClientRect();
+    const pointer = event instanceof MouseEvent && event.type === 'contextmenu';
+    band.dispatchEvent(new CustomEvent('elementcontext', { bubbles: true,
+      detail: { axis, x: pointer ? event.clientX : rect.left, y: pointer ? event.clientY : rect.top } }));
+  };
+  band.addEventListener('contextmenu', open);
+  band.addEventListener('keydown', event => {
+    if (event.key === 'ContextMenu' || (event.shiftKey && event.key === 'F10')) open(event);
+  });
+  const button = document.createElement('button');
+  button.type = 'button'; button.className = 'vega-element-menu-button'; button.textContent = '⋯';
+  button.setAttribute('aria-label', axis === 'color' ? 'Colour legend options' : `${axis.toUpperCase()} axis options`);
+  button.addEventListener('pointerdown', event => event.stopPropagation());
+  button.addEventListener('dblclick', event => event.stopPropagation());
+  button.addEventListener('click', open);
+  band.append(button);
+}
+
+/** Vega legend groups carry bounds in their parent's coordinate system. */
+function legendBounds(view: VegaAxisBandView): Bounds[] {
+  const found: Bounds[] = [];
+  const hasGradient = (node: unknown): boolean => {
+    const item = record(node);
+    return !!item && (item['role'] === 'legend-gradient' || (Array.isArray(item['items']) && item['items'].some(hasGradient)));
+  };
+  const visit = (node: unknown, parent: Point): void => {
+    const item = record(node);
+    if (!item) return;
+    const mark = record(item['mark']);
+    const bounds = record(item['bounds']);
+    if (mark?.['role'] === 'legend' && bounds && hasGradient(item)) {
+      const left = property(bounds, 'x1'), right = property(bounds, 'x2'), top = property(bounds, 'y1'), bottom = property(bounds, 'y2');
+      if (left !== null && right !== null && top !== null && bottom !== null) found.push({ left: parent.x + left, right: parent.x + right, top: parent.y + top, bottom: parent.y + bottom });
+      return;
+    }
+    const offset = mark?.['marktype'] === 'group' ? { x: parent.x + (property(item, 'x') ?? 0), y: parent.y + (property(item, 'y') ?? 0) } : parent;
+    if (Array.isArray(item['items'])) for (const child of item['items']) visit(child, offset);
+  };
+  try { visit(record(view.scenegraph?.())?.['root'], { x: 0, y: 0 }); } catch { /* An unfinished view has no legends yet. */ }
+  return found;
+}
+
 /** Adds disjoint 24px targets over bottom and left Vega axis labels. */
 export function attachAxisBandGestures(host: HTMLElement, view: VegaAxisBandView, emit: (event: AxisRangeEvent) => void): AxisBandGestures {
   const originalPosition = host.style.position;
@@ -198,6 +246,7 @@ export function attachAxisBandGestures(host: HTMLElement, view: VegaAxisBandView
     band.style.cursor = item.axis === 'x' ? 'ew-resize' : 'ns-resize';
     if (item.axis === 'x') pixels(band, item.left, item.bottom, item.right - item.left, BAND_SIZE);
     else pixels(band, item.left - BAND_SIZE, item.top, BAND_SIZE, item.bottom - item.top);
+    contextAffordance(band, item.axis);
     band.addEventListener('pointerdown', event => {
       if (event.button !== 0) return;
       event.preventDefault(); event.stopPropagation();
@@ -224,6 +273,13 @@ export function attachAxisBandGestures(host: HTMLElement, view: VegaAxisBandView
     for (const band of bands) band.remove();
     bands = [];
     for (const item of geometries(host, view)) addBand(item);
+    const base = baseOffset(host, view);
+    for (const bounds of legendBounds(view)) {
+      const band = overlay('vega-color-legend-band');
+      pixels(band, base.x + bounds.left, base.y + bounds.top, bounds.right - bounds.left, bounds.bottom - bounds.top);
+      contextAffordance(band, 'color');
+      host.append(band); bands.push(band);
+    }
   };
   refresh();
   const observer = typeof ResizeObserver === 'undefined' ? undefined : new ResizeObserver(refresh);

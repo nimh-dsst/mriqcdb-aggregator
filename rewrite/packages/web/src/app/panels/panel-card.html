@@ -3,7 +3,8 @@
     class="panel-box relative flex h-full min-h-0 min-w-0 flex-col overflow-hidden rounded-card border border-border bg-surface text-ink"
     [attr.data-panel-id]="panel.id" [attr.aria-label]="view()?.title"
     [attr.data-panel-form]="panel.form"
-    data-testid="panel-card"
+    (elementcontext)="openElementContext($event)"
+    data-testid="panel-card" cdkOverlayOrigin #contextOrigin="cdkOverlayOrigin"
     [attr.data-columns]="columns()"
     tabindex="0"
     (keydown.escape)="onEscape()"
@@ -112,6 +113,7 @@
         (added)="addSeries($event)"
         (removed)="removeSeries($event)"
         (newGroup)="createGroup()"
+        (groupAction)="groupAction($event)"
       />
 
       <div class="panel-form flex min-h-9 min-w-0 items-center gap-1">
@@ -223,115 +225,84 @@
       </section>
     }
 
-    <mat-menu #optionsMenu="matMenu">
-      <div class="space-y-2 p-3" (click)="$event.stopPropagation()">
-        @if (panel.form !== 'table' && panel.form !== 'matrix') {
-        @if (view(); as panelView) {
-          <app-axes-controls [view]="panelView" [yUnit]="yUnit()" (changed)="patch({ options: $event })" />
-          @if (panel.form === 'band' || panel.form === 'lines') {
-            <label class="flex items-center gap-2 text-caption">Quantiles
-              <select aria-label="Quantiles" class="rounded border border-border bg-surface p-1"
-                [value]="panel.options.quantiles" (change)="changeOption($event, 'quantiles')">
-                <option value="quartiles">Quartiles</option>
-                <option value="tails">Tails</option>
+    <mat-menu #optionsMenu="matMenu" class="panel-options-menu">
+      <div class="panel-settings" data-testid="panel-settings" (click)="$event.stopPropagation()" cdkTrapFocus [cdkTrapFocusAutoCapture]="true" (keydown)="$event.key !== 'Escape' && $event.stopPropagation()">
+        @if (['histogram', 'line', 'area', 'band', 'lines'].includes(panel.form)) {
+          <label appSettingRow class="setting-row"><span>Bins</span>
+            @if (timeX()) {
+              <select aria-label="Bins" [value]="panel.options.granularity" (change)="changeOption($event, 'granularity')">
+                <option value="month">Month</option><option value="year">Year</option><option value="week">Week</option><option value="day">Day</option>
               </select>
-            </label>
-          }
-          <button mat-menu-item type="button" (click)="resetPanelRanges()">Reset axes</button>
+            } @else {
+              <input aria-label="Bins" type="number" min="10" max="200" [value]="panel.options.bins" (change)="changeNumberOption($event, 'bins')" />
+            }
+          </label>
         }
+        @if (panel.form === 'heatmap' || panel.form === 'hexbin') {
+          <label appSettingRow class="setting-row"><span>Cells</span>
+            <select aria-label="Cells" [value]="panel.options.cells ?? 60" (change)="changeNumberOption($event, 'cells')">
+              <option value="30">30 per axis</option><option value="60">60 per axis</option><option value="120">120 per axis</option>
+            </select>
+          </label>
         }
-        <div class="grid grid-cols-2 gap-2 text-caption text-ink-2">
-          <label [hidden]="!numericX() || !!panel.y || panel.form === 'table' || panel.form === 'matrix'">
-            Bins
-            <input
-              class="ml-1 w-16 rounded border border-border bg-surface px-1 py-1 text-control text-ink"
-              type="number"
-              min="10"
-              max="200"
-              [value]="panel.options.bins ?? 30"
-              (change)="changeNumberOption($event, 'bins')"
-            />
-          </label>
-          <label [hidden]="!numericX() || panel.form === 'table' || panel.form === 'matrix'">
-            Clip
-            <select
-              class="ml-1 rounded border border-border bg-surface px-1 py-1 text-control text-ink"
-              [value]="panel.options.clip" (change)="changeOption($event, 'clip')"
-            >
-              <option value="p01p99">p01–p99</option>
-              <option value="p05p95">p05–p95</option>
-              <option value="none">None</option>
+        @if (panel.form === 'band' || panel.form === 'lines') {
+          <label appSettingRow class="setting-row"><span>Quantiles</span>
+            <select aria-label="Quantiles" [value]="panel.options.quantiles" (change)="changeOption($event, 'quantiles')">
+              <option value="quartiles">Quartiles</option><option value="tails">Tails</option>
             </select>
           </label>
-          <label [hidden]="!numericX() || !!panel.y || !panel.series.length || (panel.form !== 'histogram' && panel.form !== 'density')">
-            Layout
-            <select
-              class="ml-1 rounded border border-border bg-surface px-1 py-1 text-control text-ink"
-              [value]="panel.options.layout" (change)="changeOption($event, 'layout')"
-            >
-              <option value="overlaid">Overlaid</option>
-              <option value="stacked" [disabled]="!canStack()">Stacked</option>
-              <option value="stacked100" [disabled]="!canStack()">Stacked 100%</option>
+        }
+        @if (numericX() && panel.form !== 'table' && panel.form !== 'matrix') {
+          <label appSettingRow class="setting-row"><span>Clip</span>
+            <select aria-label="Clip" [value]="panel.options.clip" (change)="changeOption($event, 'clip')">
+              <option value="p01p99">p01–p99</option><option value="p05p95">p05–p95</option><option value="none">None</option>
             </select>
           </label>
-          <label [hidden]="!timeX()">
-            Granularity
-            <select
-              class="ml-1 rounded border border-border bg-surface px-1 py-1 text-control text-ink"
-              [value]="panel.options.granularity" (change)="changeOption($event, 'granularity')"
-            >
-              <option value="month">Month</option>
-              <option value="year">Year</option>
-              <option value="week">Week</option>
-              <option value="day">Day</option>
+        }
+        @if (panel.series.length && !panel.y && ['histogram', 'line', 'area', 'density'].includes(panel.form)) {
+          <label appSettingRow class="setting-row"><span>Layout</span>
+            <select aria-label="Layout" [value]="panel.options.layout" (change)="changeOption($event, 'layout')">
+              <option value="overlaid">Overlaid</option><option value="stacked" [disabled]="!canStack()">Stacked</option><option value="stacked100" [disabled]="!canStack()">100%</option>
             </select>
           </label>
-          <label [hidden]="panel.form !== 'box'">
-            Box sort
-            <select
-              class="ml-1 rounded border border-border bg-surface px-1 py-1 text-control text-ink"
-              [value]="panel.options.boxSort" (change)="changeOption($event, 'boxSort')"
-            >
-              <option value="median">Median</option>
-              <option value="n">N</option>
-            </select>
-          </label>
-          <label [hidden]="panel.form !== 'clusters'">
-            Cluster k
-            <input
-              class="ml-1 w-16 rounded border border-border bg-surface px-1 py-1 text-control text-ink"
-              type="number"
-              min="2"
-              [value]="panel.options.k"
-              (change)="changeNumberOption($event, 'k')"
-            />
-          </label>
-          <label [hidden]="panel.form !== 'clusters'">
-            Cluster seed
-            <input
-              class="ml-1 w-16 rounded border border-border bg-surface px-1 py-1 text-control text-ink"
-              type="number"
-              [value]="panel.options.seed"
-              (change)="changeNumberOption($event, 'seed')"
-            />
-          </label>
-          <label class="flex items-center gap-1" [hidden]="!timeX() || (panel.form === 'band' || panel.form === 'lines')">
-            <input type="checkbox" [checked]="panel.options.cumulative" (change)="changeBooleanOption($event, 'cumulative')" />
-            Cumulative
-          </label>
-          <label class="flex items-center gap-1" [hidden]="!timeX() || (panel.form === 'band' || panel.form === 'lines')">
-            <input type="checkbox" [checked]="panel.options.share" (change)="changeBooleanOption($event, 'share')" />
-            Share
-          </label>
-          <label class="flex items-center gap-1" [hidden]="!timeX() || (panel.form === 'band' || panel.form === 'lines')">
-            <input type="checkbox" [checked]="panel.options.coverageLogY" (change)="changeBooleanOption($event, 'coverageLogY')" />
-            Log
-          </label>
-        </div>
+        }
+        <label appSettingRow class="setting-row"><span>Follow brushed range</span>
+          <input aria-label="Follow brushed range" type="checkbox" [checked]="panel.options.useSelection" (change)="changeBooleanOption($event, 'useSelection')" />
+        </label>
       </div>
     </mat-menu>
 
+    <ng-template cdkConnectedOverlay [cdkConnectedOverlayOrigin]="contextOrigin" [cdkConnectedOverlayOpen]="contextTarget() !== null">
+    @if (contextTarget(); as target) {
+      <div class="fixed inset-0 z-50" (click)="closeContext()" (contextmenu)="$event.preventDefault(); closeContext()">
+        <section class="panel-context fixed rounded border border-border bg-surface text-ink" role="dialog"
+          [attr.aria-label]="target === 'body' ? 'Chart actions' : target === 'color' ? 'Colour legend options' : target.toUpperCase() + ' axis options'"
+          [style.left.px]="contextPosition().x" [style.top.px]="contextPosition().y"
+          cdkTrapFocus [cdkTrapFocusAutoCapture]="true" (click)="$event.stopPropagation()" (contextmenu)="$event.stopPropagation(); $event.preventDefault()"
+          (keydown.escape)="closeContext(); $event.stopPropagation()" (keydown)="contextNavigation($event)">
+          @if (target === 'body') {
+            <div class="panel-settings" role="menu" aria-label="Chart actions">
+              <button role="menuitem" class="context-action" (click)="zoomToBrush(); closeContext()" [disabled]="!hasBrush()">Zoom to brush</button>
+              <button role="menuitem" class="context-action" (click)="resetPanelRanges(); closeContext()">Reset axes</button>
+              <button role="menuitem" class="context-action" (click)="toggleMaximized(); closeContext()">Maximize</button>
+              <button role="menuitem" class="context-action" (click)="exportCard(); closeContext()">Export this card's rows</button>
+              <button role="menuitem" class="context-action" (click)="copyCardLink(); closeContext()">Copy link to this card</button>
+            </div>
+          } @else {
+            <app-element-controls [options]="panel.options" [axis]="target" [countAxis]="target === 'y' && !panel.y"
+              [unit]="contextUnit(target)"
+              [colorDefault]="panel.form === 'matrix' ? 'linear' : 'log'" (changed)="patch({options: $event})" />
+          }
+        </section>
+      </div>
+    }
+    </ng-template>
     @if (view(); as panelView) {
+      @if (copyLinkError(); as link) {
+        <label class="p-4 text-caption">Copy this card's link
+          <input class="w-full" aria-label="Card link" readonly [value]="link" (focus)="$any($event.target).select()" />
+        </label>
+      }
       <div class="flex min-h-0 min-w-0 flex-1 flex-col px-4">
         <p class="flex-none pb-2 text-caption text-ink-2">
           @if (panelView.subtitle) { <span data-testid="panel-shown">{{ panelView.subtitle }}</span> }
@@ -355,7 +326,7 @@
           <p class="pb-2 text-caption text-ink-2" data-testid="stacking-note"><lucide-icon name="info" [size]="16" aria-hidden="true" /> Stacking uses a step histogram instead of smoothed density.</p>
         }
 
-        <div class="panel-chart-slot relative flex-1" style="min-height: 160px">
+        <div class="panel-chart-slot relative flex-1" style="min-height: 160px" tabindex="0" aria-label="Chart body" (contextmenu)="openContext($event, 'body')" (keydown)="contextKey($event, 'body')">
         @if (panelView.status.kind === 'ready') {
           @if (panelView.status.stale) { <p class="text-caption text-ink-2" role="status">Updating… Showing the previous result.</p> }
           @if (panelView.partial) { <p class="text-caption text-ink-2" role="status">Loading the shared chart range…</p> }

@@ -403,7 +403,7 @@ export const appRouter = router({
           }, input.clip);
           const [xlo, xhi] = bounds('x');
           const [ylo, yhi] = bounds('y');
-          const bins = input.bins;
+          const bins = input.grid ?? input.bins ?? 60;
           const x = { lo: xlo, width: (xhi - xlo) / bins, bins, underflow: 0, overflow: 0 };
           const y = { lo: ylo, width: (yhi - ylo) / bins, bins, underflow: 0, overflow: 0 };
           const counts = new Array<number>(bins * bins).fill(0);

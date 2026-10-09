@@ -7,6 +7,7 @@ import { MockApi } from '../api/mock-api';
 import { filtersFromForm, formFromGlobal } from '../chrome/controls-form';
 import { OPEN_LO } from './filters';
 import { Graph, urlSyncMode } from './graph';
+import { deriveLayout } from './layout';
 import { urlState } from './url';
 import { defaultPanelOptions, type State } from './state';
 import { decodeUrlState, encodeUrlState, type UrlState } from './url';
@@ -99,8 +100,9 @@ describe('Graph', () => {
 
       // Hydration is the first command, so the very first state already carries
       // the shared dashboard rather than the default one.
-      expect(urlState(states[0])).toEqual(shared);
-      expect(urlState(states.at(-1) as State)).toEqual(shared);
+      const hydrated = { ...shared, layout: deriveLayout(shared.panels, 3) };
+      expect(urlState(states[0])).toEqual(hydrated);
+      expect(urlState(states.at(-1) as State)).toEqual(hydrated);
       expect(sParam()).toBe(encoded);
     });
 

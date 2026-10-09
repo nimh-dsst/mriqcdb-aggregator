@@ -61,6 +61,9 @@ export type ColumnIdAlias = ColumnId;
  * coverage bucket width is a panel setting rather than a constant.
  */
 export interface PanelOptions {
+  colorScale?: 'linear' | 'log' | 'sqrt';
+  colorDomain?: 'auto' | readonly [number, number];
+  cells?: 30 | 60 | 120;
   family?: string;
   metrics?: readonly MetricId[];
   sampleSize?: number;
@@ -323,6 +326,7 @@ export interface State {
   datasets: Readonly<Record<QueryKey, DatasetEntry>>;
   export: ExportState;
   exportDialogOpen?: boolean;
+  exportPanelId?: PanelId;
 }
 
 /** How many unreferenced dataset entries survive eviction. */
@@ -332,6 +336,8 @@ export const EVICTION_KEEP = 16;
 export function defaultPanelOptions(clip: ClipMode = 'p01p99'): PanelOptions {
   return {
     bins: 40,
+    cells: 60,
+    colorDomain: 'auto',
     clip,
     xScale: 'linear', xRange: 'auto', yScale: 'linear', yRange: 'auto',
     yMode: 'count', layout: 'overlaid',

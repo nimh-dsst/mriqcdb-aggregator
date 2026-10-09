@@ -36,6 +36,28 @@ const create = (series: readonly Series[] = []) => {
 };
 
 describe('CompareInput', () => {
+  it.each(['contextmenu', 'F10', 'ContextMenu', 'click'])('opens field-chip actions with %s and emits group actions', async gesture => {
+    const descriptor: Series = { kind: 'field', field: firstField.id };
+    const fixture = create([descriptor]);
+    fixture.componentRef.setInput('legend', [{ id: 'vendor-a', name: 'Vendor A', color: '#123456', n: 12, descriptorKey: seriesKey(descriptor) }]);
+    const actions: unknown[] = [];
+    fixture.componentInstance.groupAction.subscribe(value => actions.push(value));
+    fixture.detectChanges();
+    const chip = fixture.nativeElement.querySelector('[data-testid="compare-series-chip"]') as HTMLElement;
+    if (gesture === 'click') chip.querySelector<HTMLButtonElement>('[aria-label="Actions for Vendor A"]')!.click();
+    else if (gesture === 'contextmenu') chip.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true }));
+    else chip.querySelector('button[aria-pressed]')!.dispatchEvent(new KeyboardEvent('keydown', { key: gesture, shiftKey: gesture === 'F10', bubbles: true }));
+    fixture.detectChanges(); await fixture.whenStable();
+    const items = Array.from(TestBed.inject(OverlayContainer).getContainerElement().querySelectorAll<HTMLButtonElement>('[role="menuitem"]'));
+    expect(items.map(item => item.textContent?.trim())).toEqual(['Isolate', 'Reset', 'Remove', 'Save as group…', 'Only this group']);
+    items[3].click(); expect(actions).toEqual([{ id: 'vendor-a', action: 'save' }]);
+    await fixture.whenStable();
+    chip.querySelector<HTMLButtonElement>('[aria-label="Actions for Vendor A"]')!.click();
+    fixture.detectChanges(); await fixture.whenStable();
+    Array.from(TestBed.inject(OverlayContainer).getContainerElement().querySelectorAll<HTMLButtonElement>('[role="menuitem"]'))
+      .find(item => item.textContent?.trim() === 'Only this group')!.click();
+    expect(actions[1]).toEqual({ id: 'vendor-a', action: 'only' });
+  });
   it('renders legend chips with pending counts and emits isolation changes', () => {
     const fixture = create();
     const isolated: (string | null)[] = [];

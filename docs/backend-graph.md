@@ -200,7 +200,7 @@ before any SQL is built.
 |---|---|---|---|
 | `catalog` | query | none | completed catalog |
 | `distribution` | query | modality, view, filters, selections, metric, bins, clip | `{ n, min, max, mean, stddev, quantiles, histogram: { lo, hi, width, counts[] } }` |
-| `density2d` | query | modality, view, filters, selections, x, y, bins, clip, optional range `{x: [lo,hi], y: [lo,hi]}`, sampleSize, seed | `{ x: {lo, width, bins, underflow, overflow}, y: {…}, counts: number[], n, pearson, spearman, sample: [number,number][] }` |
+| `density2d` | query | modality, view, filters, selections, x, y, grid, clip, optional range `{x: [lo,hi], y: [lo,hi]}`, sampleSize, seed | `{ x: {lo, width, bins, underflow, overflow}, y: {…}, counts: number[], n, pearson, spearman, sample: [number,number][] }` |
 | `correlation` | query | modality, view, filters, selections, metrics (2–24 distinct ids), method (`pearson`, `spearman`, `both`) | `{ metrics, pearson?, spearman?, pairN, minPairN }`, square matrices in input order |
 | `groupedSummary` | query | modality, view, filters, selections, metric, group | `{ groups: [{ value, n, quantiles, mean, stddev, histogram }], other?: {…} }` |
 | `coverage` | query | modality, view, filters, selections, group, granularity | `{ buckets: [{ start, group, n }] }` |
@@ -343,6 +343,20 @@ sha256). A `cron.example` runs it nightly. The existing full dumps in
 
 Implemented in `rewrite/packages/server/src/ingest/` and `rewrite/tools/mriqc-dump/`.
 Where the code departs from the text above, the code is current.
+
+**Bootstrap from JSON (2026-10-09).** `build:db -- --from-dumps <dir>` first
+uses the dump tool's existing adoption function, then creates raw/auxiliary
+tables from the committed `packages/server/policies/columns.csv`. The artifact
+is the Parquet-built catalog joined to serving-table `DESCRIBE`, including JSON
+paths and nullability; `check:columns` checks it against an available unlocked
+Parquet-built database. The existing ingest pipeline loads every manifest entry,
+records fully consumed sha256s, computes all canonical policies, and writes
+`meta`/`data_version`. Scanner metadata uses the uploaded five-field tuple before
+normalization. The build needs no Parquet files and publishes its temporary file
+only on success. `--sample N` caps documents per collection across files; partial
+files keep a null hash so later full ingest can consume the remainder. Shared
+flags are `--out`, `--memory-limit`, `--threads`, and `--sample`; mixing
+`--from-dumps` with `--data-dir` or `--canonical-from-parquet` is rejected.
 
 **Two sources, one job.** The owner added a direct-MongoDB source behind the same
 function, chosen by `INGEST_SOURCE` (`dumps`, the default, or `mongo`).
@@ -644,7 +658,12 @@ the same metric projection, rank windows, and aggregates from validated expressi
 Stats use the whole filtered finite-pair population, independently of clipping
 or an explicit range. Each axis uses p01–p99 by default (`p05p95` and `none` also
 work); coincident clip quantiles fall back to min/max, as in `distribution`.
-Bins are 10–200, default 120. Explicit ranges require finite increasing bounds,
+The optional per-axis `grid` is an integer 10–200, default 60. The legacy `bins`
+input remains a fallback; `grid` takes precedence when both are supplied. The
+resolved grid is bound into the shared histogram SQL for both axes, keeping
+the native and WASM template text identical. The unchanged response reports
+it in `x.bins` and `y.bins`, with `grid * grid` row-major counts.
+Explicit ranges require finite increasing bounds,
 override clipping, and keep their edges even for an empty cohort. Constant axes
 have width zero and put in-range values in bin zero. Grid order is
 `counts[by * bins + bx]`, filled with zeros server-side.
@@ -807,7 +826,8 @@ interface Density2dInput extends SelectionScope {
   filters?: readonly Filter[];
   x: ColumnRef;
   y: MetricId;
-  bins?: number; // integer 10–200, default 120
+  grid?: number; // per-axis integer 10–200, default 60
+  bins?: number; // legacy fallback when grid is omitted
   clip?: "p01p99" | "p05p95" | "none"; // default p01p99
   range?: { x: [number, number]; y: [number, number] };
   sampleSize?: number; // integer 0–20000, default 2000

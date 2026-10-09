@@ -115,7 +115,7 @@ describe('Dashboard with MockApi', () => {
     expect(card.querySelector('[data-testid="panel-split-selector"]')).toBeNull();
   });
 
-  it('keeps axes, layout, bins, clip and box ordering in Options', async () => {
+  it('keeps only applicable element-independent settings in Options', async () => {
     const fixture = TestBed.createComponent(Dashboard);
     await fixture.whenStable();
     const graph = TestBed.inject(Graph);
@@ -125,11 +125,12 @@ describe('Dashboard with MockApi', () => {
     card.querySelector<HTMLButtonElement>('[aria-label="Panel options"]')!.click();
     await fixture.whenStable();
     const menu = document.querySelector('.mat-mdc-menu-panel')!;
-    expect(menu.querySelector('app-axes-controls')).not.toBeNull();
-    expect(menu.textContent).toContain('Layout');
-    expect(menu.textContent).toContain('Bins');
+    expect(menu.querySelector('app-axes-controls')).toBeNull();
+    expect(menu.textContent).not.toContain('Layout');
+    expect(menu.textContent).not.toContain('Bins');
     expect(menu.textContent).toContain('Clip');
-    expect(menu.textContent).toContain('Box sort');
+    expect(menu.textContent).not.toContain('Box sort');
+    expect(menu.textContent).toContain('Follow brushed range');
     expect(menu.querySelector('[data-testid="panel-chart-selector"]')).toBeNull();
     expect(menu.querySelector('[data-testid="panel-show-selector"]')).toBeNull();
   });

@@ -8,6 +8,7 @@
 
 import type { ColumnId, Filter, Modality, QueryKey, View } from '@mriqc/shared';
 import type { Series } from './series';
+import type { DashboardLayout } from './layout';
 import type {
   Cohort,
   CohortId,
@@ -50,7 +51,7 @@ export type Command =
    * from. `addPanel` cannot do this: it mints a fresh id and fresh options, so
    * an undo built on it would be a new panel that merely looks similar.
    */
-  | { t: 'restorePanel'; panel: Panel; at: number }
+  | { t: 'restorePanel'; panel: Panel; at: number; layout?: DashboardLayout }
   | { t: 'movePanel'; id: PanelId; x: number; y: number; columnsWide?: number }
   | { t: 'resizePanel'; id: PanelId; w: number; h: number; columnsWide?: number }
   | { t: 'resetLayout' }
@@ -172,7 +173,7 @@ export type Command =
   | { t: 'studyFailed'; error: string }
   | { t: 'clearStudy' }
   // export
-  | { t: 'openExport' }
+  | { t: 'openExport'; panelId?: PanelId }
   | { t: 'requestExport'; columns: readonly ColumnId[]; format?: 'arrow' | 'csv' }
   | { t: 'cancelExport' }
   | { t: 'exportProgress'; rows: number }

@@ -32,7 +32,10 @@ import { canStack } from '../graph/panels';
 import { axisType, FORM_INFO, panelFormAvailability } from '../graph/panel-shapes';
 import { type Form, type Panel } from '../graph/state';
 
-import { AxesControls } from './axes-controls';
+import { ElementControls } from './element-controls';
+import { SettingRow } from './setting-row';
+import type { DashboardLayout } from '../graph/layout';
+import { encodeUrlState, urlState } from '../graph/url';
 import { DARK_THEME, LIGHT_THEME } from './specs/palette';
 import { SampleTable } from './sample-table';
 import {
@@ -44,7 +47,8 @@ import {
 
 import { ColumnPicker } from './column-picker';
 import { FormGlyph } from './form-glyphs';
-import { studyFormReason } from '../graph/queries';
+import { panelCohort, panelCohorts, studyFormReason } from '../graph/queries';
+import { seriesKey } from '../graph/series';
 import { CompareInput } from './compare-input';
 
 type ChartDatum = {
@@ -114,7 +118,7 @@ const dimmedSpec = (spec: unknown, isolatedId: string | null): unknown => {
   selector: 'app-panel-card',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
-    AxesControls, DecimalPipe, A11yModule, MatMenuModule,
+    ElementControls, SettingRow, DecimalPipe, A11yModule, MatMenuModule,
     CdkConnectedOverlay,
     CdkOverlayOrigin,
     ColumnPicker,
@@ -149,7 +153,7 @@ export class PanelCard {
   readonly count = input(1);
   readonly columns = input(3);
   readonly maximized = input(false);
-  readonly removed = output<{ panel: Panel; at: number; title: string }>();
+  readonly removed = output<{ panel: Panel; at: number; title: string; layout?: DashboardLayout }>();
 
   readonly state = toSignal(this.graph.state$, { requireSync: true });
   private readonly panelTheme = computed(() => ({
@@ -169,6 +173,68 @@ export class PanelCard {
   private readonly formPickerElement = viewChild<unknown, ElementRef<HTMLElement>>('formPicker', { read: ElementRef });
   private clearFormLinkListeners = () => {};
   readonly optionsOpen = signal(false);
+  readonly contextTarget = signal<'x' | 'y' | 'color' | 'body' | null>(null);
+  readonly contextPosition = signal({ x: 0, y: 0 });
+  private contextOpener: HTMLElement | null = null;
+  readonly hasBrush = computed(() => this.state().selections.some(item => item.from === this.panelId()));
+
+  contextUnit(axis: 'x' | 'y' | 'color'): string {
+    if (axis === 'color') return '';
+    const column = axis === 'x' ? this.panel()?.x : this.panel()?.y;
+    if (column === 'created_at') return 'UTC milliseconds';
+    if (!column) return this.panel()?.options.yMode === 'share' ? 'share' : 'count';
+    return this.metrics().find(metric => metric.id === column)?.unit || 'unitless';
+  }
+
+  openContext(event: Event, target: 'x' | 'y' | 'color' | 'body'): void {
+    event.preventDefault(); event.stopPropagation();
+    this.contextOpener = event.target instanceof HTMLElement ? event.target : null;
+    const rect = this.contextOpener?.getBoundingClientRect();
+    const mouse = event instanceof MouseEvent;
+    this.showContext(target, mouse ? event.clientX : rect?.left ?? 0, mouse ? event.clientY : rect?.top ?? 0);
+  }
+
+  private showContext(target: 'x' | 'y' | 'color' | 'body', x: number, y: number): void {
+    this.contextPosition.set({ x: Math.max(0, Math.min(x, window.innerWidth - 320)), y: Math.max(0, Math.min(y, window.innerHeight - 260)) });
+    this.contextTarget.set(target);
+  }
+
+  openElementContext(event: Event): void {
+    const detail = (event as CustomEvent<{axis: 'x' | 'y' | 'color'; x: number; y: number}>).detail;
+    if (!detail) return;
+    event.stopPropagation();
+    this.contextOpener = event.target instanceof HTMLElement ? event.target : null;
+    this.showContext(detail.axis, detail.x, detail.y);
+  }
+
+  contextKey(event: KeyboardEvent, target: 'body'): void {
+    if (event.key === 'ContextMenu' || (event.shiftKey && event.key === 'F10')) this.openContext(event, target);
+  }
+
+  contextNavigation(event: KeyboardEvent): void {
+    if (!(event.target instanceof HTMLElement) || event.target.matches('select,input')) return;
+    if (!['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(event.key)) return;
+    const controls = Array.from((event.currentTarget as HTMLElement).querySelectorAll<HTMLButtonElement>('button:not(:disabled)'));
+    const index = controls.indexOf(event.target as HTMLButtonElement);
+    const next = event.key === 'Home' ? 0 : event.key === 'End' ? controls.length - 1 : (index + (event.key === 'ArrowDown' ? 1 : -1) + controls.length) % controls.length;
+    controls[next]?.focus(); event.preventDefault();
+  }
+
+  closeContext(): void { this.contextTarget.set(null); this.contextOpener?.focus(); }
+  zoomToBrush(): void { this.graph.dispatch({ t: 'zoomToBrush', from: this.panelId() }); }
+  exportCard(): void { this.graph.dispatch({ t: 'openExport', panelId: this.panelId() }); }
+  cardLink(): string {
+    const url = new URL(window.location.href);
+    url.searchParams.set('s', encodeUrlState({ ...urlState(this.state()), maximizedPanel: this.panelId() }));
+    url.searchParams.set('view', 'panel');
+    url.searchParams.set('panel', this.panelId());
+    return url.toString();
+  }
+  async copyCardLink(): Promise<void> {
+    try { await navigator.clipboard.writeText(this.cardLink()); }
+    catch { this.copyLinkError.set(this.cardLink()); }
+  }
+  readonly copyLinkError = signal<string | null>(null);
   readonly metricSetOpen = signal(false);
   readonly isolatedId = signal<string | null>(null);
   readonly correlationMetrics = signal<readonly string[]>([]);
@@ -416,6 +482,28 @@ export class PanelCard {
     });
   }
 
+  async groupAction(event: { id: string; action: 'save' | 'only' }): Promise<void> {
+    const panel = this.panel();
+    if (!panel) return;
+    let cohort = panelCohorts(this.state(), panel).find(item => item.id === event.id);
+    const descriptor = panel.series.find(item => seriesKey(item) === event.id);
+    if (!cohort && descriptor?.kind === 'values') cohort = {
+      ...panelCohort(this.state(), panel), id: event.id, name: descriptor.values.join(', '),
+      filters: [...this.state().global.filters.filter(filter => filter.field !== descriptor.field),
+        { field: descriptor.field, op: 'in', values: descriptor.values }],
+    };
+    if (!cohort) return;
+    if (event.action === 'only') {
+      this.graph.dispatch({ t: 'setFilters', filters: cohort.filters });
+      return;
+    }
+    const { CohortEditor } = await import('../chrome/cohort-editor');
+    this.dialog.open(CohortEditor, {
+      ...cohortDialogSize(false),
+      data: { mode: 'create', seed: cohort, convertPanel: this.panelId() },
+    });
+  }
+
   toggleIsolated(item: LegendItem): void {
     this.isolatedId.update((current) => (current === item.id ? null : item.id));
   }
@@ -485,8 +573,9 @@ export class PanelCard {
     if (!panel) {
       return;
     }
+    const layout = this.state().layout ?? undefined;
     this.graph.dispatch({ t: 'removePanel', id: panel.id });
-    this.removed.emit({ panel, at: this.index(), title: this.view()?.title ?? 'Panel' });
+    this.removed.emit({ panel, at: this.index(), title: this.view()?.title ?? 'Panel', layout });
   }
 
   retry(retryKey: string): void {

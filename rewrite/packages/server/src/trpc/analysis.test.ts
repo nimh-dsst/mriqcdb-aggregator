@@ -72,6 +72,19 @@ afterAll(async () => {
 });
 
 describe('density2d', () => {
+  it.each([10, 30, 60, 120, 200])('returns grid %i with conserved counts', async (grid) => {
+    const result = await caller.density2d({ ...density, grid });
+    expect(result.x.bins).toBe(grid);
+    expect(result.y.bins).toBe(grid);
+    expect(result.counts).toHaveLength(grid * grid);
+    expect(result.counts.reduce((sum, count) => sum + count, 0)).toBe(result.n);
+    const empty = await caller.density2d({ ...density, grid,
+      filters: [{ field: 'manufacturer', op: 'in', values: ['absent'] }] });
+    expect(empty.counts).toEqual(new Array(grid * grid).fill(0));
+    expect(empty.x.bins).toBe(grid);
+    expect(empty.y.bins).toBe(grid);
+  });
+
   it('returns epoch-day y grids, disjoint tails, correlations and samples after swapping axes', async () => {
     const epoch = (Date.UTC(2020, 0, 1) - Date.UTC(2000, 0, 1)) / 86_400_000;
     const query = { ...density, x: 'fwhm_y', y: 'created_at', sampleSize: 47,
@@ -218,7 +231,9 @@ describe('density2d', () => {
     expect(one.x.width).toBe(0);
     expect(one.counts[0]).toBe(1);
     const defaults = await caller.density2d({ ...scope, x: 'fwhm_x', y: 'fwhm_z' });
-    expect(defaults.counts).toHaveLength(120 * 120);
+    expect(defaults.counts).toHaveLength(60 * 60);
+    expect(defaults.x.bins).toBe(60);
+    expect(defaults.y.bins).toBe(60);
     expect(defaults.sample).toHaveLength(2000);
   });
 
@@ -325,6 +340,7 @@ it.each(views)('runs both procedures on %s/%s', async (modality, view) => {
 describe('analysis validation and execution', () => {
   it.each([
     { y: 'fwhm_x' }, { x: 'cjv' }, { x: 'unknown' }, { bins: 9 }, { bins: 201 }, { bins: 10.5 },
+    { grid: 9 }, { grid: 201 }, { grid: 10.5 }, { grid: NaN }, { grid: Infinity },
     { sampleSize: -1 }, { sampleSize: 20_001 }, { seed: -1 }, { seed: 1.5 }, { seed: 2 ** 31 },
     { range: { x: [1, 1], y: [0, 1] } }, { range: { x: [0, Infinity], y: [0, 1] } },
     { range: { x: [0, 1], y: [2, 1] } }, { range: { x: [0, 1] } },

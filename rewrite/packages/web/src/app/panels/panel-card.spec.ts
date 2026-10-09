@@ -13,6 +13,8 @@ import { Graph } from '../graph/graph';
 import { initialState } from '../graph/reducer';
 import { defaultPanelOptions, type Panel, type State } from '../graph/state';
 import { PanelCard } from './panel-card';
+import { decodeUrlState } from '../graph/url';
+import { panelCohorts } from '../graph/queries';
 
 const makePanel = (overrides: Partial<Panel> = {}): Panel => ({
   id: 'panel-1',
@@ -96,6 +98,96 @@ const formOptionLabels = (panel: Panel): readonly string[] => {
 };
 
 describe('PanelCard', () => {
+  it('seeds Save as group with the selected field values and filters Only this group', async () => {
+    const panel = makePanel({ series: [{ kind: 'values', field: asColumnId('manufacturer'), values: ['Siemens'] }] });
+    const fixture = create(panel);
+    const cohort = panelCohorts(makeState(panel), panel)[0];
+    const open = vi.spyOn(TestBed.inject(MatDialog), 'open');
+    await fixture.componentInstance.groupAction({ id: cohort.id, action: 'save' });
+    expect(open).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ data: {
+      mode: 'create', seed: expect.objectContaining({ filters: [{ field: 'manufacturer', op: 'in', values: ['Siemens'] }] }), convertPanel: panel.id,
+    } }));
+    await fixture.componentInstance.groupAction({ id: cohort.id, action: 'only' });
+    expect(TestBed.inject(Graph).dispatch).toHaveBeenCalledWith({ t: 'setFilters', filters: [{ field: 'manufacturer', op: 'in', values: ['Siemens'] }] });
+  });
+  it.each(['x', 'y', 'color'] as const)('opens %s element controls and dispatches its scale', async axis => {
+    const fixture = create(makePanel({ form: 'heatmap', y: asColumnId('fd_mean') }));
+    fixture.nativeElement.querySelector('[data-testid="panel-card"]').dispatchEvent(new CustomEvent('elementcontext', {
+      bubbles: true, detail: { axis, x: 20, y: 30 },
+    }));
+    fixture.detectChanges(); await fixture.whenStable();
+    const overlay = TestBed.inject(OverlayContainer).getContainerElement();
+    const select = overlay.querySelector<HTMLSelectElement>(`[aria-label="${axis.toUpperCase()} scale"]`)!;
+    expect(Array.from(select.options, option => option.text)).toEqual(axis === 'color' ? ['Linear', 'Log', 'Sqrt'] : ['Linear', 'Log', 'Symlog']);
+    select.value = axis === 'color' ? 'sqrt' : 'symlog';
+    select.dispatchEvent(new Event('change'));
+    expect(TestBed.inject(Graph).dispatch).toHaveBeenCalledWith(expect.objectContaining({ t: 'patchPanel', patch: {
+      options: expect.objectContaining({ [axis === 'color' ? 'colorScale' : `${axis}Scale`]: select.value }),
+    } }));
+    expect(overlay.querySelector('[aria-label="' + (axis === 'color' ? 'Domain' : 'Range') + '"]')).not.toBeNull();
+  });
+
+  it.each(['F10', 'ContextMenu'])('opens chart actions with %s and exposes all actions', async key => {
+    const fixture = create(makePanel());
+    const body = fixture.nativeElement.querySelector('[aria-label="Chart body"]') as HTMLElement;
+    body.focus(); body.dispatchEvent(new KeyboardEvent('keydown', { key, shiftKey: key === 'F10', bubbles: true }));
+    fixture.detectChanges(); await fixture.whenStable();
+    const actions = Array.from(TestBed.inject(OverlayContainer).getContainerElement().querySelectorAll<HTMLButtonElement>('[role="menuitem"]'));
+    expect(actions.map(button => button.textContent?.trim())).toEqual(['Zoom to brush', 'Reset axes', 'Maximize', "Export this card's rows", 'Copy link to this card']);
+    expect(actions[0].disabled).toBe(true);
+    actions[1].focus(); actions[1].dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true }));
+    expect(document.activeElement).toBe(actions[2]);
+    actions[3].click();
+    expect(TestBed.inject(Graph).dispatch).toHaveBeenCalledWith({ t: 'openExport', panelId: 'panel-1' });
+  });
+
+  it.each([
+    ['Reset axes', { t: 'resetPanelRanges', id: 'panel-1' }],
+    ['Maximize', { t: 'maximizePanel', id: 'panel-1' }],
+    ['Zoom to brush', { t: 'zoomToBrush', from: 'panel-1' }],
+  ])('dispatches chart action %s', async (label, command) => {
+    const fixture = create(makePanel());
+    const graph = TestBed.inject(Graph);
+    (graph.state$ as BehaviorSubject<State>).next({ ...makeState(makePanel()), selections: [{ from: 'panel-1', metric: asColumnId('snr'), range: [1, 2] }] });
+    fixture.nativeElement.querySelector('[aria-label="Chart body"]').dispatchEvent(new MouseEvent('contextmenu', { bubbles: true }));
+    fixture.detectChanges(); await fixture.whenStable();
+    const button = Array.from(TestBed.inject(OverlayContainer).getContainerElement().querySelectorAll<HTMLButtonElement>('[role="menuitem"]')).find(button => button.textContent?.trim() === label)!;
+    button.click(); expect(graph.dispatch).toHaveBeenCalledWith(command);
+  });
+
+  it('copies a link that opens this card in panel view', async () => {
+    const fixture = create(makePanel());
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText } });
+    await fixture.componentInstance.copyCardLink();
+    const link = new URL(writeText.mock.calls[0][0]);
+    expect(link.searchParams.get('view')).toBe('panel');
+    expect(link.searchParams.get('panel')).toBe('panel-1');
+    expect(decodeUrlState(link.searchParams.get('s'))?.maximizedPanel).toBe('panel-1');
+  });
+
+  it.each([
+    ['histogram', ['Bins', 'Clip', 'Follow brushed range']],
+    ['heatmap', ['Cells', 'Clip', 'Follow brushed range']],
+    ['hexbin', ['Cells', 'Clip', 'Follow brushed range']],
+    ['band', ['Bins', 'Quantiles', 'Clip', 'Follow brushed range']],
+  ] as const)('keeps only the applicable options in a single nontruncating column: %s', async (form, labels) => {
+    const fixture = create(makePanel({ form, y: form === 'histogram' ? null : asColumnId('fd_mean') }));
+    fixture.nativeElement.querySelector('[aria-label="Panel options"]').click();
+    fixture.detectChanges(); await fixture.whenStable();
+    const menu = TestBed.inject(OverlayContainer).getContainerElement().querySelector('[data-testid="panel-settings"]')!;
+    const rows = Array.from(menu.querySelectorAll('.setting-row'));
+    expect(rows.map(row => row.querySelector('span')?.textContent?.trim())).toEqual(labels);
+    expect(rows.every(row => row.hasAttribute('appSettingRow') && !!row.querySelector('input,select'))).toBe(true);
+    expect(menu.querySelector('.truncate, .grid-cols-2')).toBeNull();
+    const cells = menu.querySelector<HTMLSelectElement>('[aria-label="Cells"]');
+    if (cells) {
+      expect(cells.value).toBe('60');
+      expect(Array.from(cells.options, option => option.value)).toEqual(['30', '60', '120']);
+      cells.value = '120'; cells.dispatchEvent(new Event('change'));
+      expect(TestBed.inject(Graph).dispatch).toHaveBeenCalledWith(expect.objectContaining({ patch: { options: expect.objectContaining({ cells: 120 }) } }));
+    }
+  });
   it.each(['band', 'lines', 'histogram'] as const)('offers Quantiles only for Band/Lines: %s', async form => {
     const fixture = create(makePanel({ form, y: form === 'histogram' ? null : asColumnId('fd_mean') }));
     fixture.nativeElement.querySelector('[aria-label="Panel options"]').click();
@@ -231,7 +323,7 @@ describe('PanelCard', () => {
     const legend = fixture.nativeElement.querySelector(
       'app-compare-input',
     ) as HTMLElement;
-    const firstChip = legend.querySelector('button') as HTMLButtonElement;
+    const firstChip = legend.querySelector('button[aria-pressed]') as HTMLButtonElement;
 
     firstChip.click();
     fixture.detectChanges();

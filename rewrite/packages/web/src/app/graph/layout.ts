@@ -275,5 +275,5 @@ export function reconcileLayout(
     entries.push({ id: panel.id, pos });
   }
 
-  return settle(entries);
+  return asLayout(entries);
 }

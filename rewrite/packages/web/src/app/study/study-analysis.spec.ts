@@ -46,6 +46,16 @@ const columns = new Set([
 ]);
 
 describe('study analysis SQL compilers', () => {
+  it.each([30, 60, 120])('binds and shapes the requested %s-cell grid for local studies', grid => {
+    const query = { ...densityQuery, grid };
+    const range = { x: [0, 1] as [number, number], y: [0, 2] as [number, number] };
+    const histogram = compileStudyDensity2d(query, columns).histogram(range);
+    expect(histogram.params).toEqual([0, 1, grid, grid, 0, 1 / grid, 0, 2, grid, grid, 0, 2 / grid]);
+    const result = shapeDensity2d(query, { n: 3 }, [{ bx: grid - 1, by: grid - 1, n: 3 }], [], range);
+    expect(result.counts).toHaveLength(grid ** 2);
+    expect(result.counts.at(-1)).toBe(3);
+    expect(result.x.bins).toBe(grid);
+  });
   it('binds the density2d statements from the shared templates', () => {
     const compiled = compileStudyDensity2d(densityQuery, columns);
     expect(compiled.stats.template).toBe('density2d');

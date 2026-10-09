@@ -13,8 +13,11 @@ export function exportView(state: State) {
   const { modality, view } = state.global;
   const fields = fieldsFor(modality, view, 'export');
   const metrics = metricsFor(modality);
-  const visible = new Set(state.panels.flatMap<string>(panel => panel.form === 'matrix'
-    ? correlationMetrics(panel, modality) : [panel.x, ...(panel.y ? [panel.y] : [])]));
+  const panels = state.exportPanelId ? state.panels.filter(panel => panel.id === state.exportPanelId) : state.panels;
+  const visible = new Set(panels.flatMap<string>(panel => [
+    ...(panel.form === 'matrix' ? correlationMetrics(panel, modality) : [panel.x, ...(panel.y ? [panel.y] : [])]),
+    ...panel.series.flatMap(series => 'field' in series ? [series.field] : []),
+  ]));
   const defaults = new Set(['id', 'created_at', 'manufacturer', ...visible]);
   const groups = [{ family: 'Fields', fields: fields.map(field => ({ id: field.id, label: field.label })) },
     ...[...new Set(metrics.map(metric => metric.family))].map(family => ({ family,

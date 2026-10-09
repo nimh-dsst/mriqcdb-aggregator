@@ -718,7 +718,10 @@ describe('urlState', () => {
     const state = reduce(fixture(), { t: 'hydrate', url: defaultDashboard() });
     const url = urlState(state);
     expect(encodeUrlState(url)).toBe('');
-    expect(decodeUrlState(encodeUrlState(url)) ?? defaultDashboard()).toEqual(url);
+    const decoded = decodeUrlState(encodeUrlState(url)) ?? defaultDashboard();
+    const restored = reduce(initialState, { t: 'hydrate', url: decoded });
+    expect(urlState(restored)).toEqual(url);
+    expect(restored.layout).toEqual(state.layout);
   });
 
   it('excludes cursors, so paging does not rewrite the URL', () => {

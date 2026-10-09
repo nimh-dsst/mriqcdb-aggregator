@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { compactLayout } from './layout';
+import { compactLayout, deriveLayout } from './layout';
 import { defaultDashboard, initialState, reduce } from './reducer';
 import { decodeUrlState, encodeUrlState, urlState } from './url';
 
@@ -23,7 +23,7 @@ describe('dashboard layout state', () => {
     const state = hydratedState();
     const resized = layoutAfterFirstResize();
 
-    expect(state.layout).toBeNull();
+    expect(state.layout).toEqual(deriveLayout(state.panels, 3));
     expect(resized.layout).toBeDefined();
     if (resized.layout === undefined || resized.layout === null) {
       throw new Error('Expected a manual layout snapshot');
@@ -53,8 +53,9 @@ describe('dashboard layout state', () => {
     expect(moved.layout['p1']).toEqual(unaffected);
   });
 
-  it('clears the saved layout when reset', () => {
-    expect(reduce(layoutAfterFirstResize(), { t: 'resetLayout' }).layout).toBeNull();
+  it('rederives the saved layout when reset', () => {
+    const state = reduce(layoutAfterFirstResize(), { t: 'resetLayout' });
+    expect(state.layout).toEqual(deriveLayout(state.panels, 3));
   });
 
   it('compacts saved geometry when a panel is removed', () => {

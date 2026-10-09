@@ -231,7 +231,7 @@ export function scopedQuery(state: State, panel: Panel, cohort: Cohort, proc: Qu
         columns: (state.study.columns ?? state.study.metrics).map(asColumnId),
         filters: panel.x === 'created_at' ? coverageFilters(cohort.filters, panel) : cohort.filters,
       } : null;
-    case 'density2d': return panel.y ? { ...scoped, proc, x: panel.x as ColumnId, y: panel.y, bins: 120, clip: panel.options.clip,
+    case 'density2d': return panel.y ? { ...scoped, proc, x: panel.x as ColumnId, y: panel.y, grid: panel.options.cells ?? 60, bins: 120, clip: panel.options.clip,
       sampleSize: panel.form === 'clusters' ? panel.options.sampleSize ?? 20000 : 2000, seed: panel.options.seed ?? 42 } : null;
     case 'correlation': {
       let metrics = correlationMetrics(panel, state.global.modality);

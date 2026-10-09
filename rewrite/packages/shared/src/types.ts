@@ -507,6 +507,9 @@ export interface Density2dInput extends SelectionScope {
   filters?: readonly Filter[];
   x: ColumnRef;
   y: ColumnRef;
+  /** Per-axis cell count, integer 10–200; defaults to 60. Overrides bins. */
+  grid?: number;
+  /** Legacy per-axis cell count, used when grid is omitted. */
   bins?: number;
   clip?: ClipMode;
   range?: { x: [number, number]; y: [number, number] };

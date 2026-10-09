@@ -116,6 +116,7 @@ export function bandChart(
   axis: MetricAxis,
   form: 'band' | 'lines' = 'band',
   quantiles: 'quartiles' | 'tails' = 'quartiles',
+  yScale: Record<string, unknown> = {},
 ): { spec: TopLevelSpec; datasets: Record<string, readonly unknown[]> } {
   const [lowerPercentile, upperPercentile] =
     quantiles === 'tails' ? (['p05', 'p95'] as const) : (['p25', 'p75'] as const);
@@ -124,7 +125,7 @@ export function bandChart(
   const percentiles = percentileRows(rows, lowerPercentile, upperPercentile);
   const xKind = series[0]?.result.xKind ?? 'metric';
   const x = continuousX(axis, 'bucket');
-  const y = { field: 'p50', type: 'quantitative', title: yLabel, scale: { zero: false } } as const;
+  const y = { field: 'p50', type: 'quantitative', title: yLabel, scale: { zero: false, ...yScale } } as const;
   const color = {
     field: 'seriesId',
     type: 'nominal',
@@ -149,7 +150,7 @@ export function bandChart(
             mark: { type: 'line', point: true },
             encoding: {
               x,
-              y: { field: 'value', type: 'quantitative', title: yLabel, scale: { zero: false } },
+              y: { ...y, field: 'value' },
               color,
               detail: [{ field: 'seriesId' }, { field: 'percentile' }],
               strokeDash: { field: 'percentile', type: 'nominal', legend: { title: 'Percentile' } },
@@ -164,7 +165,7 @@ export function bandChart(
             mark: { type: 'area', interpolate: 'monotone', opacity: 0.22 },
             encoding: {
               x,
-              y: { field: lowerPercentile, type: 'quantitative', title: yLabel, scale: { zero: false } },
+              y: { ...y, field: lowerPercentile },
               y2: { field: upperPercentile },
               color,
               detail: { field: 'segmentId' },

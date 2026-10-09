@@ -93,6 +93,14 @@ export function normalizedOptions(panel: Panel, patch: Partial<PanelOptions>, mo
   const legacy = options as PanelOptions & { logScale?: boolean };
   if (legacy.logScale === true && !('xScale' in panel.options)) options.xScale = 'log';
   delete legacy.logScale;
+  if (options.colorScale !== undefined && !['linear', 'log', 'sqrt'].includes(options.colorScale)) delete options.colorScale;
+  if (options.cells !== undefined && ![30, 60, 120].includes(options.cells)) delete options.cells;
+  if (options.colorDomain !== undefined) {
+    const domain = options.colorDomain;
+    options.colorDomain = Array.isArray(domain) && domain.length === 2 && domain.every(Number.isFinite) && domain[0] < domain[1]
+      ? [domain[0], domain[1]] : 'auto';
+    if ((options.colorScale ?? (panel.form === 'matrix' ? 'linear' : 'log')) === 'log' && options.colorDomain !== 'auto' && options.colorDomain[0] <= 0) options.colorDomain = 'auto';
+  }
   for (const key of ['xScale', 'yScale'] as const) if (!['linear', 'log', 'symlog'].includes(options[key])) options[key] = 'linear';
   for (const key of ['xRange', 'yRange'] as const) {
     const range = options[key];

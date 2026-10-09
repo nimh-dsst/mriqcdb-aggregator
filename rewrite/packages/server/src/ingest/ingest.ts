@@ -49,6 +49,7 @@ import {
   COLLECTION_TABLE,
   describeTable,
   planStaging,
+  scalarTextSql,
   targetColumnsOf,
   type IngestCollection,
 } from './flatten.js';
@@ -234,7 +235,8 @@ export async function stageUnit(
   collection: IngestCollection,
   jsonPath: string,
   targets: readonly ColumnPlan[],
-): Promise<void> {
+  limit: number | null = null,
+): Promise<number> {
   const table = COLLECTION_TABLE[collection];
   if (!targets.some((target) => target.normalized === 'id')) {
     throw new Error(`${table} has no "id" column, so ingest cannot upsert into it`);
@@ -243,7 +245,8 @@ export async function stageUnit(
   await dropStaging(connection);
   await connection.exec(
     `CREATE VIEW ${quoteIdent(STAGE_JSON)} AS SELECT\n  ${plan.jsonSelect}\n` +
-      `FROM read_json_objects(${literal(posix(jsonPath))}, format = 'array')`,
+      `FROM read_json_objects(${literal(posix(jsonPath))}, format = 'array')` +
+      (limit === null ? '' : ` LIMIT ${limit}`),
   );
   await connection.exec(
     `CREATE VIEW ${quoteIdent(STAGE_TEXT)} AS SELECT\n  ${plan.textSelect}\n` +
@@ -286,6 +289,8 @@ export async function stageUnit(
        ORDER BY ${hasUpdatedAt ? 'q.updated_at DESC NULLS LAST' : 'q.id'}
      ) = 1`,
   );
+  const read = await connection.all(`SELECT count(*) AS n FROM ${quoteIdent(STAGE_JSON)}`);
+  return Number(read[0]?.['n'] ?? 0);
 }
 
 /**
@@ -453,6 +458,12 @@ export interface IngestResult {
 
 /** Options for {@link ingest}. Every one has a configured default. */
 export interface IngestOptions {
+  /** Bootstrap an empty schema: compute all policies, including empty collections. */
+  initializeCanonical?: boolean;
+  /** Build-only cap across all files of each collection. Partial files are not hash-deduped. */
+  sample?: number | null;
+  /** Override the normal ingest headroom for an isolated database build. */
+  memoryLimit?: string;
   /** The database to write. Defaults to the process-wide one. */
   db?: Db;
   /** The source. Defaults to what `INGEST_SOURCE` and the dump directory say. */
@@ -577,7 +588,8 @@ export async function ingest(options: IngestOptions = {}): Promise<IngestResult>
     const outcome = await db.withWriter(async (connection): Promise<Outcome> => {
       // The writer mutex covers both changes. DuckDB's memory limit is global,
       // so concurrent reads share the extra headroom until the transaction ends.
-      await connection.exec('SET memory_limit = ?', [INGEST_MEMORY_LIMIT]);
+      const previousMemory = await connection.all(`SELECT current_setting('memory_limit') AS value`);
+      await connection.exec('SET memory_limit = ?', [options.memoryLimit ?? INGEST_MEMORY_LIMIT]);
       // Everything, the schema creation included, is inside the transaction, so a
       // dry run really does leave the file as it found it.
       try {
@@ -589,9 +601,18 @@ export async function ingest(options: IngestOptions = {}): Promise<IngestResult>
         const units: IngestedUnit[] = [];
         const modalities = new Set<Modality>();
         const targetCache = new Map<IngestCollection, ColumnPlan[]>();
+        const documentsRead = new Map<IngestCollection, number>();
+        if (options.initializeCanonical) {
+          await connection.exec(`CREATE TEMP TABLE build_scanner_records (
+            collection VARCHAR, id VARCHAR, manufacturer VARCHAR, manufacturers_model_name VARCHAR,
+            magnetic_field_strength VARCHAR, device_serial_number VARCHAR, software_versions VARCHAR,
+            created_at TIMESTAMP)`);
+        }
         let touched = false;
 
         for await (const unit of source.units(state)) {
+          const remaining = options.sample == null ? null : options.sample - (documentsRead.get(unit.collection) ?? 0);
+          if (remaining !== null && remaining <= 0) continue;
           const unitStarted = Date.now();
           const path = unit.path ?? spillToFile(unit, temporaries);
           let targets = targetCache.get(unit.collection);
@@ -599,8 +620,27 @@ export async function ingest(options: IngestOptions = {}): Promise<IngestResult>
             targets = await targetColumnsOf(connection, unit.collection);
             targetCache.set(unit.collection, targets);
           }
-          await stageUnit(connection, unit.collection, path, targets);
+          const records = await stageUnit(connection, unit.collection, path, targets, remaining);
+          documentsRead.set(unit.collection, (documentsRead.get(unit.collection) ?? 0) + records);
           const counts = await applyStaged(connection, unit.collection);
+          if (options.initializeCanonical && unit.collection !== 'rating') {
+            // Preserve the uploaded scanner tuple before casts/vendor normalization,
+            // matching schema_catalog.py's scanner key (including 3 versus 3.0).
+            const sourceValue = (source: string): string => targets.some((t) => t.sourceName === source)
+              ? `json_extract_string(${quoteIdent(source)}, '$')` : 'NULL';
+            const idSource = targets.find((t) => t.normalized === 'id')!.sourceName;
+            const updatedSource = targets.find((t) => t.normalized === 'updated_at')?.sourceName;
+            const createdSource = targets.find((t) => t.normalized === 'created_at')?.sourceName;
+            const id = scalarTextSql(quoteIdent(idSource));
+            const updated = updatedSource === undefined ? 'NULL' : `TRY_CAST(${scalarTextSql(quoteIdent(updatedSource))} AS TIMESTAMP)`;
+            const created = createdSource === undefined ? 'NULL' : `TRY_CAST(${scalarTextSql(quoteIdent(createdSource))} AS TIMESTAMP)`;
+            await connection.exec(`DELETE FROM build_scanner_records WHERE collection = ?
+              AND id IN (SELECT id FROM ${quoteIdent(STAGE_APPLY)})`, [unit.collection]);
+            await connection.exec(`INSERT INTO build_scanner_records
+              SELECT ?, ${id}, ${['Manufacturer', 'ManufacturersModelName', 'MagneticFieldStrength', 'DeviceSerialNumber', 'SoftwareVersions'].map((name) => sourceValue(`bids_meta.${name}`)).join(', ')}, ${created}
+              FROM ${quoteIdent(STAGE_JSON)} WHERE ${id} IN (SELECT id FROM ${quoteIdent(STAGE_APPLY)})
+              QUALIFY row_number() OVER (PARTITION BY ${id} ORDER BY ${updated} DESC NULLS LAST) = 1`, [unit.collection]);
+          }
           await dropStaging(connection);
 
           const modality = COLLECTION_MODALITY[unit.collection];
@@ -610,8 +650,8 @@ export async function ingest(options: IngestOptions = {}): Promise<IngestResult>
           units.push({
             collection: unit.collection,
             file: unit.file,
-            sha256: unit.sha256,
-            records: unit.recordCount ?? counts.staged,
+            sha256: remaining !== null && (unit.recordCount === undefined || records < unit.recordCount) ? null : unit.sha256,
+            records,
             rowsAppended: counts.appended,
             rowsReplaced: counts.replaced,
             rowsSkipped: counts.skipped,
@@ -620,14 +660,25 @@ export async function ingest(options: IngestOptions = {}): Promise<IngestResult>
             durationMs: Date.now() - unitStarted,
           });
           log(
-            `  ${unit.collection} ${unit.file ?? 'page'}: ${counts.appended} appended,` +
+            `  ${unit.collection} ${unit.file ?? 'page'}: ${records} docs read / ${counts.appended + counts.replaced} rows written; ${counts.appended} appended,` +
               ` ${counts.replaced} replaced, ${counts.skipped} unchanged` +
               ` (${((Date.now() - unitStarted) / 1000).toFixed(1)} s)`,
           );
         }
 
-        const policies = CANONICAL_POLICIES.filter((policy) => modalities.has(policy.modality));
-        const canonicalBefore = await canonicalCounts(connection, policies);
+        if (options.initializeCanonical) {
+          const tuple = ['manufacturer', 'manufacturers_model_name', 'magnetic_field_strength', 'device_serial_number', 'software_versions'];
+          await connection.exec(`INSERT INTO scanners
+            SELECT md5(concat_ws(chr(1), ${tuple.map((name) => `coalesce(${name}, chr(0))`).join(', ')})),
+              ${tuple.join(', ')}, count(*), min(created_at), max(created_at)
+            FROM build_scanner_records GROUP BY ${tuple.join(', ')}`);
+          await connection.exec('DROP TABLE build_scanner_records');
+        }
+
+        const policies = CANONICAL_POLICIES.filter((policy) => options.initializeCanonical || modalities.has(policy.modality));
+        const canonicalBefore = options.initializeCanonical
+          ? Object.fromEntries(policies.map((policy) => [policy.id, 0]))
+          : await canonicalCounts(connection, policies);
         let canonicalAfter: Record<string, number> = { ...canonicalBefore };
         const recomputed: Modality[] = [];
         const computed = await canonicalIsComputed(connection);
@@ -710,7 +761,7 @@ export async function ingest(options: IngestOptions = {}): Promise<IngestResult>
       } finally {
         // Use the original configured value: current_setting formats a rounded
         // MiB value, which would lose bytes on each round trip through SET.
-        await connection.exec('SET memory_limit = ?', [DUCKDB_MEMORY_LIMIT]);
+        await connection.exec('SET memory_limit = ?', [options.memoryLimit === undefined ? DUCKDB_MEMORY_LIMIT : String(previousMemory[0]?.['value'])]);
       }
     });
 

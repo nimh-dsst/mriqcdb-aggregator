@@ -153,19 +153,39 @@ so the current web's exhaustive `Query` dispatcher keeps compiling. Web wiring
 for multiple brushes and median bands is a separate pass; this adds the API
 without changing `packages/web`.
 
-### Build the database first
+### Database: build the database first
 
-The server reads one DuckDB file; nothing else writes it. `build:db` makes it from the
-flattened MRIQC Parquet dumps in `MRIQC_DATA_DIR`, writing to a temporary file and
-renaming over the target, so the build is idempotent and never leaves a partial database
-in place.
+Start with the MongoDB `mongoexport --jsonArray` files (including the August 2026
+full dumps). From `rewrite/`:
+
+```sh
+pnpm --filter @mriqc/server build:db -- --from-dumps data/dumps
+pnpm --filter @mriqc/server build:db -- --from-dumps data/dumps --sample 20000 --out data/dev.duckdb --memory-limit 8GiB --threads 8
+```
+
+No existing database or Parquet files are needed. The build adopts unmanifested
+`mriqc_api.<collection>[.<YYYYMMDDTHHMMSS>].json` files using the dump tool's
+`--adopt` implementation, then loads every manifest entry through the existing
+ingest pipeline. `packages/server/policies/columns.csv` supplies the frozen column
+names, JSON paths, types and nullability. The build computes the canonical policies,
+scanner catalog and metadata, and records fully consumed file hashes so a later
+`ingest -- --dumps <absolute-dump-directory>` skips them. `--sample N` reads the first N documents
+per collection across manifest entries; partially consumed files remain eligible
+for a later full ingest. Dump builds require the workspace's `tools/mriqc-dump/`.
+
+The output defaults to `rewrite/data/mriqc.duckdb`. A temporary database replaces
+the destination only after a successful build. While an API is using that file,
+build to a separate `--out` path. `--from-dumps` cannot be combined with `--data-dir`
+or `--canonical-from-parquet`.
+
+If flattened Parquet dumps are available, the original path remains:
 
 **The canonical tables are computed, not loaded.** The build applies each
 canonicalization policy (`src/sql/canonical/`, frozen scales in `policies/`) to the raw
 table it just loaded and materializes `canon_bold_k4plus`, `canon_t1w_k3pp` and
 `canon_t2w_k3pp` from it, plus the membership tables and the
 canonical-plus-quarantined views the third view per modality serves. That is where a full
-build's time goes: about 2 minutes for the raw load and catalog tables, about 9 minutes
+Parquet build's time goes: about 2 minutes for the raw load and catalog tables, about 9 minutes
 for the three policies, roughly 12 minutes end to end. The published canonical Parquet
 artifacts are only a cross-check -- the build compares its admitted counts against their
 row counts and warns if they differ -- and the build no longer needs them to be present.
@@ -182,11 +202,14 @@ push the machine into swap; `--canonical-from-parquet` is for comparing the comp
 tables against the published ones, and a database built that way serves no
 `+ quarantined raw` view.
 
-The output lands in `rewrite/data/mriqc.duckdb`, which is git-ignored.
+Parquet sources come from `MRIQC_DATA_DIR` (or `--data-dir`). Check the frozen schema
+against an unlocked Parquet-built database with
+`pnpm --filter @mriqc/server check:columns -- --database <file>`; without that flag,
+the check uses `DUCKDB_PATH` and skips if it is missing or locked.
 
 ### Keeping it up to date: ingest
 
-`build:db` makes the file from the Parquet dumps. **Ingest** adds records to an
+`build:db` makes the file from JSON dumps or Parquet. **Ingest** adds records to an
 existing file without rebuilding it, from either a directory of MongoDB dumps or
 MongoDB itself. Design: `../docs/backend-graph.md`, "Ingest from dumps" and
 "Implementation notes: ingest".

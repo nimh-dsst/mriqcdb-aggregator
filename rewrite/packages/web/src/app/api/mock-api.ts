@@ -285,7 +285,7 @@ export class MockApi implements Api {
 
   density2d(query: Density2dQuery): Observable<Density2dResult> {
     const random = prng(query.seed ?? 42);
-    const bins = query.bins;
+    const bins = query.grid ?? query.bins ?? 60;
     const xr = query.range?.x ?? [0, 1];
     const yr = query.range?.y ?? [0, 1];
     const counts = new Array<number>(bins * bins).fill(0);

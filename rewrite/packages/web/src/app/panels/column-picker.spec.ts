@@ -165,9 +165,9 @@ describe('column drawer actions', () => {
     expect(fixture.componentInstance.selectedFamily()).toBe(metricFamily('snr'));
     family(fixture, 'Fields');
     fixture.nativeElement.querySelector('[data-column-id="manufacturer"]').click();
-    expect(dispatch).not.toHaveBeenCalled();
-    fixture.componentInstance.commit();
-    expect(dispatch).toHaveBeenCalledWith({ t: 'patchPanel', id: 'p1', patch: { x: 'manufacturer', y: null } });
+    expect(dispatch).toHaveBeenCalledExactlyOnceWith({ t: 'patchPanel', id: 'p1', patch: { x: 'manufacturer', y: null } });
+    expect(fixture.nativeElement.textContent).not.toContain('Apply');
+    expect(fixture.nativeElement.textContent).not.toContain('Create panel');
   });
 
   it('selects a time metric through the Y slot and applies both axes', () => {
@@ -178,6 +178,17 @@ describe('column drawer actions', () => {
     fixture.detectChanges();
     fixture.componentInstance.commit();
     expect(dispatch).toHaveBeenCalledWith({ t: 'patchPanel', id: 'p1', patch: { x: 'created_at', y: 'fd_mean' } });
+  });
+
+  it('removes Y immediately and leaves the title drawer open', () => {
+    const { fixture, dispatch } = createDrawer('p1', 'fd_mean');
+    fixture.componentRef.setInput('y', 'tsnr');
+    fixture.detectChanges();
+    const closed = vi.fn(); fixture.componentInstance.closed.subscribe(closed);
+    fixture.nativeElement.querySelector('[aria-label="Clear Y slot"]').click();
+    expect(dispatch).toHaveBeenCalledExactlyOnceWith({ t: 'patchPanel', id: 'p1', patch: { x: 'fd_mean', y: null } });
+    expect(closed).not.toHaveBeenCalled();
+    expect(fixture.nativeElement.textContent).not.toContain('Apply');
   });
 
   it('shows metric descriptions and documented direction on keyboard focus', () => {

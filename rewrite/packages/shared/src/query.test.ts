@@ -197,6 +197,8 @@ describe('queryKey', () => {
       sampleSize: 500,
     };
     const implicitSeed = queryKey(base);
+    expect(queryKey({ ...base, grid: 32 })).toBe(implicitSeed);
+    expect(queryKey({ ...base, grid: 60 })).not.toBe(implicitSeed);
     expect(implicitSeed).toContain('range=x:0..1;y:10..20');
     expect(implicitSeed).toContain('sampleSize=500');
     expect(implicitSeed).toContain('seed=1');

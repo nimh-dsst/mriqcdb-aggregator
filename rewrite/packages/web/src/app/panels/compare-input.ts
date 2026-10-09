@@ -6,7 +6,7 @@ import {
   output,
   signal,
 } from '@angular/core';
-import { MatMenuModule } from '@angular/material/menu';
+import { MatMenuModule, MatMenuTrigger } from '@angular/material/menu';
 import { MatSelectModule } from '@angular/material/select';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { fieldValueLabel, isNoneValue, NONE_FILTER_VALUE, type FieldDef } from '@mriqc/shared';
@@ -69,7 +69,23 @@ const shiftIsoYear = (value: string, years: number): string => {
 
           @if (legend().length) {
             @for (item of legend(); track item.id) {
-              <span class="inline-flex min-w-0 items-center rounded border border-border bg-surface" data-testid="compare-series-chip">
+              <span class="group inline-flex min-w-0 items-center rounded border border-border bg-surface" data-testid="compare-series-chip"
+                (contextmenu)="openContext($event, chipMenuTrigger)" (keydown)="contextKey($event, chipMenuTrigger)">
+              <button type="button" class="min-h-9 px-1 text-ink-2 opacity-0 group-hover:opacity-100 focus:opacity-100"
+                [attr.aria-label]="'Actions for ' + item.name" [matMenuTriggerFor]="chipMenu" #chipMenuTrigger="matMenuTrigger">⋯</button>
+              <mat-menu #chipMenu="matMenu">
+                <button mat-menu-item (click)="isolatedChange.emit(item.id)">Isolate</button>
+                <button mat-menu-item (click)="isolatedChange.emit(null)">Reset</button>
+                @if (item.descriptorKey) {
+                  <button mat-menu-item (click)="removed.emit(item.descriptorKey)">Remove</button>
+                }
+                @if (canSaveGroup(item.descriptorKey)) {
+                  <button mat-menu-item (click)="groupAction.emit({ id: item.id, action: 'save' })">Save as group…</button>
+                }
+                @if (canFilterGroup(item.descriptorKey)) {
+                  <button mat-menu-item (click)="groupAction.emit({ id: item.id, action: 'only' })">Only this group</button>
+                }
+              </mat-menu>
               <button
                 type="button"
                 class="inline-flex min-h-9 min-w-0 items-center gap-1 px-2 text-control text-ink"
@@ -98,9 +114,19 @@ const shiftIsoYear = (value: string, years: number): string => {
           @for (item of series(); track keyOf(item)) {
           @if (!isSeriesRepresented(keyOf(item))) {
           <span
-            class="flex min-h-9 min-w-0 items-center gap-1 rounded border border-border bg-surface px-2 text-control text-ink"
+            class="group flex min-h-9 min-w-0 items-center gap-1 rounded border border-border bg-surface px-2 text-control text-ink"
+            (contextmenu)="openContext($event, descriptorTrigger)" (keydown)="contextKey($event, descriptorTrigger)"
           >
             <span class="min-w-0 truncate">{{ labelOf(item) }}</span>
+            <button type="button" class="min-h-9 px-1 opacity-0 group-hover:opacity-100 focus:opacity-100"
+              [attr.aria-label]="'Actions for ' + labelOf(item)" [matMenuTriggerFor]="descriptorMenu" #descriptorTrigger="matMenuTrigger">⋯</button>
+            <mat-menu #descriptorMenu="matMenu">
+              <button mat-menu-item (click)="removeSeries(item)">Remove</button>
+              @if (item.kind === 'values') {
+                <button mat-menu-item (click)="groupAction.emit({ id: keyOf(item), action: 'save' })">Save as group…</button>
+                <button mat-menu-item (click)="groupAction.emit({ id: keyOf(item), action: 'only' })">Only this group</button>
+              }
+            </mat-menu>
             <button
               type="button"
               class="inline-flex min-h-9 min-w-9 shrink-0 items-center justify-center text-ink-2"
@@ -356,6 +382,25 @@ export class CompareInput {
   readonly removed = output<string>();
   readonly isolatedChange = output<string | null>();
   readonly newGroup = output<void>();
+  readonly groupAction = output<{ id: string; action: 'save' | 'only' }>();
+
+  canSaveGroup(key: string | undefined): boolean {
+    return this.series().some(item => key === seriesKey(item) && (item.kind === 'field' || item.kind === 'values'));
+  }
+
+  canFilterGroup(key: string | undefined): boolean {
+    return this.series().some(item => key === seriesKey(item) && item.kind !== 'study');
+  }
+
+  openContext(event: Event, trigger: MatMenuTrigger): void {
+    event.preventDefault();
+    event.stopPropagation();
+    trigger.openMenu();
+  }
+
+  contextKey(event: KeyboardEvent, trigger: MatMenuTrigger): void {
+    if (event.key === 'ContextMenu' || (event.shiftKey && event.key === 'F10')) this.openContext(event, trigger);
+  }
 
   isSeriesRepresented(key: string): boolean {
     return this.legend().some((item) => item.descriptorKey === key);

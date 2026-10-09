@@ -53,7 +53,7 @@ describe('correlationChart redesign', () => {
     const rectEncoding = layers[0].encoding;
     const textEncoding = layers[1].encoding;
 
-    expect(rectEncoding.color.title).toBe('Pearson r');
+    expect(rectEncoding.color.title).toBe('Pearson r (linear)');
     expect(rectEncoding.tooltip).toEqual(expect.arrayContaining([
       expect.objectContaining({ field: 'value', title: 'Pearson r' }),
     ]));

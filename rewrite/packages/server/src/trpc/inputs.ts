@@ -133,7 +133,8 @@ export const density2dInput = z.object({
   ...analysisScope,
   x: z.string(),
   y: z.string(),
-  bins: z.number().int().min(10).max(200).default(120),
+  grid: z.number().int().min(10).max(200).optional(),
+  bins: z.number().int().min(10).max(200).optional(),
   clip: z.enum(['p01p99', 'p05p95', 'none']).default('p01p99'),
   range: z.object({ x: axisRange, y: axisRange }).optional(),
   sampleSize: z.number().int().min(0).max(20_000).default(2_000),
@@ -149,7 +150,7 @@ export const density2dInput = z.object({
   if (input.range !== undefined) {
     for (const axis of ['x', 'y'] as const) {
       const [lo, hi] = input.range[axis];
-      if ((hi - lo) / input.bins === 0) {
+      if ((hi - lo) / (input.grid ?? input.bins ?? 60) === 0) {
         ctx.addIssue({ code: 'custom', path: ['range', axis], message: 'range is too narrow for bins' });
       }
     }

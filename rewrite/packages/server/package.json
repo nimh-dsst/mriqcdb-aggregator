@@ -18,6 +18,7 @@
   "scripts": {
     "build": "tsc -p tsconfig.json && node scripts/copy-sql.mjs",
     "build:db": "tsx src/db/build-cli.ts",
+    "check:columns": "tsx scripts/columns-policy.ts",
     "ingest": "tsx src/ingest/ingest-cli.ts",
     "validate:canonical": "tsx scripts/validate-canonical.mjs",
     "dev": "tsx watch src/index.ts",

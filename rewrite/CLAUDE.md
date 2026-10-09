@@ -23,11 +23,15 @@ The frontend's module map and the URL format are in `dashboard-graph.md`,
   running `ng serve`: the Angular compiler caches the dependency's `.d.ts` and
   Vite pre-bundles its JS. Rebuild shared, stop the dev server, delete
   `packages/web/.angular/cache`, and start it again.
-- Database: `pnpm --filter @mriqc/server build:db` builds `data/mriqc.duckdb`
+- Database: `pnpm --filter @mriqc/server build:db -- --from-dumps data/dumps`
+  bootstraps `data/mriqc.duckdb` from mongoexport JSON alone, automatically adopting
+  files into the manifest and using frozen `packages/server/policies/columns.csv`.
+  Fully loaded files are hash-deduped by later ingests. Use `--out data/dev.duckdb`
+  while the API is using the default file. Without `--from-dumps`, `build:db` builds
   from the Parquet dumps in `C:/Users/licc/projects/mriqc` (read-only source,
   override with `MRIQC_DATA_DIR`). The canonical tables are *computed* from the
-  policies, which is most of the time: ~2 min raw load, ~4 min for the three
-  policies. `-- --sample 20000` gives a fast dev database;
+  policies, which is most of the Parquet build time: ~2 min raw load, ~9 min for the
+  three policies, ~12 min end to end. `-- --sample 20000` gives a fast dev database;
   `-- --memory-limit 8GiB` caps DuckDB (default ~60% of free RAM);
   `-- --canonical-from-parquet` loads the published artifacts instead and serves
   no `+ quarantined raw` view. A rebuild is picked up only on server restart.
@@ -65,4 +69,4 @@ The frontend's module map and the URL format are in `dashboard-graph.md`,
 - IDE TypeScript errors under `rewrite/` are usually the editor's TS server not
   seeing the workspace `node_modules`; trust `pnpm -r build`.
 - Review and verification of substantial changes: run `pnpm -r test`, then a
-  Playwright pass against the real server (see README "End to end").
+  Playwright pass against the real server (see the scripts in `packages/web/e2e/`).

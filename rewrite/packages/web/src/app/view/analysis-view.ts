@@ -87,7 +87,7 @@ export function analysisPanelView(state: State, panel: Panel, theme: ChartTheme)
         const data = resultOf<CorrelationResult>(state, keys[index]);
         if (!data) return [];
         const names = Object.fromEntries(data.metrics.map(id => [id, metricDef(state, id)?.label ?? id]));
-        return [{ id: cohort.id, name: cohort.name, chart: correlationChart(data, names, panel.options.clusterOrder ?? false, theme, panel.options.coefficient ?? 'spearman') }];
+        return [{ id: cohort.id, name: cohort.name, chart: correlationChart(data, names, panel.options.clusterOrder ?? false, theme, panel.options.coefficient ?? 'spearman', panel.options) }];
       });
       chart = analysisFacets(matrices, theme);
       n = result.minPairN;
@@ -105,7 +105,7 @@ export function analysisPanelView(state: State, panel: Panel, theme: ChartTheme)
       chart = analysisFacets(cohorts.flatMap((cohort, index) => {
         const fitted = resultOf<KMeansResult>(state, extraKeys[index]);
         return fitted && ownResults[index] ? [{ id: cohort.id, name: cohort.name,
-          chart: clustersChart(ownResults[index]!.sample, fitted, x, y, theme, panel.x === 'created_at' ? 'time' : panel.options.xScale) }] : [];
+          chart: clustersChart(ownResults[index]!.sample, fitted, x, y, theme, panel.x === 'created_at' ? 'time' : panel.options.xScale, panel.options) }] : [];
       }), theme);
       rows = cohorts.flatMap((cohort, index) => (resultOf<KMeansResult>(state, extraKeys[index])?.clusters ?? []).map(cluster => ({
         id: `${cohort.id}-${cluster.id}`, name: `${cohorts.length > 1 ? cohort.name + ': ' : ''}${cluster.id >= 6 ? `Other (Cluster ${cluster.id + 1})` : `Cluster ${cluster.id + 1}`}`,
@@ -120,6 +120,7 @@ export function analysisPanelView(state: State, panel: Panel, theme: ChartTheme)
     chart = densityChart(series, { xLabel: x, yLabel: y, form: panel.form === 'scatter' ? 'scatter' : panel.form === 'hexbin' ? 'hexbin' : 'heatmap', showPoints: panel.options.showPoints ?? false, theme, brushEnabled: true,
       xScale: valueScale(panel.x === 'created_at' ? 'time' : panel.options.xScale === 'log' && !xEvidence.positive ? 'symlog' : panel.options.xScale, panel.options.xRange, xEvidence.constant),
       yScale: valueScale(panel.options.yScale === 'log' && !yEvidence.positive ? 'symlog' : panel.options.yScale, panel.options.yRange, yEvidence.constant),
+      colorScale: panel.options.colorScale, colorDomain: panel.options.colorDomain, cells: panel.options.cells ?? 60,
       brush: ownX && ownY ? { x: ownX.range, y: ownY.range } : undefined });
     if (series.length > 1) {
       const ref = series.find(s => s.id === panel.reference) ?? series[0];

@@ -22,6 +22,8 @@ FROM ranked
 
 -- @statement histogram
 -- Parameters after where: x lo, hi, bins, bins, lo, width; then the same for y.
+-- Both axes bind the resolved grid (grid ?? bins ?? 60); width is (hi - lo) / grid.
+-- Resolution is bound, so native and WASM execute byte-identical SQL at every grid.
 -- Width zero is a constant axis: its in-range values go to bin zero.
 WITH v AS (
   SELECT {{x}} AS x, {{y}} AS y FROM {{table}}
