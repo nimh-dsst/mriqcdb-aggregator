@@ -35,7 +35,7 @@ const QUESTIONS: readonly Question[] = [
         @for (question of questions; track question.id) {
           <li>
             <div class="flex flex-wrap items-center gap-1 rounded border px-2 py-1 text-control text-ink"
-              [class.border-highlight]="chosen() === question.id" [class.bg-highlight-soft]="chosen() === question.id"
+              [class.border-highlight]="chosen() === question.id" [class.bg-highlight-soft]="chosen() === question.id" [class.text-highlight-ink]="chosen() === question.id"
               [class.border-border]="chosen() !== question.id"
               (click)="chosen.set(question.id)" data-testid="question">
               @for (part of question.parts; track $index) {

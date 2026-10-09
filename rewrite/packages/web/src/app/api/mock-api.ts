@@ -156,15 +156,22 @@ function valueCounts(field: string, modality: Modality, view: View): readonly Fi
  * choosing its centre, spread and magnitude, so `fd_mean` and `tsnr` do not
  * draw the same curve.
  */
-function makeHistogram(seed: number, bins: number, total: number): Histogram {
+/**
+ * A metric's scale and rough shape come from `scaleSeed` (the metric), so every
+ * cohort of one metric lives on the same axis; `seed` (the cohort) only nudges
+ * the shape. Without that split each series of a comparison came back on its
+ * own random scale -- FD mean in the hundreds of millimetres for one vendor.
+ */
+function makeHistogram(seed: number, bins: number, total: number, scaleSeed = seed): Histogram {
   const random = prng(seed);
-  const magnitude = 10 ** (Math.floor(random() * 4) - 1);
-  const hi = magnitude * (1 + 9 * random());
+  const metric = prng(scaleSeed);
+  const magnitude = 10 ** (Math.floor(metric() * 4) - 1);
+  const hi = magnitude * (1 + 9 * metric());
   const lo = 0;
   const width = (hi - lo) / bins;
-  const centre = 0.18 + 0.45 * random();
-  const spread = 0.07 + 0.13 * random();
-  const skew = 0.5 + random();
+  const centre = 0.18 + 0.45 * metric() + 0.12 * (random() - 0.5);
+  const spread = (0.07 + 0.13 * metric()) * (0.85 + 0.3 * random());
+  const skew = 0.5 + metric();
   const shape: number[] = [];
   for (let i = 0; i < bins; i++) {
     const x = (i + 0.5) / bins;
@@ -200,8 +207,8 @@ function quantilesOf(histogram: Histogram): { quantiles: Quantiles; n: number; m
   };
 }
 
-function summaryFor(seed: number, bins: number, total: number): DistributionResult {
-  const histogram = makeHistogram(seed, bins, total);
+function summaryFor(seed: number, bins: number, total: number, scaleSeed = seed): DistributionResult {
+  const histogram = makeHistogram(seed, bins, total, scaleSeed);
   const stats = quantilesOf(histogram);
   return {
     n: stats.n,
@@ -317,9 +324,11 @@ export class MockApi implements Api {
     // cohort re-binned and not an unrelated distribution. Two cohorts asked for
     // the same range therefore come back on the same grid, which is what a
     // comparison panel is asserting.
-    const seed = hash(queryKey({ ...query, range: undefined }));
-    const own = summaryFor(seed, query.bins, scaleFor(query));
-    const result = query.range === undefined ? own : rebin(own, query.bins, query.range);
+    // Neither the range nor the bin count is part of the seed: both only
+    // re-grid the same values, so the summary must not move when they change.
+    const seed = hash(queryKey({ ...query, range: undefined, bins: 0 }));
+    const own = summaryFor(seed, 400, scaleFor(query), hash(String(query.metric)));
+    const result = rebin(own, query.bins, query.range ?? [own.histogram.lo, own.histogram.hi]);
     return of(result).pipe(delay(MOCK_LATENCY_MS));
   }
 
@@ -328,7 +337,7 @@ export class MockApi implements Api {
     const values = (VALUES[query.group] ?? ['A', 'B', 'C']).slice(0, 6);
     const total = scaleFor(query);
     const groups: GroupSummary[] = values.map((value, i) => {
-      const summary = summaryFor(hash(`${key}|${String(value)}`), 24, Math.round((total * (0.5 + i * 0.2)) / values.length));
+      const summary = summaryFor(hash(`${key}|${String(value)}`), 24, Math.round((total * (0.5 + i * 0.2)) / values.length), hash(String(query.metric)));
       return { value, ...summary };
     });
     return of({ groups }).pipe(delay(MOCK_LATENCY_MS));

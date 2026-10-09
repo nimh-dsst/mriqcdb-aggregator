@@ -129,7 +129,7 @@ const fresh = () => nextId++;
                     @let ticked = condition.values.includes(wireOf(entry.value));
                     <button type="button"
                       class="min-h-8 rounded border px-2 text-caption"
-                      [class.border-highlight]="ticked" [class.bg-highlight-soft]="ticked" [class.text-ink]="ticked"
+                      [class.border-highlight]="ticked" [class.bg-highlight-soft]="ticked" [class.text-highlight-ink]="ticked"
                       [class.border-border]="!ticked" [class.text-ink-2]="!ticked"
                       [attr.aria-pressed]="ticked"
                       (click)="toggleValue(group.id, condition.id, wireOf(entry.value))">

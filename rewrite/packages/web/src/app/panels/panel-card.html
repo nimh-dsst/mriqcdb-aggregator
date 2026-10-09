@@ -126,7 +126,7 @@
               @for (unit of granularities; track unit.value) {
                 <button type="button" class="min-h-9 px-2"
                   [class.bg-highlight-soft]="panel.options.granularity === unit.value"
-                  [class.text-ink]="panel.options.granularity === unit.value"
+                  [class.text-highlight-ink]="panel.options.granularity === unit.value"
                   [class.text-ink-2]="panel.options.granularity !== unit.value"
                   [attr.aria-pressed]="panel.options.granularity === unit.value"
                   (click)="setGranularity(unit.value)">{{ unit.label }}</button>
