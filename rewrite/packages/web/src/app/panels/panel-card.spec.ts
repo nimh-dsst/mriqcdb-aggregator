@@ -167,10 +167,10 @@ describe('PanelCard', () => {
   });
 
   it.each([
-    ['histogram', ['Bins', 'Clip', 'Follow brushed range']],
+    ['histogram', ['Clip', 'Follow brushed range']],
     ['heatmap', ['Cells', 'Clip', 'Follow brushed range']],
     ['hexbin', ['Cells', 'Clip', 'Follow brushed range']],
-    ['band', ['Bins', 'Quantiles', 'Clip', 'Follow brushed range']],
+    ['band', ['Quantiles', 'Clip', 'Follow brushed range']],
   ] as const)('keeps only the applicable options in a single nontruncating column: %s', async (form, labels) => {
     const fixture = create(makePanel({ form, y: form === 'histogram' ? null : asColumnId('fd_mean') }));
     fixture.nativeElement.querySelector('[aria-label="Panel options"]').click();

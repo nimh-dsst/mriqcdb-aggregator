@@ -120,6 +120,28 @@
       />
 
       <div class="panel-form flex min-h-9 min-w-0 items-center gap-1">
+        @if (binsVisible()) {
+          @if (timeX()) {
+            <div class="inline-flex min-h-9 items-center rounded border border-border text-caption" role="group" aria-label="Bin size">
+              @for (unit of granularities; track unit.value) {
+                <button type="button" class="min-h-9 px-2"
+                  [class.bg-highlight-soft]="panel.options.granularity === unit.value"
+                  [class.text-ink]="panel.options.granularity === unit.value"
+                  [class.text-ink-2]="panel.options.granularity !== unit.value"
+                  [attr.aria-pressed]="panel.options.granularity === unit.value"
+                  (click)="setGranularity(unit.value)">{{ unit.label }}</button>
+              }
+            </div>
+          } @else {
+            <div class="inline-flex min-h-9 items-center rounded border border-border text-control text-ink" role="group" aria-label="Bins">
+              <button type="button" class="min-h-9 min-w-8 text-ink-2" aria-label="Fewer bins" (click)="stepBins(-1)">−</button>
+              <input class="w-12 bg-transparent text-center outline-none" type="number" aria-label="Bins"
+                [min]="minBins" [max]="maxBins" [value]="panel.options.bins" (change)="changeNumberOption($event, 'bins')" />
+              <button type="button" class="min-h-9 min-w-8 text-ink-2" aria-label="More bins" (click)="stepBins(1)">+</button>
+              <span class="pr-2 text-caption text-ink-2">bins</span>
+            </div>
+          }
+        }
 
         <mat-select
           #formPicker
@@ -164,7 +186,7 @@
     @if (panel.form === 'band' || panel.form === 'lines') {
       <div class="flex items-center gap-2 border-b border-border p-2">
         <label class="text-caption text-ink-2" for="median-band-metric-{{ panel.id }}">
-          Second column
+          Value
         </label>
         <mat-select
           class="min-w-40 rounded border border-border px-2 py-1 text-control text-ink"
@@ -172,6 +194,9 @@
           [value]="panel.y"
           (selectionChange)="changeY($event.value)"
         >
+          @if (timeX() && panel.form === 'band') {
+            <mat-option [value]="null">Scan count</mat-option>
+          }
           <mat-option value="created_at" [disabled]="panel.x === 'created_at'">Upload time</mat-option>
           @for (metric of metrics(); track metric.id) {
             <mat-option [value]="metric.id" [disabled]="panel.x === metric.id">{{ metric.shortLabel || metric.label }}</mat-option>
@@ -230,17 +255,6 @@
 
     <mat-menu #optionsMenu="matMenu" class="panel-options-menu">
       <div class="panel-settings" data-testid="panel-settings" (click)="$event.stopPropagation()" cdkTrapFocus [cdkTrapFocusAutoCapture]="true" (keydown)="$event.key !== 'Escape' && $event.stopPropagation()">
-        @if (['histogram', 'line', 'area', 'band', 'lines'].includes(panel.form)) {
-          <label appSettingRow class="setting-row"><span>Bins</span>
-            @if (timeX()) {
-              <select aria-label="Bins" [value]="panel.options.granularity" (change)="changeOption($event, 'granularity')">
-                <option value="month">Month</option><option value="year">Year</option><option value="week">Week</option><option value="day">Day</option>
-              </select>
-            } @else {
-              <input aria-label="Bins" type="number" min="10" max="200" [value]="panel.options.bins" (change)="changeNumberOption($event, 'bins')" />
-            }
-          </label>
-        }
         @if (panel.form === 'heatmap' || panel.form === 'hexbin') {
           <label appSettingRow class="setting-row"><span>Cells</span>
             <select aria-label="Cells" [value]="panel.options.cells ?? 60" (change)="changeNumberOption($event, 'cells')">

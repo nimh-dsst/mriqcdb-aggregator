@@ -30,7 +30,7 @@ import { type PanelPatch } from '../graph/commands';
 import { Graph } from '../graph/graph';
 import { canStack } from '../graph/panels';
 import { axisType, FORM_INFO, panelFormAvailability } from '../graph/panel-shapes';
-import { parseGroupCohortId, type Form, type Panel } from '../graph/state';
+import { MAX_BINS, MIN_BINS, parseGroupCohortId, type Form, type Panel } from '../graph/state';
 
 import { ElementControls } from './element-controls';
 import { SettingRow } from './setting-row';
@@ -418,6 +418,38 @@ export class PanelCard {
         [key]: (event.target as HTMLInputElement).checked,
       },
     });
+  }
+
+  readonly minBins = MIN_BINS;
+  readonly maxBins = MAX_BINS;
+  readonly granularities = [
+    { value: 'day', label: 'Day' },
+    { value: 'week', label: 'Week' },
+    { value: 'month', label: 'Month' },
+    { value: 'year', label: 'Year' },
+  ] as const;
+
+  /** Bin size sits beside the form, not in the settings menu: it is the one people reach for. */
+  readonly binsVisible = computed(() => {
+    const form = this.panel()?.form;
+    return form !== undefined && ['histogram', 'line', 'area', 'band', 'lines'].includes(form) && (this.timeX() || this.numericX());
+  });
+
+  setGranularity(granularity: 'day' | 'week' | 'month' | 'year'): void {
+    const panel = this.panel();
+    if (panel) this.patch({ options: { ...panel.options, granularity } });
+  }
+
+  /** Steps through round numbers: 10, 20, 30, 40, 60, 80, 100, 150, 200. */
+  stepBins(direction: 1 | -1): void {
+    const panel = this.panel();
+    if (!panel) return;
+    const stops = [10, 20, 30, 40, 60, 80, 100, 150, 200];
+    const current = panel.options.bins;
+    const bins = direction > 0
+      ? stops.find(stop => stop > current) ?? MAX_BINS
+      : [...stops].reverse().find(stop => stop < current) ?? MIN_BINS;
+    this.patch({ options: { ...panel.options, bins } });
   }
 
   changeNumberOption(event: Event, key: string): void {
