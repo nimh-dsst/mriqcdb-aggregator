@@ -1,4 +1,4 @@
-import { correlationFragments, quoteIdent, type CorrelationResult, type Density2dResult } from '@mriqc/shared';
+import { asColumnId, continuousAxisExpr, correlationFragments, quoteIdent, type CorrelationResult, type Density2dResult } from '@mriqc/shared';
 import type { StudyCorrelationQuery, StudyDensity2dQuery } from '../api/api';
 import { compileStudyStatement, metricExpression, predicate, shapeMetricSummary, studyHistogramRange, type BoundStatement, type StudyRow } from './study-sql';
 
@@ -12,8 +12,9 @@ export function compileStudyDensity2d(query: StudyDensity2dQuery, columns: Reado
   if (query.range && [query.range.x, query.range.y].some(range => range.length !== 2 || !range.every(Number.isFinite) || range[0] >= range[1]))
     throw new Error('Invalid density range');
   const compiled = predicate(query, columns);
+  if (query.x === 'created_at' && !columns.has('created_at')) throw new Error('Time density requires created_at');
   const holes = { table: quoteIdent('study'), where: compiled.where,
-    x: metricExpression(query.modality, query.x, columns),
+    x: query.x === 'created_at' ? continuousAxisExpr(asColumnId('created_at'), 'time') : metricExpression(query.modality, query.x, columns),
     y: metricExpression(query.modality, query.y, columns),
     sample_size: String(sampleSize), seed: String(seed) };
   return {
@@ -50,7 +51,7 @@ export function shapeDensity2d(query: StudyDensity2dQuery, stats: StudyRow | und
     else if (by >= query.bins) y.overflow += n;
     else counts[by * query.bins + bx] += n;
   }
-  return { x, y, counts, n: Number(stats?.['n'] ?? 0), pearson: coefficient(stats?.['pearson']),
+  return { xKind: query.x === 'created_at' ? 'time' : 'metric', x, y, counts, n: Number(stats?.['n'] ?? 0), pearson: coefficient(stats?.['pearson']),
     spearman: coefficient(stats?.['spearman']), sample: points.map(row => [Number(row['x']), Number(row['y'])]) };
 }
 

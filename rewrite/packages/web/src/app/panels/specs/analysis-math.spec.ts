@@ -3,7 +3,7 @@ import type { Density2dResult } from "@mriqc/shared";
 import { fisherInterval, massContours } from "./analysis-math";
 
 function histogram(counts: number[], xBins: number, yBins = xBins): Density2dResult {
-  return {
+  return { xKind: "metric",
     x: { lo: 0, width: 1, bins: xBins, underflow: 0, overflow: 0 },
     y: { lo: 0, width: 1, bins: yBins, underflow: 0, overflow: 0 },
     counts,

@@ -28,7 +28,7 @@ const sample: UrlState = {
       id: 'p2',
       y: null,
       x: 'created_at',
-      form: 'bars',
+      form: 'histogram',
       series: [{ kind: 'field' as const, field: asColumnId('manufacturer') }],
 
       options: { ...defaultPanelOptions('none'), granularity: 'year', useSelection: false },

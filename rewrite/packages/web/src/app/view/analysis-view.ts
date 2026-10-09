@@ -53,7 +53,7 @@ export function analysisPanelView(state: State, panel: Panel, theme: ChartTheme)
   const ownResults = densityKeys.slice(0, cohorts.length).map(key => resultOf<Density2dResult>(state, key));
   const results = densityKeys.length > cohorts.length ? densityKeys.slice(cohorts.length).map(key => resultOf<Density2dResult>(state, key)) : ownResults;
   const xMetric = metricDef(state, panel.x), yMetric = metricDef(state, panel.y);
-  const x = xMetric?.shortLabel ?? xMetric?.label ?? String(panel.x);
+  const x = panel.x === 'created_at' ? 'Upload time' : xMetric?.shortLabel ?? xMetric?.label ?? String(panel.x);
   const y = yMetric?.shortLabel ?? yMetric?.label ?? String(panel.y);
   const noun = unitNoun(activeView(state));
   const xEvidence = axisEvidence(state, panel, 'x'), yEvidence = axisEvidence(state, panel, 'y');
@@ -101,7 +101,7 @@ export function analysisPanelView(state: State, panel: Panel, theme: ChartTheme)
       chart = analysisFacets(cohorts.flatMap((cohort, index) => {
         const fitted = resultOf<KMeansResult>(state, extraKeys[index]);
         return fitted && ownResults[index] ? [{ id: cohort.id, name: cohort.name,
-          chart: clustersChart(ownResults[index]!.sample, fitted, x, y, theme) }] : [];
+          chart: clustersChart(ownResults[index]!.sample, fitted, x, y, theme, panel.x === 'created_at' ? 'time' : panel.options.xScale) }] : [];
       }), theme);
       rows = cohorts.flatMap((cohort, index) => (resultOf<KMeansResult>(state, extraKeys[index])?.clusters ?? []).map(cluster => ({
         id: `${cohort.id}-${cluster.id}`, name: `${cohorts.length > 1 ? cohort.name + ': ' : ''}${cluster.id >= 6 ? `Other (Cluster ${cluster.id + 1})` : `Cluster ${cluster.id + 1}`}`,
@@ -114,7 +114,7 @@ export function analysisPanelView(state: State, panel: Panel, theme: ChartTheme)
     const ownX = state.selections.find(selection => selection.from === panel.id && selection.metric === panel.x);
     const ownY = state.selections.find(selection => selection.from === panel.id && selection.metric === panel.y);
     chart = densityChart(series, { xLabel: x, yLabel: y, form: panel.form === 'scatter' ? 'scatter' : panel.form === 'hexbin' ? 'hexbin' : 'heatmap', showPoints: panel.options.showPoints ?? false, theme, brushEnabled: true,
-      xScale: valueScale(panel.options.xScale === 'log' && !xEvidence.positive ? 'symlog' : panel.options.xScale, panel.options.xRange, xEvidence.constant),
+      xScale: valueScale(panel.x === 'created_at' ? 'time' : panel.options.xScale === 'log' && !xEvidence.positive ? 'symlog' : panel.options.xScale, panel.options.xRange, xEvidence.constant),
       yScale: valueScale(panel.options.yScale === 'log' && !yEvidence.positive ? 'symlog' : panel.options.yScale, panel.options.yRange, yEvidence.constant),
       brush: ownX && ownY ? { x: ownX.range, y: ownY.range } : undefined });
     if (series.length > 1) {
@@ -130,7 +130,7 @@ export function analysisPanelView(state: State, panel: Panel, theme: ChartTheme)
     meaning, subtitle: '', notes: [], clipChip: panel.options.clip === 'p01p99' ? null : panel.options.clip === 'none' ? 'Full range' : 'p05–p95',
     metricHelp: xMetric ? { label: xMetric.label, taxonomy: xMetric.family, description: xMetric.description ?? null, unit: xMetric.unit ?? null } : null,
     specKey: JSON.stringify([theme.mode, panel, keys, chart?.spec]), spec: chart?.spec ?? null, datasets: chart?.datasets ?? {}, table: null, status,
-    brushable: ['heatmap', 'scatter', 'hexbin'].includes(panel.form), hasRows: !!chart && Object.values(chart.datasets).some(values => values.length > 0), live: status.kind === 'ready', n,
+    brushable: panel.x !== 'created_at' && ['heatmap', 'scatter', 'hexbin'].includes(panel.form), hasRows: !!chart && Object.values(chart.datasets).some(values => values.length > 0), live: status.kind === 'ready', n,
     countLabel: `${noun} with paired values`, stats: null,
     cohorts: cohorts.length > 1 ? cohorts.map((cohort, i) => ({ id: cohort.id, name: cohort.name, color: series[i]?.color ?? theme.categories[i % 6],
       n: panel.form === 'matrix' ? resultOf<CorrelationResult>(state, keys[i])?.minPairN ?? null : ownResults[i]?.n ?? null,

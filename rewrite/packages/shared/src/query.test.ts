@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { queryKey, type Query, type TimeSummaryQuery } from './query.js';
+import { queryKey, type Query, type BinnedSummaryQuery } from './query.js';
 import { asColumnId, type Filter, type Selection } from './types.js';
 
 const metric = asColumnId('fd_mean');
@@ -40,11 +40,11 @@ describe('queryKey', () => {
   });
 
   it('keys every time summary parameter including study scope', () => {
-    const query: TimeSummaryQuery = { source: 'population', proc: 'timeSummary',
-      modality: 'bold', view: 'raw', filters: [], metric, granularity: 'month' };
+    const query: BinnedSummaryQuery = { source: 'population', proc: 'binnedSummary',
+      modality: 'bold', view: 'raw', filters: [], x: 'created_at', y: metric, bins: 'month' };
     const key = queryKey(query);
-    for (const change of [{ granularity: 'day' as const }, { group: manufacturer },
-      { source: 'study' as const }, { window: ['2020-01-01', '2020-03-01'] as [string, string] },
+    for (const change of [{ bins: 'day' as const }, { groups: manufacturer },
+      { source: 'study' as const }, { range: [7305, 7365] as [number, number] }, { x: metric, bins: 10 }, { y: asColumnId('efc') }, { cohorts: [{ id: 'a', filters: [] }] },
       { selections: [{ metric, range: [1, 2] as [number, number] }] }]) {
       expect(queryKey({ ...query, ...change })).not.toBe(key);
     }

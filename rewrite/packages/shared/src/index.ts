@@ -6,16 +6,22 @@
 
 export type {
   AuthoredCatalog,
+  BinnedSummaryBucket,
+  BinnedSummaryCohort,
+  BinnedSummaryInput,
+  BinnedSummaryResult,
   ByModalityView,
   ChartType,
   ClipMode,
   ColumnId,
+  ColumnRef,
   CompletedCatalog,
   CorrelationResult,
   CoverageBucket,
   CoverageResult,
   DateRange,
   Density2dResult,
+  Density2dInput,
   DistributionHistogram,
   DistributionResult,
   FieldDef,
@@ -29,6 +35,7 @@ export type {
   GroupedSummaryResult,
   Histogram,
   MetricDef,
+  MetricId,
   MetricSummary,
   Modality,
   NumericRange,
@@ -39,8 +46,6 @@ export type {
   SampleRow,
   Selection,
   SelectionScope,
-  TimeSummaryBucket,
-  TimeSummaryResult,
   View,
   ViewDef,
 } from './types.js';
@@ -59,7 +64,7 @@ export {
 
 export { DROPPED_COLUMNS, isDroppedColumn, normalizeColumnName } from './normalize.js';
 
-export type { Query, QueryKey, QuerySource, TimeSummaryQuery } from './query.js';
+export type { Query, QueryKey, QuerySource, BinnedSummaryQuery } from './query.js';
 export { queryKey } from './query.js';
 
 /**
@@ -75,13 +80,14 @@ export {
   EXPORT_SQL,
   GROUPED_SUMMARY_SQL,
   SAMPLE_SQL,
-  TIME_SUMMARY_SQL,
+  BINNED_SUMMARY_SQL,
   SQL_TEMPLATES,
   parseStatements,
   statementsOf,
 } from './sql/templates.js';
 
 export { correlationFragments } from './sql/correlation.js';
+export { continuousAxisExpr, binnedSummaryFragments } from './sql/continuous-axis.js';
 
 export type { CompiledFilters, FilterColumn, FilterValidator } from './sql/filters-core.js';
 export {

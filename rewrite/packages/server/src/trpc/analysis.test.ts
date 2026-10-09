@@ -72,6 +72,36 @@ afterAll(async () => {
 });
 
 describe('density2d', () => {
+  it('returns time grids and samples in days since 2000-01-01 with independent counts and correlations', async () => {
+    const epoch = (Date.UTC(2020, 0, 1) - Date.UTC(2000, 0, 1)) / 86_400_000;
+    const result = await caller.density2d({ ...density, x: 'created_at', y: 'fwhm_y', sampleSize: 47,
+      range: { x: [epoch + 30, epoch + 230], y: [10, 150] } });
+    const pairs = rows.map((row, i) => [epoch + i, row[1]] as const).filter(pair => finite(pair[1]));
+    const expected = new Array<number>(100).fill(0);
+    const tails = [0, 0, 0, 0];
+    for (const [x, yValue] of pairs) {
+      const y = yValue!;
+      if (x < epoch + 30) tails[0]! += 1;
+      else if (x > epoch + 230) tails[1]! += 1;
+      else if (y < 10) tails[2]! += 1;
+      else if (y > 150) tails[3]! += 1;
+      else expected[Math.min(9, Math.floor((y - 10) / 14)) * 10 + Math.min(9, Math.floor((x - epoch - 30) / 20))]! += 1;
+    }
+    expect(result.xKind).toBe('time');
+    expect(result.x).toMatchObject({ lo: epoch + 30, width: 20 });
+    expect(result.n).toBe(pairs.length);
+    expect(result.counts).toEqual(expected);
+    expect([result.x.underflow, result.x.overflow, result.y.underflow, result.y.overflow]).toEqual(tails);
+    expect(result.pearson).toBeCloseTo(pearson(pairs.map(p => p[0]), pairs.map(p => p[1]!)), 9);
+    expect(result.sample).toHaveLength(47);
+    expect(result.sample.every(([x, y]) => Number.isInteger(x) && x >= epoch + 30 && x <= epoch + 230 && y >= 10 && y <= 150)).toBe(true);
+    expect((await caller.density2d(density)).xKind).toBe('metric');
+  });
+
+  it.each(['unknown', 'created_at); DROP TABLE raw_bold; --', 'manufacturer'])('rejects noncontinuous or unknown x %s', async x => {
+    await expect(caller.density2d({ ...density, x })).rejects.toMatchObject({ code: 'BAD_REQUEST' });
+  });
+
   it('matches independent Pearson and tied Spearman on finite pairs to 1e-9', async () => {
     const result = await caller.density2d(density);
     const [x, y] = pairs(rows);

@@ -2,7 +2,7 @@ import { compile } from 'vega-lite';
 import type { TopLevelSpec } from 'vega-lite';
 import {
   boxSpec,
-  coverageSpec,
+  countsSpec,
   ecdfSpec,
   facetedEcdfSpec,
   facetedHistogramSpec,
@@ -46,12 +46,6 @@ const CHARTS: readonly (readonly [
   ['box', boxSpec(axis, 'Manufacturer'), ['groups']],
   ['facetedHistogram', facetedHistogramSpec(axis, 'Manufacturer'), ['groups']],
   ['facetedEcdf', facetedEcdfSpec(axis, 'Manufacturer'), ['groups']],
-  [
-    'coverage stackedBar',
-    coverageSpec('bars', 'Manufacturer', 'month', 'Scans'),
-    ['coverage'],
-  ],
-  ['coverage area', coverageSpec('area', 'Manufacturer', 'year', 'Scans'), ['coverage']],
   ['density', densitySpec(axis), ['population']],
   ['overlaidHistogram', overlaidHistogramSpec(axis, cohorts), ['cohorts']],
   ['overlaidDensity', overlaidDensitySpec(axis, cohorts), ['cohorts']],
@@ -94,7 +88,7 @@ describe('chart specs', () => {
     const plain = [
       boxSpec(axis, 'g'),
       facetedHistogramSpec(axis, 'g'),
-      coverageSpec('bars', 'g', 'month', 'Scans'),
+      countsSpec({ ...axis, xScale: "time", label: "Upload time" }, "line", cohorts),
       // A box is a summary per row, not a distribution over the value axis, so
       // there is no interval on it to drag.
       cohortBoxSpec(axis, cohorts),
@@ -107,54 +101,6 @@ describe('chart specs', () => {
   it('removes histogram gaps above 100 bins to avoid pattern glare', () => {
     expect(JSON.stringify(histogramSpec(axis, null, 100))).toContain('"binSpacing":2');
     expect(JSON.stringify(histogramSpec(axis, null, 101))).toContain('"binSpacing":0');
-  });
-
-  describe('coverage time buckets', () => {
-    /** The timeunit transform Vega-Lite compiles the `start` encoding into. */
-    function timeUnitTransform(spec: TopLevelSpec): { units: string[]; timezone?: string } {
-      const transforms = (compile(spec).spec.data ?? []).flatMap(
-        (source) => (source as { transform?: unknown[] }).transform ?? [],
-      ) as { type: string; units?: string[]; timezone?: string }[];
-      const found = transforms.find((t) => t.type === 'timeunit');
-      expect(found).toBeDefined();
-      return { units: found?.units ?? [], timezone: found?.timezone };
-    }
-
-    /** The month this instant falls in, as seen from one zone. */
-    function monthIn(zone: string, instant: Date): string {
-      return new Intl.DateTimeFormat('en-US', { timeZone: zone, month: '2-digit' }).format(instant);
-    }
-
-    it('floors a bucket start in UTC, so a March upload is not drawn under February', () => {
-      const unit = timeUnitTransform(coverageSpec('bars', 'Manufacturer', 'month', 'Scans'));
-      expect(unit.units).toEqual(['year', 'month']);
-      expect(unit.timezone).toBe('utc');
-      // Floored the way the compiled transform floors it, year and month read
-      // through the timezone the spec declared.
-      const instant = new Date('2024-03-01T00:00:00Z');
-      const bucket =
-        unit.timezone === 'utc'
-          ? new Date(Date.UTC(instant.getUTCFullYear(), instant.getUTCMonth(), 1))
-          : new Date(instant.getFullYear(), instant.getMonth(), 1);
-      expect(bucket.toISOString()).toBe('2024-03-01T00:00:00.000Z');
-    });
-
-    it('is a different bucket from the one a local time unit would pick', () => {
-      // Why the `utc` above is load-bearing, stated without depending on the
-      // zone the test happens to run in: that instant is already March in UTC
-      // and still February for every viewer west of it.
-      const instant = new Date('2024-03-01T00:00:00Z');
-      expect(monthIn('UTC', instant)).toBe('03');
-      expect(monthIn('America/New_York', instant)).toBe('02');
-    });
-
-    it('uses a UTC unit at every granularity', () => {
-      for (const granularity of ['day', 'week', 'month', 'year'] as const) {
-        expect(
-          timeUnitTransform(coverageSpec('area', 'Manufacturer', granularity, 'Scans')).timezone,
-        ).toBe('utc');
-      }
-    });
   });
 
   it('labels the value axis with the metric label and unit', () => {
@@ -171,14 +117,14 @@ describe('chart specs', () => {
       '"title":"Uploads"',
     );
     expect(
-      JSON.stringify(coverageSpec('bars', 'Manufacturer', 'month', 'Uploads')),
+      JSON.stringify(countsSpec({ ...axis, countTitle: 'Uploads', xScale: "time", label: "Upload time" }, "line", cohorts)),
     ).toContain('"title":"Uploads"');
     for (const spec of [
       histogramSpec(axis),
       overlaidHistogramSpec(axis, cohorts),
       overlaidDensitySpec(axis, cohorts),
       facetedHistogramSpec(axis, 'Manufacturer'),
-      coverageSpec('area', 'Manufacturer', 'month', 'Scans'),
+      countsSpec({ ...axis, xScale: "time", label: "Upload time" }, "line", cohorts),
     ]) {
       expect(JSON.stringify(spec)).not.toContain('Records');
     }

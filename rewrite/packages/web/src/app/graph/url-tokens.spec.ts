@@ -26,6 +26,8 @@ function roundTrip<T>(codec: Codec<T>, value: T): T {
 
 describe('six-bit URL scalars', () => {
   it('assigns one character per canonical form in formsFor order', () => {
+    expect(CHART_TOKENS.values).toEqual(['histogram', 'line', 'area', 'density', 'ecdf', 'box', 'table',
+      'heatmap', 'scatter', 'hexbin', 'clusters', 'band', 'lines', 'bars', 'share', 'matrix']);
     const metric = asColumnId('snr');
     const forms = [...new Set([
       ...formsFor(metric, null), ...formsFor('created_at', null),

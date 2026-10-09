@@ -1,4 +1,4 @@
-import { normalizeSelections, type TimeSummaryQuery } from '@mriqc/shared';
+import { normalizeSelections, type BinnedSummaryQuery } from '@mriqc/shared';
 import {
   FilterError,
   compileFiltersCore,
@@ -22,7 +22,7 @@ export type StudyParam = FilterValue;
 export type StudyRow = Readonly<Record<string, unknown>>;
 
 export interface BoundStatement {
-  template: 'distribution' | 'grouped_summary' | 'density2d' | 'correlation' | 'time_summary';
+  template: 'distribution' | 'grouped_summary' | 'density2d' | 'correlation' | 'binned_summary';
   statement: string;
   sql: string;
   params: readonly StudyParam[];
@@ -118,7 +118,7 @@ function findField(
 }
 
 export function predicate(
-  query: TimeSummaryQuery | StudyDistributionQuery | StudyGroupedSummaryQuery | StudyDensity2dQuery | StudyCorrelationQuery,
+  query: BinnedSummaryQuery | StudyDistributionQuery | StudyGroupedSummaryQuery | StudyDensity2dQuery | StudyCorrelationQuery,
   columns: ReadonlySet<string>,
 ): { where: string; params: readonly StudyParam[] } {
   return compileFiltersCore(query.filters, normalizeSelections(query), {

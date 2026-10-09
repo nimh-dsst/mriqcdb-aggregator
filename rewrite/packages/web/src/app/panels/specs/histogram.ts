@@ -27,7 +27,8 @@ export interface MetricAxis {
   label: string;
   unit?: string;
   logScale: boolean;
-  xScale?: 'linear' | 'log' | 'symlog';
+  xScale?: 'linear' | 'log' | 'symlog' | 'time';
+  granularity?: import('@mriqc/shared').Granularity;
   xRange?: 'auto' | readonly [number, number];
   constant?: number;
   yMode?: 'count' | 'share' | 'logCount';

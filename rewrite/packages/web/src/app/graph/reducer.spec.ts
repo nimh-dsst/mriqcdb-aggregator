@@ -426,7 +426,7 @@ describe('reduce', () => {
       const added = reduce(fixture(), { t: 'addPanel', x: 'created_at' }).panels[1];
       expect(added.x).toBe('created_at');
       expect(added.series).toEqual([]);
-      expect(added.form).toBe('bars');
+      expect(added.form).toBe('histogram');
     });
 
     it('refuses a chart the panel kind does not allow', () => {

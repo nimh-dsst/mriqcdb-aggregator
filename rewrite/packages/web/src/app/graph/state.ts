@@ -26,7 +26,7 @@ export type PanelId = string;
 export type CohortId = string;
 
 /** The form vocabulary is derived from the one axis-to-form table. */
-export type Form = ReturnType<typeof import('./panel-shapes').formsFor>[number];
+export type Form = (typeof import('./panel-shapes').FORM_ORDER)[number];
 export type PanelChart = Form;
 export type ColumnRef = ColumnId | 'created_at';
 export type { Series } from './series';

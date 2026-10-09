@@ -19,10 +19,11 @@ import type {
 } from '@mriqc/shared';
 import {
   asColumnId,
+  continuousAxisExpr,
   exportableColumnsFor,
   fieldsFor,
   isValidField,
-  isValidMetric,
+  metricsFor,
   parseStatements,
   statementsOf,
 } from '@mriqc/shared';
@@ -89,10 +90,19 @@ export function fill(sql: string, holes: Readonly<Record<string, string>>): stri
  * so one cast in one place keeps the templates uniform.
  */
 export function metricExpr(modality: Modality, metricId: string): string {
-  if (!isValidMetric(modality, metricId)) {
+  const metric = metricsFor(modality).find(metric => metric.id === metricId);
+  if (metric === undefined) {
     throw new TemplateError(`unknown metric "${metricId}" for modality ${modality}`);
   }
-  return `CAST(${quoteIdent(metricId)} AS DOUBLE)`;
+  return continuousAxisExpr(metric.id, 'metric');
+}
+
+/** Resolve the identifier from the catalog before building either x expression. */
+export function continuousXExpr(modality: Modality, view: View, column: string): string {
+  if (column !== 'created_at') return metricExpr(modality, column);
+  const time = fieldsFor(modality, view, 'filter').find(field => field.id === column && field.kind === 'date');
+  if (time === undefined) throw new TemplateError(`unknown time column for ${modality}/${view}`);
+  return continuousAxisExpr(time.id, 'time');
 }
 
 /** The catalog's definition of a group field, or a refusal. */

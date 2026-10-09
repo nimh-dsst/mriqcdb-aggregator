@@ -1,14 +1,15 @@
-import { queryKey, type TimeSummaryResult } from '@mriqc/shared';
+import { queryKey, type BinnedSummaryResult } from '@mriqc/shared';
 import { withChipLegend } from '../panels/specs/chip-legend';
-import { panelCohort, panelCohorts, panelQueries, resultOf, scopedQuery } from '../graph/queries';
+import { binnedQueries, panelCohort, panelCohorts, panelQueries, resultOf, scopedQuery } from '../graph/queries';
 import type { Panel, State } from '../graph/state';
-import { medianBandChart, type TimeSeries } from '../panels/specs/median-band';
+import { bandChart, type BinnedSeries } from '../panels/specs/band';
+import { axisEvidence } from '../graph/axis-options';
 import { OTHER_COLOR, type ChartTheme } from '../panels/specs/palette';
 import type { PanelStatus, PanelView } from './panel-view';
 import { activeView, metricDef, panelNotes, significant, unitNoun } from './text';
 
-export function timeSeriesStats(series: TimeSeries) {
-  const buckets = [...series.result.buckets].sort((a, b) => a.start.localeCompare(b.start));
+export function timeSeriesStats(series: BinnedSeries) {
+  const buckets = [...series.result.buckets].sort((a, b) => a.lo - b.lo);
   const first = buckets[0], last = buckets.at(-1);
   return { n: buckets.reduce((sum, bucket) => sum + bucket.n, 0),
     first: first?.quantiles.p50 ?? null, last: last?.quantiles.p50 ?? null,
@@ -21,8 +22,9 @@ export function timePanelView(state: State, panel: Panel, theme: ChartTheme): Pa
   const cohorts = panelCohorts(state, panel);
   const keys = panelQueries(state, panel).map(queryKey);
   const resultFor = (cohort: typeof cohorts[number]) => {
-    const query = scopedQuery(state, panel, cohort, 'timeSummary');
-    return query ? resultOf<TimeSummaryResult>(state, queryKey(query)) : null;
+    const base = scopedQuery(state, panel, cohort, 'binnedSummary');
+    const query = base && binnedQueries(state, panel).filter(query => queryKey({ ...query, range: undefined }) === queryKey({ ...base, range: undefined } as typeof query)).at(-1);
+    return query ? resultOf<BinnedSummaryResult>(state, queryKey(query)) : null;
   };
   const results = cohorts.map(resultFor);
   const failures = keys.filter(key => state.datasets[key]?.status === 'error');
@@ -31,10 +33,15 @@ export function timePanelView(state: State, panel: Panel, theme: ChartTheme): Pa
     : { kind: 'ready', stale: keys.some(key => state.datasets[key]?.version !== state.dataVersion) };
   const metric = metricDef(state, panel.y), label = metric?.shortLabel ?? metric?.label ?? String(panel.y);
   const color = (index: number) => cohorts[index]?.name === 'Other' ? OTHER_COLOR : theme.categories[index % 6];
-  const series: TimeSeries[] = cohorts.flatMap((cohort,index) => results[index] ? [{
+  const series: BinnedSeries[] = cohorts.flatMap((cohort,index) => results[index] ? [{
     id: cohort.id, name: cohort.name, color: color(index), result: results[index]!,
   }] : []);
-  const chart = medianBandChart(series,label,theme,panel.form === 'lines' ? 'lines' : 'band');
+  const time = panel.x === 'created_at';
+  const xLabel = time ? 'Upload time' : metricDef(state, panel.x)?.label ?? String(panel.x);
+  const evidence = axisEvidence(state, panel);
+  const chart = bandChart(series, label, { label: xLabel, theme, logScale: false,
+    xScale: time ? 'time' : panel.options.xScale === 'log' && !evidence.positive ? 'symlog' : panel.options.xScale,
+    xRange: panel.options.xRange, constant: evidence.constant, granularity: panel.options.granularity, countTitle: 'Scans' }, panel.form === 'lines' ? 'lines' : 'band');
   const aggregate = resultFor(panelCohort(state,panel));
   const n = aggregate?.buckets.reduce((sum,bucket) => sum + bucket.n,0) ?? null;
   const rows = series.map(item => {
@@ -42,13 +49,13 @@ export function timePanelView(state: State, panel: Panel, theme: ChartTheme): Pa
     return { id:item.id, name:item.name,color:item.color,cells:[stats.n.toLocaleString('en-US'), ...[stats.first,stats.last,stats.change].map(value => significant(value))] };
   });
   return {
-    id:panel.id,panel,title:'Uploads over time',meaning:label+' over upload time: median and middle half.',subtitle:'',
+    id:panel.id,panel,title:time ? 'Uploads over time' : `${label} vs ${xLabel}`,meaning:label+' per '+xLabel+' bin: '+(panel.form === 'lines' ? '5th, 50th and 95th percentiles.' : 'median and middle half.'),subtitle:'',
     notes:panelNotes(state,panel),clipChip:null,
     metricHelp:metric ? {label:metric.label,taxonomy:metric.family,description:metric.description??null,unit:metric.unit??null}:null,
-    specKey:JSON.stringify([theme.mode,panel.form,panel.y,panel.options.granularity,series.map(item=>[item.id,item.name,item.color])]),
+    specKey:JSON.stringify([theme.mode,panel.form,panel.x,panel.y,panel.options,series.map(item=>[item.id,item.name,item.color])]),
     spec:withChipLegend(chart.spec),datasets:chart.datasets,table:null,status,brushable:false,
-    hasRows:series.some(item=>item.result.buckets.length),live:status.kind==='ready',n,countLabel:unitNoun(activeView(state))+' with dated finite values',
-    stats:[{label:'Total',value:n?.toLocaleString('en-US')??'—',title:'Dated finite observations in this dashboard.'}],
+    hasRows:series.some(item=>item.result.buckets.length),live:status.kind==='ready',n,countLabel:unitNoun(activeView(state))+' with finite paired values',
+    stats:[{label:'Total',value:n?.toLocaleString('en-US')??'—',title:'Finite paired observations in this dashboard.'}],
     cohorts:panel.series.length ? cohorts.map((cohort,i)=>({id:cohort.id,name:cohort.name,color:color(i),
       n:results[i]?.buckets.reduce((sum,bucket)=>sum+bucket.n,0)??null,editable:false,descriptorKey:cohort.descriptorKey})):null,
     comparison:null,splitCohorts:[],outsideNotes:[],partial:false,

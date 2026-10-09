@@ -3,6 +3,8 @@ import type { TopLevelSpec } from "vega-lite";
 
 import { massContours } from "./analysis-math";
 import { correlationOrder } from "./correlation-order";
+import { continuousAxisSpec } from './continuous-axis';
+import type { MetricAxis } from './histogram';
 import {
   baseConfig,
   batlowRange,
@@ -210,7 +212,7 @@ function axisEncoding(
   };
 }
 
-export function densityChart(
+function densityChartData(
   series: readonly AnalysisSeries[],
   opts: {
     xLabel: string;
@@ -422,6 +424,19 @@ export function densityChart(
   };
 }
 
+const epochDate = (days: number) => Date.UTC(2000, 0, 1) + days * 86400000;
+
+export function densityChart(series: readonly AnalysisSeries[], opts: Parameters<typeof densityChartData>[1]): AnalysisChartResult {
+  if (opts.xScale?.['type'] !== 'utc') return densityChartData(series, opts);
+  const dated = series.map(item => ({ ...item, result: { ...item.result,
+    x: { ...item.result.x, lo: epochDate(item.result.x.lo), width: item.result.x.width * 86400000 },
+    sample: item.result.sample.map(([x, y]) => [epochDate(x), y] as [number, number]),
+  } }));
+  const chart = densityChartData(dated, { ...opts, brushEnabled: false,
+    xScale: { ...opts.xScale, ...(Array.isArray(opts.xScale['domain']) ? { domain: opts.xScale['domain'].map(epochDate) } : {}) } });
+  return { ...chart, spec: continuousAxisSpec(chart.spec, { label: opts.xLabel, xScale: 'time', logScale: false, countTitle: 'Scans' }) };
+}
+
 type CorrelationRow = {
   xMetric: string;
   yMetric: string;
@@ -558,7 +573,7 @@ function normalizePoint(point: ClusterPoint | readonly [number, number]): Cluste
   return "x" in point ? point : { x: point[0], y: point[1] };
 }
 
-export function clustersChart(
+function clustersChartData(
   points: readonly (ClusterPoint | readonly [number, number])[],
   clustering: AnalysisClustering,
   xLabel: string,
@@ -642,4 +657,12 @@ export function clustersChart(
       ...chartConfig(theme),
     } as unknown as TopLevelSpec,
   };
+}
+
+export function clustersChart(points: Parameters<typeof clustersChartData>[0], clustering: AnalysisClustering,
+  xLabel: string, yLabel: string, theme: ChartTheme = LIGHT_THEME, xScale: MetricAxis['xScale'] = 'linear'): AnalysisChartResult {
+  if (xScale !== 'time') return clustersChartData(points, clustering, xLabel, yLabel, theme);
+  const chart = clustersChartData(points.map(point => { const p = normalizePoint(point); return { x: epochDate(p.x), y: p.y }; }),
+    { ...clustering, centroids: clustering.centroids.map(([x, y]) => [epochDate(x), y]) }, xLabel, yLabel, theme);
+  return { ...chart, spec: continuousAxisSpec(chart.spec, { label: xLabel, xScale: 'time', logScale: false, countTitle: 'Scans' }) };
 }

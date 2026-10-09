@@ -105,7 +105,7 @@ export function defaultDashboard(): UrlState {
         id: `p${metrics.length + 1}`,
         x: 'created_at',
         y: null,
-        form: 'bars' as const,
+        form: 'histogram' as const,
         series: [],
         options: { ...options },
       },

@@ -4,7 +4,7 @@ export * from './palette';
 export * from './histogram';
 export * from './ecdf';
 export * from './box';
-export * from './coverage';
+export * from './counts';
 export * from './comparison';
 export * from './rows';
 export * from './select';

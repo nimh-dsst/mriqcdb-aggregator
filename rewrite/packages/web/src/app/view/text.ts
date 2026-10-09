@@ -193,12 +193,16 @@ export function panelMeaning(input: MeaningInput): string {
   if (input.x === 'created_at') {
     if (input.form === 'band') return `${metric} over upload time: median and middle half${across}.`;
     if (input.form === 'lines') return `${metric} over upload time: 5th, 50th and 95th percentiles${across}.`;
+    if (input.form === 'ecdf') return `Cumulative share of ${unit} uploaded by each date${across}.`;
+    if (input.form === 'density') return `Smoothed ${unit} counts per ${input.granularity}${across}.`;
+    if (input.form === 'box') return `Spread of upload dates, approximated from ${input.granularity} counts${across}.`;
     return `${unit[0].toUpperCase() + unit.slice(1)} uploaded per ${input.granularity}${across}.`;
   }
   if (input.form === 'bars' || input.form === 'share') return `${input.form === 'share' ? 'Share' : 'Number'} of ${unit} per ${input.groupLabel ?? 'category'}${across}.`;
   if (input.form === 'ecdf') return `Share of ${unit} at or below each value of ${metric}${across}.`;
   if (input.form === 'density') return `Smoothed share of ${unit} at each value of ${metric}${across}.`;
   if (input.form === 'histogram') return `How many ${unit} fall in each range of ${metric}${across}.`;
+  if (input.form === 'line' || input.form === 'area') return `${input.form === 'area' && (input.cohortCount ?? 0) > 1 ? 'Share' : 'Number'} of ${unit} per bin of ${metric}${across}.`;
   return `Spread of ${metric}${across}.`;
 }
 

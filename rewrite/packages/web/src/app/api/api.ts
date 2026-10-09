@@ -1,6 +1,6 @@
-import type { Query as SharedQuery, TimeSummaryQuery, TimeSummaryResult } from '@mriqc/shared';
-export type Query = SharedQuery | TimeSummaryQuery;
-export type StudyTimeSummaryQuery = TimeSummaryQuery & { source: 'study' };
+import type { Query as SharedQuery, BinnedSummaryQuery, BinnedSummaryResult } from '@mriqc/shared';
+export type Query = SharedQuery;
+export type StudyBinnedSummaryQuery = BinnedSummaryQuery & { source: 'study' };
 /**
  * The one seam between the command loop and the outside world.
  *
@@ -52,7 +52,7 @@ export interface StudyApi {
   groupedSummary(query: StudyGroupedSummaryQuery): Observable<GroupedSummaryResult>;
   density2d(query: StudyDensity2dQuery): Observable<Density2dResult>;
   correlation(query: StudyCorrelationQuery): Observable<CorrelationResult>;
-  timeSummary(query: StudyTimeSummaryQuery): Observable<TimeSummaryResult>;
+  binnedSummary(query: StudyBinnedSummaryQuery): Observable<BinnedSummaryResult>;
 }
 
 /** Everything the dashboard can ask for. One method per tRPC procedure. */
@@ -64,7 +64,7 @@ export interface Api {
   sample(query: SampleQuery): Observable<SampleResult>;
   density2d(query: Density2dQuery): Observable<Density2dResult>;
   correlation(query: CorrelationQuery): Observable<CorrelationResult>;
-  timeSummary(query: TimeSummaryQuery): Observable<TimeSummaryResult>;
+  binnedSummary(query: BinnedSummaryQuery): Observable<BinnedSummaryResult>;
   /** Emits the ingest version on connect and on every change. Never completes. */
   dataVersion(): Observable<string>;
 }
@@ -79,7 +79,7 @@ export function runQuery(api: Api, query: Query, studyApi?: StudyApi): Observabl
       return new Observable((subscriber) => subscriber.error(new Error('No study is loaded')));
     }
     switch (query.proc) {
-      case 'timeSummary': return studyApi.timeSummary(query as StudyTimeSummaryQuery);
+      case 'binnedSummary': return studyApi.binnedSummary(query as StudyBinnedSummaryQuery);
       case 'distribution': return studyApi.distribution(query as StudyDistributionQuery);
       case 'groupedSummary': return studyApi.groupedSummary(query as StudyGroupedSummaryQuery);
       case 'density2d': return studyApi.density2d(query as StudyDensity2dQuery);
@@ -87,7 +87,7 @@ export function runQuery(api: Api, query: Query, studyApi?: StudyApi): Observabl
     }
   }
   switch (query.proc) {
-    case 'timeSummary': return api.timeSummary(query);
+    case 'binnedSummary': return api.binnedSummary(query);
     case 'catalog':
       return api.catalog();
     case 'distribution':

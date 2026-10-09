@@ -109,8 +109,8 @@ describe('Dashboard with MockApi', () => {
     const card=(fixture.nativeElement as HTMLElement).querySelector('[data-panel-id="p1"]')!;
     card.querySelector<HTMLElement>('[aria-label="Form"] .mat-mdc-select-trigger')!.click();await fixture.whenStable();
     const options=[...document.querySelectorAll<HTMLElement>('mat-option')];
-    expect(options.map(option=>option.querySelector('.font-medium')?.textContent?.trim())).toEqual(['Histogram','Density','ECDF','Box','Table']);
-    options[1].click();await fixture.whenStable();
+    expect(options.map(option=>option.querySelector('.font-medium')?.textContent?.trim())).toEqual(['Histogram','Line','Area','Density','ECDF','Box','Table','Heatmap','Scatter','Hexbin','Clusters','Band','Lines']);
+    options[3].click();await fixture.whenStable();
     expect(card.querySelector('[aria-label="Form"] .mat-mdc-select-trigger')!.textContent).toContain('Density');
     expect(card.querySelector('[data-testid="panel-split-selector"]')).toBeNull();
   });
@@ -134,12 +134,12 @@ describe('Dashboard with MockApi', () => {
     expect(menu.querySelector('[data-testid="panel-show-selector"]')).toBeNull();
   });
 
-  it('offers Bars, Line and Area for counts, then Band and Lines for a time metric', async () => {
+  it('offers continuous forms for time counts and paired forms with a y metric', async () => {
     const fixture=TestBed.createComponent(Dashboard);await fixture.whenStable();
     const card=(fixture.nativeElement as HTMLElement).querySelector('[data-panel-id="p5"]')!;
     card.querySelector<HTMLElement>('[aria-label="Form"] .mat-mdc-select-trigger')!.click();await fixture.whenStable();
     const options=[...document.querySelectorAll<HTMLElement>('mat-option')];
-    expect(options).toHaveLength(3);expect(options.map(o=>o.textContent)).toEqual([expect.stringContaining('Bars'),expect.stringContaining('Line'),expect.stringContaining('Area')]);
+    expect(options).toHaveLength(13);expect(options.filter(o=>o.getAttribute('aria-disabled')==='false').map(o=>o.querySelector(".font-medium")?.textContent?.trim())).toEqual(["Histogram","Line","Area","Density","ECDF","Box","Table"]);
     options[2].click();await fixture.whenStable();
     TestBed.inject(Graph).dispatch({t:'setPanelAxis',id:'p5',axis:'y',value:asColumnId('fd_mean')});
     await fixture.whenStable();
@@ -147,8 +147,8 @@ describe('Dashboard with MockApi', () => {
     card.querySelector<HTMLElement>('[aria-label="Form"] .mat-mdc-select-trigger')!.click();
     await fixture.whenStable();
     const metricOptions=[...document.querySelectorAll<HTMLElement>('mat-option')];
-    expect(metricOptions.map(o=>o.textContent)).toEqual([expect.stringContaining('Band'),expect.stringContaining('Lines')]);
-    metricOptions[1].click(); await fixture.whenStable();
+    expect(metricOptions.map(o=>o.querySelector(".font-medium")?.textContent?.trim())).toEqual(["Heatmap","Scatter","Hexbin","Clusters","Band","Lines"]);
+    metricOptions[5].click(); await fixture.whenStable();
     expect(card.querySelector('[aria-label="Form"] .mat-mdc-select-trigger')!.textContent).toContain('Lines');
   });
 
@@ -156,8 +156,8 @@ describe('Dashboard with MockApi', () => {
     const fixture=TestBed.createComponent(Dashboard);await fixture.whenStable();const graph=TestBed.inject(Graph);
     graph.dispatch({t:'setPanelAxis',id:'p1',axis:'y',value:asColumnId('tsnr')});await fixture.whenStable();
     const card=(fixture.nativeElement as HTMLElement).querySelector('[data-panel-id="p1"]')!;
-    expect(card.querySelector<HTMLButtonElement>('[data-testid="metric-title"]')!.title).toBe('FD mean vs tSNR');
-    graph.dispatch({t:'patchPanel',id:'p1',patch:{y:null,form:'matrix'}});await fixture.whenStable();
+    expect(card.querySelector<HTMLButtonElement>('[data-testid="metric-title"]')!.title).toBe('tSNR vs FD mean');
+    graph.dispatch({t:'patchPanel',id:'p1',patch:{y:null,form:'matrix',options:{metrics:[asColumnId('fd_mean'),asColumnId('tsnr')]}}});await fixture.whenStable();
     expect(card.querySelector<HTMLButtonElement>('[data-testid="metric-title"]')!.title).toBe('Metric correlations');
     expect(card.querySelector('app-compare-input')).not.toBeNull();
   });
@@ -263,7 +263,7 @@ describe('Dashboard with MockApi', () => {
     const fixture = TestBed.createComponent(Dashboard);
     await fixture.whenStable();
     window.matchMedia = matchMedia;
-    TestBed.inject(Graph).dispatch({ t: 'patchPanel', id: 'p1', patch: { form: 'matrix' } });
+    TestBed.inject(Graph).dispatch({ t: 'patchPanel', id: 'p1', patch: { form: 'matrix', options: { metrics: [asColumnId('fd_mean'), asColumnId('tsnr')] } } });
     await new Promise((resolve) => setTimeout(resolve, MOCK_LATENCY_MS * 4));
     await fixture.whenStable();
     const root = fixture.nativeElement as HTMLElement;
@@ -362,7 +362,7 @@ describe('Dashboard with MockApi', () => {
 
     expect(embedded.specs.length).toBeGreaterThanOrEqual(5);
     expect((embedded.datasets['population'] as unknown[]).length).toBeGreaterThan(0);
-    expect((embedded.datasets['coverage'] as unknown[]).length).toBeGreaterThan(0);
+    expect(embedded.specs.some(spec => JSON.stringify(spec).includes("temporal"))).toBe(true);
   });
 
   it('shows the stat row under a distribution chart, with a median inside the range', async () => {
@@ -607,7 +607,7 @@ describe('Dashboard with MockApi', () => {
     items[0].click();
     await fixture.whenStable();
     expect(host.querySelectorAll('[data-testid="panel-card"]')).toHaveLength(6);
-    expect(host.querySelector('[data-panel-id="p6"] [aria-label="Form"]')?.textContent).toContain('Bars');
+    expect(host.querySelector('[data-panel-id="p6"] [aria-label="Form"]')?.textContent).toContain('Histogram');
   });
 });
 

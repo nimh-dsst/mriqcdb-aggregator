@@ -1,4 +1,4 @@
-import type { TimeSummaryQuery, TimeSummaryResult } from '@mriqc/shared';
+import type { BinnedSummaryQuery, BinnedSummaryResult } from '@mriqc/shared';
 import { Injectable } from '@angular/core';
 import { defer, from, type Observable } from 'rxjs';
 import {
@@ -73,16 +73,19 @@ async function execute(
 /** Browser-local implementation of the study half of the API seam. */
 @Injectable({ providedIn: 'root' })
 export class StudyRunner implements StudyApi {
-  timeSummary(query: TimeSummaryQuery): Observable<TimeSummaryResult> {
-    return defer(() => from(this.runTimeSummary(query)));
+  binnedSummary(query: BinnedSummaryQuery): Observable<BinnedSummaryResult> {
+    return defer(() => from(this.runBinnedSummary(query)));
   }
 
-  private async runTimeSummary(query: TimeSummaryQuery): Promise<TimeSummaryResult> {
+  private async runBinnedSummary(query: BinnedSummaryQuery): Promise<BinnedSummaryResult> {
     const { database, schema } = this.loaded();
-    const { compileStudyTimeSummary, shapeTimeSummary } = await import('./study-time-summary');
-    const plan = compileStudyTimeSummary(query, schema.columns);
+    const { compileStudyBinnedSummary, shapeBinnedSummary, binnedSummaryRange } = await import('./study-binned-summary');
+    const plan = compileStudyBinnedSummary(query, schema.columns);
     const connection = await database.connect();
-    try { return shapeTimeSummary(await execute(connection, plan)); }
+    try {
+      const range = binnedSummaryRange(await execute(connection, plan.stats), query);
+      return shapeBinnedSummary(await execute(connection, plan.buckets(range)), query, range);
+    }
     finally { await connection.close(); }
   }
 

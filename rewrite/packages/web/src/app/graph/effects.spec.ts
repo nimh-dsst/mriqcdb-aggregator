@@ -22,7 +22,7 @@ import { runEffects, type NeededEmission } from './effects';
 
 /** Records what was subscribed, lets a test resolve or fail each call by hand. */
 class FakeApi implements Api {
-  timeSummary(query: import('@mriqc/shared').TimeSummaryQuery): Observable<never> {
+  binnedSummary(query: import('@mriqc/shared').BinnedSummaryQuery): Observable<never> {
     return this.track(queryKey(query)) as Observable<never>;
   }
   readonly started: QueryKey[] = [];
@@ -80,7 +80,7 @@ class FakeApi implements Api {
 }
 
 class FakeStudyApi implements StudyApi {
-  timeSummary(query: import('@mriqc/shared').TimeSummaryQuery): Observable<never> {
+  binnedSummary(query: import('@mriqc/shared').BinnedSummaryQuery): Observable<never> {
     this.started.push(queryKey(query)); return EMPTY;
   }
   readonly started: QueryKey[] = [];

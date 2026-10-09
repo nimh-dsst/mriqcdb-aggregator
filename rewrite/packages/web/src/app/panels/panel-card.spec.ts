@@ -5,7 +5,7 @@ import { MatDialog } from '@angular/material/dialog';
 import { provideZonelessChangeDetection } from '@angular/core';
 import { asColumnId } from '@mriqc/shared';
 import { BehaviorSubject, of } from 'rxjs';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import { WEB_ICONS } from '../app.config';
 import { Theme } from '../chrome/theme';
@@ -62,7 +62,7 @@ const create = (panel: Panel) => {
   const graph = {
     state$: new BehaviorSubject(makeState(panel)),
     panelView$: () => of({ ...panelView, panel }),
-    dispatch: () => undefined,
+    dispatch: vi.fn(),
   };
   TestBed.configureTestingModule({
     imports: [
@@ -97,10 +97,10 @@ const formOptionLabels = (panel: Panel): readonly string[] => {
 
 describe('PanelCard', () => {
   it.each([
-    [makePanel(), ['Histogram', 'Density', 'ECDF', 'Box', 'Table']],
+    [makePanel(), ['Histogram', 'Line', 'Area', 'Density', 'ECDF', 'Box', 'Table', 'Heatmap', 'Scatter', 'Hexbin', 'Clusters', 'Band', 'Lines']],
     [
       makePanel({ x: 'created_at', form: 'line' }),
-      ['Bars', 'Line', 'Area'],
+      ['Histogram', 'Line', 'Area', 'Density', 'ECDF', 'Box', 'Table', 'Heatmap', 'Scatter', 'Hexbin', 'Clusters', 'Band', 'Lines'],
     ],
     [
       makePanel({ x: asColumnId('manufacturer'), form: 'bars' }),
@@ -108,7 +108,7 @@ describe('PanelCard', () => {
     ],
     [
       makePanel({ y: asColumnId('efc'), form: 'heatmap' }),
-      ['Heatmap', 'Scatter', 'Hexbin', 'Clusters'],
+      ['Heatmap', 'Scatter', 'Hexbin', 'Clusters', 'Band', 'Lines'],
     ],
     [
       makePanel({ form: 'matrix' }),
@@ -116,15 +116,74 @@ describe('PanelCard', () => {
     ],
     [
       makePanel({ x: 'created_at', y: asColumnId('fd_mean'), form: 'band' }),
-      ['Band', 'Lines'],
+      ['Heatmap', 'Scatter', 'Hexbin', 'Clusters', 'Band', 'Lines'],
     ],
-  ])('shows the valid %s form options', (panel, expectedLabels) => {
+  ])('shows the fixed-order visible %s form options', (panel, expectedLabels) => {
     const optionLabels = formOptionLabels(panel);
 
     expect(optionLabels).toHaveLength(expectedLabels.length);
     expect(optionLabels.every((label, index) => label.startsWith(expectedLabels[index]))).toBe(
       true,
     );
+    const options = Array.from(TestBed.inject(OverlayContainer).getContainerElement().querySelectorAll('mat-option'));
+    const singleContinuous = panel.y === null && (panel.x === 'snr' || panel.x === 'created_at') && panel.form !== 'matrix';
+    options.forEach((option, index) => {
+      const disabled = singleContinuous && index >= 7;
+      expect(option.getAttribute('aria-disabled')).toBe(String(disabled));
+      expect(option.querySelector('.form-option-hint')?.textContent?.trim() === 'add a second metric').toBe(disabled);
+      if (disabled) expect(option.getAttribute('aria-label')).toContain('add a second metric');
+    });
+  });
+
+  it('dispatches an enabled form but ignores disabled forms', () => {
+    const fixture = create(makePanel());
+    fixture.nativeElement.querySelector('[aria-label="Form"] .mat-mdc-select-trigger').click();
+    fixture.detectChanges();
+    const options = TestBed.inject(OverlayContainer).getContainerElement().querySelectorAll<HTMLElement>('mat-option');
+    const dispatch = TestBed.inject(Graph).dispatch;
+    options[7].click();
+    fixture.detectChanges();
+    expect(dispatch).not.toHaveBeenCalled();
+    fixture.componentInstance.changeForm('heatmap');
+    expect(dispatch).not.toHaveBeenCalled();
+    options[3].click();
+    fixture.detectChanges();
+    expect(dispatch).toHaveBeenCalledExactlyOnceWith({ t: 'setPanelForm', id: 'panel-1', form: 'density' });
+  });
+
+  it.each([asColumnId('snr'), 'created_at' as const])('opens and focuses the y select from a disabled reason for %s', async x => {
+    const fixture = create(makePanel({ x }));
+    fixture.nativeElement.querySelector('[aria-label="Form"] .mat-mdc-select-trigger').click();
+    fixture.detectChanges();
+    await fixture.whenStable();
+    const overlay = TestBed.inject(OverlayContainer).getContainerElement();
+    const link = overlay.querySelector<HTMLAnchorElement>('.form-reason')!;
+    expect(link.getAttribute('aria-disabled')).toBe('false');
+    link.click();
+    fixture.detectChanges();
+    await fixture.whenStable();
+    expect(fixture.nativeElement.querySelector('[aria-label="Form"]').getAttribute('aria-expanded')).toBe('false');
+    expect(overlay.querySelector('.column-drawer select')).not.toBeNull();
+    // jsdom has no layout for CDK's visibility check; the live check verifies focus.
+    expect(overlay.querySelector('.column-drawer select')?.hasAttribute('cdkFocusInitial')).toBe(true);
+    expect(TestBed.inject(Graph).dispatch).not.toHaveBeenCalled();
+  });
+
+  it('lets keyboard users activate the disabled reason without selecting a form', async () => {
+    const fixture = create(makePanel());
+    const select = fixture.nativeElement.querySelector('[aria-label="Form"]') as HTMLElement;
+    select.querySelector<HTMLElement>('.mat-mdc-select-trigger')!.click();
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    await fixture.whenStable();
+    select.dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab', keyCode: 9, bubbles: true, cancelable: true }));
+    const link = TestBed.inject(OverlayContainer).getContainerElement().querySelector<HTMLAnchorElement>('.form-reason')!;
+    expect(document.activeElement).toBe(link);
+    link.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', keyCode: 13, bubbles: true, cancelable: true }));
+    fixture.detectChanges();
+    expect(fixture.componentInstance.columnPickerOpen()).toBe(true);
+    expect(TestBed.inject(Graph).dispatch).not.toHaveBeenCalled();
   });
 
   it('opens the title drawer preselected and restores title focus on Escape', async () => {

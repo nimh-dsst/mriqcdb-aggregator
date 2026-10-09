@@ -4,10 +4,10 @@ import { axisType, panelForms } from '../graph/panel-shapes';
 import { axisEvidence } from '../graph/axis-options';
 import { withChipLegend } from '../panels/specs/chip-legend';
 import { LIGHT_THEME, OTHER_COLOR, type ChartTheme, type CohortResult, type MetricAxis } from '../panels/specs';
-import { comparisonChart, distributionChart, type ChartInput, type ChartOutput } from '../panels/specs/select';
+import { type ChartInput, type ChartOutput } from '../panels/specs/select';
 import { stackedHistogram, COHORTS_DATA } from '../panels/specs/comparison';
 import { categoryChart } from '../panels/specs/categories';
-import { baseConfig } from '../panels/specs/palette';
+import { continuousChart } from '../panels/specs/continuous';
 import { timePanelView } from './time-view';
 import { analysisPanelView, type AnalysisRow } from './analysis-view';
 import type { CohortChip } from '../graph/cohorts';
@@ -180,10 +180,11 @@ function axisFor(state: State, panel: Panel): MetricAxis {
   const metric = metricDef(state, panel.x);
   const evidence = axisEvidence(state, panel);
   return {
-    label: metric?.label ?? String(panel.x ?? 'value'),
+    label: panel.x === 'created_at' ? 'Upload time' : metric?.label ?? String(panel.x ?? 'value'),
     unit: metric?.unit,
     logScale: panel.options.xScale === 'log' && evidence.positive,
-    xScale: panel.options.xScale === 'log' && !evidence.positive ? 'symlog' : panel.options.xScale,
+    xScale: panel.x === 'created_at' ? 'time' : panel.options.xScale === 'log' && !evidence.positive ? 'symlog' : panel.options.xScale,
+    granularity: panel.options.granularity,
     xRange: panel.options.xRange,
     constant: evidence.constant,
     yMode: panel.options.yMode,
@@ -269,6 +270,7 @@ function tableFor(state: State, panel: Panel, keys: readonly QueryKey[]): PanelT
     nextBySeries[cohort.id] = nextCursor;
   }
   if (panel.series.length) nextCursor = Object.values(nextBySeries).some(Boolean) ? JSON.stringify(nextBySeries) : null;
+  if (panel.x === 'created_at') rows.sort((a, b) => String(b['created_at'] ?? '').localeCompare(String(a['created_at'] ?? '')) || String(b['id'] ?? '').localeCompare(String(a['id'] ?? '')));
   return {
     columns,
     headers: columns.map((id) => id === '__series' ? 'Series' : fields.find((f) => f.id === id)?.label ?? String(id)),
@@ -302,10 +304,10 @@ function sameDeps(a: readonly unknown[], b: readonly unknown[]): boolean {
 
 function titleFor(state: State, panel: Panel): string {
   if (panel.form === 'matrix') return 'Metric correlations';
-  if (panel.x === 'created_at') return 'Uploads over time';
+  if (panel.x === 'created_at') return panel.y ? `${metricDef(state, panel.y)?.label ?? panel.y} over upload time` : 'Uploads over time';
   if (axisType(panel.x) === 'categorical') return 'Scans per ' + (fieldDef(state, panel.x)?.label ?? panel.x);
   const x = metricDef(state, panel.x), y = metricDef(state, panel.y);
-  return panel.y ? (x?.shortLabel ?? x?.label ?? panel.x) + ' vs ' + (y?.shortLabel ?? y?.label ?? panel.y) : x?.label ?? String(panel.x);
+  return panel.y ? (y?.shortLabel ?? y?.label ?? panel.y) + ' vs ' + (x?.shortLabel ?? x?.label ?? panel.x) : x?.label ?? String(panel.x);
 }
 
 /** A card is one quantity, its resolved series, and a valid form. */
@@ -317,7 +319,7 @@ export function panelView(state: State, id: PanelId, theme: ChartTheme = LIGHT_T
   const memo = memos.get(id);
   if (memo && sameDeps(memo.deps, deps)) return memo.view;
   if ((axisType(panel.x) === 'time' && panel.y !== null) || (axisType(panel.x) === 'numeric' && panel.y !== null) || panel.form === 'matrix') {
-    const view = (axisType(panel.x) === 'time' && panel.y !== null) ? timePanelView(state, panel, theme) : analysisPanelView(state, panel, theme);
+    const view = (panel.form === 'band' || panel.form === 'lines') ? timePanelView(state, panel, theme) : analysisPanelView(state, panel, theme);
     const quantityKey = queryKey(cohortQuery(state, panel, panelCohort(state, panel)));
     const numericStats = axisType(panel.x) === 'numeric' && panel.form !== 'matrix' ? panelStats(state, panel, [quantityKey]) : null;
     const derived = { ...view, title: titleFor(state, panel), stats: numericStats ?? view.stats,
@@ -345,8 +347,8 @@ export function panelView(state: State, id: PanelId, theme: ChartTheme = LIGHT_T
     const input: ChartInput = { form: panel.form, axis, clip: panel.options.clip, brush: ownSelection(state, panel), groupLabel: 'Series', groupField: null,
       groupOrdered: false, cohortLabel: 'This dashboard', granularity: panel.options.granularity, options: panel.options,
       result: aggregate, cohorts: series, cohortResults: results };
-    chart = panel.series.length ? comparisonChart(input) : distributionChart(input);
-    if (panel.options.layout !== 'overlaid' && panel.series.length) {
+    chart = continuousChart(input);
+    if (panel.options.layout !== 'overlaid' && panel.series.length && !['histogram', 'line', 'area'].includes(panel.form)) {
       const stacked = stackedHistogram(axis, series, results, panel.options.layout === 'stacked100');
       chart = { ...chart, spec: stacked.spec, datasets: { [COHORTS_DATA]: stacked.rows } };
     }
@@ -377,37 +379,9 @@ export function panelView(state: State, id: PanelId, theme: ChartTheme = LIGHT_T
       const rendered = categoryChart(categorySeries, category?.label ?? String(panel.x), panel.form === 'share', countAxisTitle(activeView(state)), theme);
       chart = { ...rendered, brushable: false, n };
     } else {
-      const rows = cohorts.flatMap((cohort, index) => {
-        const buckets = new Map<string, { start: string; n: number }>();
-        for (const bucket of coverage(cohort)?.buckets ?? []) {
-          const prior = buckets.get(bucket.start);
-          buckets.set(bucket.start, { start: bucket.start, n: (prior?.n ?? 0) + bucket.n });
-        }
-        let cumulative = 0;
-        return [...buckets.values()].sort((a,b) => a.start.localeCompare(b.start)).map(bucket => {
-          cumulative += bucket.n;
-          return { ...bucket, n: panel.options.cumulative ? cumulative : bucket.n, series: cohort.id, label: cohort.name };
-        });
-      });
-      const line = panel.form === 'line';
-      const grouped = panel.series.length === 1 && (panel.series[0].kind === 'field' || panel.series[0].kind === 'values');
-      if (panel.options.share && !grouped) {
-        for (const row of rows) {
-          const denominator = counts[cohorts.findIndex(cohort => cohort.id === row.series)] ?? 0;
-          row.n = denominator ? row.n / denominator : 0;
-        }
-      }
-      chart = { n, brushable: false, datasets: { coverage: rows }, spec: {
-        $schema: 'https://vega.github.io/schema/vega-lite/v6.json', ...baseConfig(theme), width: 'container', height: 'container', data: { name: 'coverage' },
-        mark: line ? { type: 'line' } : { type: 'bar' },
-        encoding: { x: { field: 'start', type: 'temporal', title: 'Upload time', timeUnit: ({day:'yearmonthdate',week:'yearweek',month:'yearmonth',year:'year'} as const)[panel.options.granularity] },
-          y: { field: 'n', type: 'quantitative', title: panel.options.share ? 'Share' : countAxisTitle(activeView(state)),
-            stack: grouped && !line ? panel.options.share ? 'normalize' : 'zero' : null,
-            axis: { format: panel.options.share ? '.0%' : undefined },
-            scale: { type: panel.options.coverageLogY && !panel.options.share ? 'log' : 'linear' } },
-          color: { field: 'series', type: 'nominal', scale: { domain: cohorts.map(cohort => cohort.id), range: colors }, legend: null },
-          tooltip: [{ field: 'label', title: 'Series' }, { field: 'start', type: 'temporal', title: 'Upload time' }, { field: 'n', type: 'quantitative', title: 'Count' }] },
-      } as TopLevelSpec };
+      chart = { ...continuousChart({ form: panel.form, axis, clip: 'none', brush: null, groupLabel: 'Series', groupField: null,
+        groupOrdered: false, cohortLabel: cohorts[0]?.name ?? 'This dashboard', granularity: panel.options.granularity,
+        options: panel.options, result: null, cohorts: series, cohortResults: [] }, cohorts.map(coverage)), n };
     }
     if (panel.series.length) {
       const dashboard = panelCohort(state, panel);

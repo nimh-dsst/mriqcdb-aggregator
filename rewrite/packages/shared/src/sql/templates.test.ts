@@ -21,7 +21,7 @@ const EXPECTED: Readonly<Record<TemplateName, readonly string[]>> = {
   distribution: ['stats', 'histogram', 'histogram_ranged'],
   grouped_summary: ['group_range', 'stats', 'histograms'],
   coverage: ['group_range', 'buckets'],
-  time_summary: ['buckets'],
+  binned_summary: ['stats', 'buckets'],
   sample: ['page'],
   export: ['rows'],
 };
@@ -84,6 +84,8 @@ describe('statementsOf', () => {
       'group_bins',
       'max_groups',
       'granularity',
+      'bucket',
+      'bucket_hi',
       'columns',
       'cursor',
       'x',

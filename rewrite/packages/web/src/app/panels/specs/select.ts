@@ -14,7 +14,6 @@
 import type { TopLevelSpec } from 'vega-lite';
 import type {
   ClipMode,
-  CoverageResult,
   DistributionResult,
   Granularity,
   GroupSummary,
@@ -32,7 +31,6 @@ import {
   COHORTS_DATA,
   type CohortSeries,
 } from './comparison';
-import { COVERAGE_DATA, coverageSpec } from './coverage';
 import { ecdfSpec, facetedEcdfSpec } from './ecdf';
 import {
   GROUPS_DATA,
@@ -58,15 +56,12 @@ import {
   cohortDensityRows,
   cohortEcdfRows,
   clipBounds,
-  coverageRows,
-  coverageModeRows,
   densityRows,
   degenerateHistogramRows,
   degenerateSpike,
   distributionBins,
   ecdfRows,
   foldBoxRows,
-  foldOther,
   groupLabel,
   groupedBinRows,
   groupedEcdfRows,
@@ -344,7 +339,7 @@ export function distributionChart(input: ChartInput): ChartOutput {
     };
   }
   const result = asDistributionResult(input.result);
-  const spike = result === null ? null : degenerateSpike(result);
+  const spike = result === null || input.axis.xScale === 'time' ? null : degenerateSpike(result);
   // The server already binned over the clipped range, so the bars need no
   // second pass. The ECDF still does: its quantile points come from the
   // unclipped summary, so p01/p99 can sit outside the histogram's range. The
@@ -435,34 +430,6 @@ export function groupedChart(input: ChartInput): ChartOutput {
     },
     brushable: false,
     n: sumGroups(result),
-  };
-}
-
-/** Uploads per time bucket, stacked or as an area. */
-export function coverageChart(input: ChartInput): ChartOutput {
-  const result = (input.result ?? null) as CoverageResult | null;
-  const chart = input.form === 'area' ? 'area' : input.form === 'line' ? 'line' : 'bars';
-  const rows = result
-    ? coverageModeRows(
-        foldOther(coverageRows(result, input.groupField), MAX_CATEGORIES),
-        input.options,
-      )
-    : [];
-  const groups = [...new Set(rows.map((row) => row.group))].sort((a, b) => a === 'Other' ? 1 : b === 'Other' ? -1 : a.localeCompare(b, 'en', { numeric: true }));
-  return {
-    spec: coverageSpec(
-      chart,
-      input.groupLabel,
-      input.granularity,
-      input.axis.countTitle,
-      input.options,
-      groups,
-      input.groupOrdered,
-      input.axis.theme,
-    ),
-    datasets: { [COVERAGE_DATA]: rows },
-    brushable: false,
-    n: result ? result.buckets.reduce((sum, b) => sum + b.n, 0) : null,
   };
 }
 

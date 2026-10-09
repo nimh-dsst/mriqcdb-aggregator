@@ -5,17 +5,21 @@ import { DIFFERENCE_HEADERS } from '../view/stats';
 import { cohortDialogSize } from '../chrome/cohort-editor';
 import {
   ChangeDetectionStrategy,
+  afterNextRender,
   Component,
+  ElementRef,
   computed,
   inject,
+  Injector,
   input,
   output,
   signal,
+  viewChild,
 } from '@angular/core';
 import { CdkConnectedOverlay, CdkOverlayOrigin } from '@angular/cdk/overlay';
 import { toObservable, toSignal } from '@angular/core/rxjs-interop';
 import { MatDialog } from '@angular/material/dialog';
-import { MatSelectModule } from '@angular/material/select';
+import { MatSelect, MatSelectModule } from '@angular/material/select';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { asColumnId, fieldsFor, metricsFor } from '@mriqc/shared';
 import { LucideAngularModule } from 'lucide-angular';
@@ -25,7 +29,7 @@ import { Theme } from '../chrome/theme';
 import { type PanelPatch } from '../graph/commands';
 import { Graph } from '../graph/graph';
 import { canStack } from '../graph/panels';
-import { axisType, FORM_INFO, panelForms } from '../graph/panel-shapes';
+import { axisType, FORM_INFO, panelFormAvailability } from '../graph/panel-shapes';
 import { type Form, type Panel } from '../graph/state';
 
 import { AxesControls } from './axes-controls';
@@ -138,6 +142,7 @@ export class PanelCard {
   private readonly graph = inject(Graph);
   private readonly theme = inject(Theme);
   private readonly dialog = inject(MatDialog);
+  private readonly injector = inject(Injector);
 
   readonly panelId = input.required<string>();
   readonly index = input(0);
@@ -159,6 +164,9 @@ export class PanelCard {
   );
 
   readonly columnPickerOpen = signal(false);
+  readonly focusSecondMetric = signal(false);
+  private readonly formPickerElement = viewChild<unknown, ElementRef<HTMLElement>>('formPicker', { read: ElementRef });
+  private clearFormLinkListeners = () => {};
   readonly optionsOpen = signal(false);
   readonly metricSetOpen = signal(false);
   readonly isolatedId = signal<string | null>(null);
@@ -169,7 +177,7 @@ export class PanelCard {
   );
   readonly forms = computed(() => {
     const panel = this.panel();
-    return panel ? panelForms(panel) : [];
+    return panel ? panelFormAvailability(panel).filter(entry => entry.state !== 'hidden') : [];
   });
   readonly formInfo = computed(() => {
     const panel = this.panel();
@@ -205,7 +213,7 @@ export class PanelCard {
     const study = this.state().study;
     return typeof study === 'object' && study !== null && study.status === 'ready';
   });
-  readonly formWidth = computed(() => Math.max(130, 66 + Math.max(0, ...this.forms().map(form => FORM_INFO[form].label.length)) * 8));
+  readonly formWidth = computed(() => Math.max(130, 66 + Math.max(0, ...this.forms().map(entry => FORM_INFO[entry.form].label.length)) * 8));
   readonly studyCapabilityReason = computed(() => this.panel() ? studyFormReason(this.panel()!) : null);
   readonly dateRange = computed<readonly [string, string] | null>(() => {
     const date = this.state().global.filters.find(filter => filter.field === 'created_at' && filter.op === 'between');
@@ -229,7 +237,50 @@ export class PanelCard {
   });
 
   toggleColumnPicker(): void {
+    this.focusSecondMetric.set(false);
     this.columnPickerOpen.update((open) => !open);
+  }
+
+  addSecondMetric(event: Event, picker: MatSelect): void {
+    event.preventDefault();
+    event.stopPropagation();
+    picker.close();
+    this.focusSecondMetric.set(true);
+    this.columnPickerOpen.set(true);
+  }
+
+  prepareFormLinks(open: boolean, picker: MatSelect): void {
+    this.clearFormLinkListeners();
+    if (open) afterNextRender(() => this.attachFormLinks(picker), { injector: this.injector });
+  }
+
+  private attachFormLinks(picker: MatSelect): void {
+    if (!picker.panelOpen || !picker.panel) return;
+    const panel: HTMLElement = picker.panel.nativeElement;
+    const trigger = this.formPickerElement()?.nativeElement;
+    // MatSelect normally closes on Tab. Let keyboard users reach the reasons.
+    const onKeydown = (event: KeyboardEvent) => {
+      const links = Array.from(panel.querySelectorAll<HTMLAnchorElement>('.form-reason'));
+      if (!links.length) return;
+      const index = links.indexOf(event.target as HTMLAnchorElement);
+      if (event.key === 'Tab') {
+        const next = index + (event.shiftKey ? -1 : 1);
+        if (next >= 0 && next < links.length) {
+          event.preventDefault();
+          event.stopImmediatePropagation();
+          links[next].focus();
+        }
+      } else if (index >= 0 && event.key !== 'Escape') {
+        event.stopImmediatePropagation();
+        if (event.key === 'Enter' || event.key === ' ') this.addSecondMetric(event, picker);
+      }
+    };
+    panel.addEventListener('keydown', onKeydown, true);
+    trigger?.addEventListener('keydown', onKeydown, true);
+    this.clearFormLinkListeners = () => {
+      panel.removeEventListener('keydown', onKeydown, true);
+      trigger?.removeEventListener('keydown', onKeydown, true);
+    };
   }
 
   changeX(value: string): void {
@@ -253,6 +304,7 @@ export class PanelCard {
   }
 
   changeForm(form: Form): void {
+    if (!this.forms().some(entry => entry.form === form && entry.state === 'enabled')) return;
     this.graph.dispatch({ t: 'setPanelForm', id: this.panelId(), form });
   }
 

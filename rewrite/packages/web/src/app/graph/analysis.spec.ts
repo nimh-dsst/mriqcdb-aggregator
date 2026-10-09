@@ -30,7 +30,7 @@ describe('analysis axes', () => {
     [{}, 'histogram'],
     [{ series: [{ kind: 'field' as const, field: asColumnId('manufacturer') }] }, 'histogram'],
     [{ series: [{kind:'population' as const}] }, 'histogram'],
-    [{ x: 'created_at' }, 'bars'],
+    [{ x: 'created_at' }, 'histogram'],
     [{ y: second }, 'heatmap'],
   ] as const)('derives the default from axes %j', (axes, form) => {
     const p = panel(axes);
@@ -54,7 +54,7 @@ describe('analysis axes', () => {
     expect(next.panels[0].form).toBe('heatmap');
   });
   it('switches time counts to Band when a metric is chosen', () => {
-    const next = reduce(state({ x: 'created_at', form: 'bars' }), { t: 'setPanelAxis', id: 'p1', axis: 'y', value: second });
+    const next = reduce(state({ x: 'created_at', form: 'histogram' }), { t: 'setPanelAxis', id: 'p1', axis: 'y', value: second });
     expect(next.panels[0].y).toBe('tsnr'); expect(next.panels[0].form).toBe('band');
   });
   it.each(['heatmap','scatter','hexbin','clusters'] as const)('round-trips %s and seeded options', chart => {

@@ -239,7 +239,8 @@ let nextColumnPickerId = 0;
           @if (axisColumn()?.source === 'metric' || axisColumn()?.source === 'time') {
             <label class="column-picker-y">
               <span>{{ axisColumn()?.source === 'time' ? 'Metric over time (y)' : 'Second metric (y)' }}</span>
-              <select [attr.aria-label]="axisColumn()?.source === 'time' ? 'Metric over time (y)' : 'Second metric (y)'"
+              <select [attr.cdkFocusInitial]="focusY() ? '' : null"
+                [attr.aria-label]="axisColumn()?.source === 'time' ? 'Metric over time (y)' : 'Second metric (y)'"
                 [value]="draftY() ?? y() ?? ''" (change)="selectY($event)">
                 <option value="">{{ axisColumn()?.source === 'time' ? 'Upload counts' : 'No second metric' }}</option>
                 @for (metric of metrics(); track metric.id) {
@@ -264,6 +265,7 @@ export class ColumnPicker {
   readonly disabledMetrics = input<readonly string[]>([]);
   readonly picked = output<string>();
   readonly drawer = input(false);
+  readonly focusY = input(false);
   readonly panelId = input<string | null>(null);
   readonly y = input<string | null>(null);
   readonly closed = output<void>();

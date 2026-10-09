@@ -1,16 +1,16 @@
-import type { TimeSummaryResult } from '@mriqc/shared';
+import type { BinnedSummaryResult } from '@mriqc/shared';
 
-type Bucket = TimeSummaryResult['buckets'][number];
+type Bucket = BinnedSummaryResult['buckets'][number];
 const probabilities = [0.05, 0.25, 0.5, 0.75, 0.95];
 
 /** Invert a count-weighted mixture of interpolated quantile CDFs. This fallback
  * for unions the API cannot express is always labelled approximate in the UI.
  * Counts and means remain exact; group medians are never averaged.
  */
-export function approximateTimeTail(buckets: readonly Bucket[]): TimeSummaryResult {
+export function approximateTimeTail(buckets: readonly Bucket[]): BinnedSummaryResult {
   const dates = new Map<string, Bucket[]>();
-  for (const bucket of buckets) dates.set(bucket.start, [...(dates.get(bucket.start) ?? []), bucket]);
-  return { buckets: [...dates].sort(([a], [b]) => a.localeCompare(b)).map(([start, entries]) => {
+  for (const bucket of buckets) dates.set(String(bucket.lo), [...(dates.get(String(bucket.lo)) ?? []), bucket]);
+  return { xKind: 'time', range: [Math.min(...buckets.map(b => b.lo)), Math.max(...buckets.map(b => b.hi))], buckets: [...dates].sort(([a], [b]) => Number(a) - Number(b)).map(([, entries]) => {
     const n = entries.reduce((sum, entry) => sum + entry.n, 0);
     const knots = entries.map(entry => [entry.quantiles.p05, entry.quantiles.p25, entry.quantiles.p50, entry.quantiles.p75, entry.quantiles.p95]);
     const cdf = (values: number[], x: number) => {
@@ -30,7 +30,7 @@ export function approximateTimeTail(buckets: readonly Bucket[]): TimeSummaryResu
       }
       return (lo + hi) / 2;
     };
-    return { start, group: 'Other', isOther: true, n, thin: n < 20,
+    return { start: entries[0].start, lo: entries[0].lo, hi: entries[0].hi, group: 'Other', isOther: true, n, thin: n < 20,
       mean: entries.reduce((sum, entry) => sum + entry.n * entry.mean, 0) / n,
       quantiles: { p05: quantile(0.05), p25: quantile(0.25), p50: quantile(0.5), p75: quantile(0.75), p95: quantile(0.95) } };
   }) };

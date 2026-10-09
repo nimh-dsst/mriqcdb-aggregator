@@ -42,11 +42,11 @@ describe('linked selection lists', () => {
     const common = { ...selected.panels[2], id: 'target' };
     const variants: Panel[] = [common,
       { ...common, series: [{ kind: 'field' as const, field: asColumnId('manufacturer') }], form: 'box' },
-      { ...common, x: 'created_at', series: [{ kind: 'field' as const, field: asColumnId('manufacturer') }], form: 'bars' },
+      { ...common, x: 'created_at', series: [{ kind: 'field' as const, field: asColumnId('manufacturer') }], form: 'histogram' },
       { ...common, form: 'table' }, { ...common, y: tsnr, form: 'heatmap' },
       { ...common, form: 'matrix', options: { ...common.options, metrics: [fd, tsnr] } }, { ...common, x: 'created_at', y: fd, form: 'band' }];
     expect(variants.map(panel => panelQueries(selected, panel)[0].proc)).toEqual([
-      'distribution', 'distribution', 'coverage', 'sample', 'density2d', 'correlation', 'timeSummary',
+      'distribution', 'distribution', 'coverage', 'sample', 'density2d', 'correlation', 'binnedSummary',
     ]);
     for (const panel of variants) for (const query of panelQueries(selected, panel)) {
       expect(query).toMatchObject({ selections: [{ metric: fd, range: [0.4, 1.2] }, { metric: tsnr, range: [20, 60] }] });

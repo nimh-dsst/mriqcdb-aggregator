@@ -2,7 +2,7 @@ import { asColumnId, getAuthoredCatalog, isValidField, isValidMetric, metricsFor
 import { evict } from './datasets';
 import { panelCohorts } from './queries';
 import type { PanelPatch } from './commands';
-import { axisType, formsFor, validForm, brushable } from './panel-shapes';
+import { axisType, formsFor, panelFormAvailability, validForm, brushable } from './panel-shapes';
 import { normalizeSeries, seriesDisabledReason, seriesKey, type Series } from './series';
 import { FIRST_PAGE, defaultPanelOptions, type ColumnRef, type Panel, type PanelId, type PanelOptions, type State } from './state';
 import { clampBins } from './url-tokens';
@@ -137,9 +137,15 @@ export function patchPanel(state: State, id: PanelId, patch: PanelPatch): State 
       ...(group ? [{ kind: 'field' as const, field: group }] : []),
     ] : undefined);
     if (requestedSeries !== undefined) current = { ...current, series: normalizeSeries(requestedSeries, seriesContext(state)) };
-    if (patch.form) current = { ...current, form: patch.form };
-    if (['band', 'lines'].includes(current.form) && current.x === 'created_at' && current.y === null) current = { ...current, y: firstMetric(state.global.modality) };
     if (patch.options) current = { ...current, options: normalizedOptions(current, patch.options, state.global.modality) };
+    if (patch.form) {
+      // Creating a metric-set quantity is explicit; selecting a form cannot add axes.
+      const quantity = patch.form === 'matrix' && patch.options?.metrics
+        ? { ...current, form: patch.form } : current;
+      if (panelFormAvailability(quantity).some(entry => entry.form === patch.form && entry.state === 'enabled')) {
+        current = { ...current, form: patch.form };
+      }
+    }
     if (!canStack(current) && current.options.layout !== 'overlaid') current = { ...current, options: { ...current.options, layout: 'overlaid' } };
     if (current.options.layout !== 'overlaid' && current.form === 'density') current = { ...current, form: 'histogram' };
     current = validForm(current);

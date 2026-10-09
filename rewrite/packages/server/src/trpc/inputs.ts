@@ -8,7 +8,7 @@
 
 import { z } from 'zod';
 import {
-  MAX_SELECTIONS, MODALITIES, VIEWS, fieldsFor, isIsoDateString, isValidMetric,
+  MAX_SELECTIONS, MODALITIES, VIEWS, fieldsFor, isValidMetric,
   type Modality, type View,
 } from '@mriqc/shared';
 import { isServableView } from '../db/views.js';
@@ -88,22 +88,41 @@ function checkAnalysis(
   }
 }
 
-/** A dated finite-metric population, optionally split by one group field. */
-export const timeSummaryInput = z.object({
+/** Only the catalog's time field or a catalog metric can be a continuous x. */
+function checkContinuousX(input: { modality: Modality; view: View; x: string }, ctx: z.RefinementCtx): void {
+  if (input.x === 'created_at' && fieldsFor(input.modality, input.view, 'filter')
+    .some(field => field.id === input.x && field.kind === 'date')) return;
+  if (!isValidMetric(input.modality, input.x)) {
+    ctx.addIssue({ code: 'custom', path: ['x'], message: `unknown continuous x "${input.x}"` });
+  }
+}
+
+/** Finite y summaries over continuous x, with one shared range across cohorts. */
+export const binnedSummaryInput = z.object({
   ...analysisScope,
-  metric: z.string(),
-  granularity: z.enum(['day', 'week', 'month', 'year']),
-  group: z.string().optional(),
-  window: z.tuple([z.string().refine(isIsoDateString, 'expected an ISO-8601 date'),
-    z.string().refine(isIsoDateString, 'expected an ISO-8601 date')])
-    .refine(([from, to]) => Date.parse(from) <= Date.parse(to), 'window needs from at or before to')
+  x: z.string(),
+  y: z.string(),
+  bins: z.union([z.number().int().min(1).max(200), z.enum(['day', 'week', 'month', 'year'])]),
+  range: axisRange.optional(),
+  groups: z.string().optional(),
+  cohorts: z.array(z.object({
+    id: z.string().min(1).max(200), filters: filtersSchema, ...selectionFields,
+  }).superRefine(checkSelections)).min(1).max(8)
+    .refine(cohorts => new Set(cohorts.map(c => c.id)).size === cohorts.length, 'cohort ids must be distinct')
     .optional(),
 }).superRefine((input, ctx) => {
   checkSelections(input, ctx);
-  checkAnalysis(input, [input.metric], ctx);
-  if (input.group !== undefined && !fieldsFor(input.modality, input.view, 'group')
-    .some((field) => field.id === input.group && field.kind !== 'date')) {
-    ctx.addIssue({ code: 'custom', path: ['group'], message: 'group must be a categorical or numeric group field' });
+  checkAnalysis(input, [input.y], ctx);
+  checkContinuousX(input, ctx);
+  if ((input.x === 'created_at') !== (typeof input.bins === 'string')) {
+    ctx.addIssue({ code: 'custom', path: ['bins'], message: 'time x needs calendar bins; metric x needs a bin count' });
+  }
+  if (input.range !== undefined && typeof input.bins === 'number' && (input.range[1] - input.range[0]) / input.bins === 0) {
+    ctx.addIssue({ code: 'custom', path: ['range'], message: 'range is too narrow for bins' });
+  }
+  if (input.groups !== undefined && !fieldsFor(input.modality, input.view, 'group')
+    .some((field) => field.id === input.groups && field.kind !== 'date')) {
+    ctx.addIssue({ code: 'custom', path: ['groups'], message: 'groups must be a categorical or numeric group field' });
   }
 });
 
@@ -119,7 +138,8 @@ export const density2dInput = z.object({
   seed: z.number().int().min(0).max(2_147_483_647).default(1),
 }).superRefine((input, ctx) => {
   checkSelections(input, ctx);
-  checkAnalysis(input, [input.x, input.y], ctx);
+  checkAnalysis(input, [input.y], ctx);
+  checkContinuousX(input, ctx);
   if (input.x === input.y) {
     ctx.addIssue({ code: 'custom', path: ['y'], message: 'x and y must be different metrics' });
   }

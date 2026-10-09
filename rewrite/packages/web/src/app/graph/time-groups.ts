@@ -1,7 +1,7 @@
-import type { TimeSummaryResult } from '@mriqc/shared';
+import type { BinnedSummaryResult } from '@mriqc/shared';
 
-export function timeGroups(result: TimeSummaryResult) {
-  const groups = new Map<string, TimeSummaryResult['buckets'][number][]>();
+export function timeGroups(result: BinnedSummaryResult) {
+  const groups = new Map<string, BinnedSummaryResult['buckets'][number][]>();
   for (const bucket of result.buckets) {
     const id = bucket.isOther ? 'other' : JSON.stringify([bucket.group]);
     groups.set(id, [...(groups.get(id) ?? []), bucket]);

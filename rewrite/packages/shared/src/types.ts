@@ -40,6 +40,11 @@ export const VIEWS: readonly View[] = [
  */
 export type ColumnId = string & { readonly __columnId: unique symbol };
 
+/** A catalog metric identifier; validated for the requested modality at runtime. */
+export type MetricId = ColumnId;
+/** A continuous x axis: a catalog metric or upload time. */
+export type ColumnRef = MetricId | 'created_at';
+
 /** Assert that a string is a column id. Only the catalog and the DB build mint these. */
 export function asColumnId(value: string): ColumnId {
   return value as ColumnId;
@@ -421,8 +426,34 @@ export interface CoverageResult {
   buckets: readonly CoverageBucket[];
 }
 
-/** Finite metric statistics in one occupied time bucket and group. */
-export interface TimeSummaryBucket extends CoverageBucket {
+/** An additional series predicate, ANDed with the query's outer scope. */
+export interface BinnedSummaryCohort extends SelectionScope {
+  id: string;
+  filters: readonly Filter[];
+}
+
+export interface BinnedSummaryInput extends SelectionScope {
+  modality: Modality;
+  view: View;
+  filters?: readonly Filter[];
+  x: ColumnRef;
+  y: MetricId;
+  bins: number | Granularity;
+  /** Metric units, or days since 2000-01-01 for time. */
+  range?: [number, number];
+  groups?: ColumnId;
+  cohorts?: readonly BinnedSummaryCohort[];
+}
+
+/** Finite y statistics in one occupied x bin and series. */
+export interface BinnedSummaryBucket {
+  lo: number;
+  hi: number;
+  /** ISO calendar bucket start, present for time x. */
+  start?: string;
+  group: string | number | boolean | null;
+  cohort?: string;
+  n: number;
   /** Distinguishes the capped remainder from a category literally named Other. */
   isOther: boolean;
   quantiles: Pick<Quantiles, 'p05' | 'p25' | 'p50' | 'p75' | 'p95'>;
@@ -431,8 +462,10 @@ export interface TimeSummaryBucket extends CoverageBucket {
   thin: boolean;
 }
 
-export interface TimeSummaryResult {
-  buckets: readonly TimeSummaryBucket[];
+export interface BinnedSummaryResult {
+  xKind: 'metric' | 'time';
+  range: [number, number];
+  buckets: readonly BinnedSummaryBucket[];
 }
 
 /** One row of a `sample`, keyed by the allowlisted column ids that were requested. */
@@ -455,6 +488,8 @@ export interface SampleResult {
  * `n`.
  */
 export interface Density2dResult {
+  /** Time x edges and samples are days since 2000-01-01. */
+  xKind: 'metric' | 'time';
   x: { lo: number; width: number; bins: number; underflow: number; overflow: number };
   y: { lo: number; width: number; bins: number; underflow: number; overflow: number };
   counts: number[];
@@ -462,6 +497,19 @@ export interface Density2dResult {
   pearson: number | null;
   spearman: number | null;
   sample: Array<[number, number]>;
+}
+
+export interface Density2dInput extends SelectionScope {
+  modality: Modality;
+  view: View;
+  filters?: readonly Filter[];
+  x: ColumnRef;
+  y: MetricId;
+  bins?: number;
+  clip?: ClipMode;
+  range?: { x: [number, number]; y: [number, number] };
+  sampleSize?: number;
+  seed?: number;
 }
 
 /**

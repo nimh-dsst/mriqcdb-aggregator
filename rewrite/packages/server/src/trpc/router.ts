@@ -26,13 +26,15 @@ import type {
   SampleResult,
   SampleRow,
   SelectionScope,
-  TimeSummaryResult,
+  BinnedSummaryResult,
+  BinnedSummaryBucket,
   View,
 } from '@mriqc/shared';
 import {
   CATALOG_VERSION,
   NONE_LABEL,
   asColumnId,
+  binnedSummaryFragments,
   correlationFragments,
   getAuthoredCatalog,
   isNoneValue,
@@ -52,6 +54,7 @@ import {
   NUMERIC_GROUP_BINS,
   TemplateError,
   binLabel,
+  continuousXExpr,
   cursorFromRow,
   cursorPredicate,
   decodeCursor,
@@ -66,7 +69,7 @@ import {
   projectionColumns,
   projectionSql,
 } from '../sql/run.js';
-import { checkSelections, correlationInput, density2dInput, filterSchema, modalitySchema, selectionFields, timeSummaryInput, viewSchema } from './inputs.js';
+import { binnedSummaryInput, checkSelections, correlationInput, density2dInput, filterSchema, modalitySchema, selectionFields, viewSchema } from './inputs.js';
 import { createCallerFactory, publicProcedure, router } from './trpc.js';
 
 /* ------------------------------------------------------------ error mapping */
@@ -385,7 +388,7 @@ export const appRouter = router({
         const { table, where, params } = predicate(input);
         const holes = {
           table, where,
-          x: metricExpr(input.modality, input.x),
+          x: continuousXExpr(input.modality, input.view, input.x),
           y: metricExpr(input.modality, input.y),
           // DuckDB SAMPLE requires literals. Zod admits only bounded integers.
           sample_size: String(input.sampleSize),
@@ -426,6 +429,7 @@ export const appRouter = router({
           const coefficient = (value: unknown): number | null =>
             typeof value === 'number' && Number.isFinite(value) ? value : null;
           return {
+            xKind: input.x === 'created_at' ? 'time' : 'metric',
             x, y, counts, n,
             pearson: coefficient(stats?.['pearson']), spearman: coefficient(stats?.['spearman']),
             sample: sampled.map((row) => [Number(row['x']), Number(row['y'])]),
@@ -611,49 +615,77 @@ export const appRouter = router({
       }),
     ),
 
-  timeSummary: publicProcedure
-    .input(timeSummaryInput)
-    .query(({ ctx, input, signal }): Promise<TimeSummaryResult> =>
+  binnedSummary: publicProcedure
+    .input(binnedSummaryInput)
+    .query(({ ctx, input, signal }): Promise<BinnedSummaryResult> =>
       guard(async () => {
         const compiled = predicate(input);
-        const field = input.group === undefined ? undefined
-          : groupField(input.modality, input.view, input.group);
-        const where = input.window === undefined ? compiled.where
-          : `${compiled.where} AND created_at BETWEEN CAST(? AS TIMESTAMP) AND CAST(? AS TIMESTAMP)`;
-        const rows = await read(ctx.db, signal, (c) => c.all(
-          fill(loadTemplate('time_summary', 'buckets'), {
-            table: compiled.table,
-            metric: metricExpr(input.modality, input.metric),
-            where,
-            granularity: granularityLiteral(input.granularity),
-            group_expr: field === undefined ? 'NULL::VARCHAR' : groupValueExpr(field),
-            group_numeric: field?.kind === 'numeric' ? 'TRUE' : 'FALSE',
-            group_bins: String(NUMERIC_GROUP_BINS),
-            max_groups: String(MAX_GROUPS),
-          }),
-          [...compiled.params, ...(input.window ?? [])],
-        ));
-        return {
-          buckets: rows.map((row) => {
-            const isOther = Boolean(row['is_other']);
-            let value = row['value'];
-            const width = Number(row['group_width']);
-            if (field?.kind === 'numeric' && value != null && width > 0) {
-              value = binLabel(Number(row['group_lo']), width, Number(value));
-            }
-            const [p05, p25, p50, p75, p95] = (row['qs'] as number[]).map(Number);
-            return {
-              start: row['bucket'] instanceof Date ? row['bucket'].toISOString() : String(row['bucket']),
-              group: isOther ? 'Other' : field === undefined ? null
-                : isNoneValue(value) ? NONE_LABEL : jsonValue(value),
-              isOther,
-              n: Number(row['n']),
-              quantiles: { p05: p05!, p25: p25!, p50: p50!, p75: p75!, p95: p95! },
-              mean: Number(row['mean']),
-              thin: Boolean(row['thin']),
-            };
-          }),
+        const field = input.groups === undefined ? undefined
+          : groupField(input.modality, input.view, input.groups);
+        const xKind = input.x === 'created_at' ? 'time' : 'metric';
+        const common = {
+          table: compiled.table,
+          x: continuousXExpr(input.modality, input.view, input.x),
+          y: metricExpr(input.modality, input.y),
+          ...binnedSummaryFragments(input.bins),
+          group_expr: field === undefined ? 'NULL::VARCHAR' : groupValueExpr(field),
+          group_numeric: field?.kind === 'numeric' ? 'TRUE' : 'FALSE',
+          group_bins: String(NUMERIC_GROUP_BINS),
+          max_groups: String(MAX_GROUPS),
         };
+        // Compile each scope independently so the same metric may be constrained
+        // by both the outer brush and a cohort brush (their intersection).
+        const scopes = input.cohorts === undefined ? [{ id: undefined, ...compiled }]
+          : input.cohorts.map(cohort => {
+            const extra = predicate({ ...cohort, modality: input.modality, view: input.view });
+            return { id: cohort.id, where: `(${compiled.where}) AND (${extra.where})`,
+              params: [...compiled.params, ...extra.params] };
+          });
+        return read(ctx.db, signal, async c => {
+          // First obtain each finite-pair domain, then use one range for every series.
+          const ranges: [number, number][] = [];
+          if (input.range === undefined) {
+            for (const scope of scopes) {
+              const [stats] = await c.all(fill(loadTemplate('binned_summary', 'stats'),
+                { ...common, where: scope.where }), scope.params);
+              const summary = toSummary(stats);
+              if (summary.n > 0) ranges.push(histogramRange(summary, xKind === 'time' ? 'none' : 'p01p99'));
+            }
+          }
+          const range: [number, number] = input.range ?? (ranges.length === 0 ? [0, 0]
+            : [Math.min(...ranges.map(r => r[0])), Math.max(...ranges.map(r => r[1]))]);
+          const [lo, hi] = range;
+          const bins = typeof input.bins === 'number' ? input.bins : 1;
+          const width = (hi - lo) / bins;
+          const buckets: BinnedSummaryBucket[] = [];
+          for (const scope of scopes) {
+            const rows = await c.all(fill(loadTemplate('binned_summary', 'buckets'),
+              { ...common, where: scope.where }), [...scope.params, lo, hi, bins]);
+            for (const row of rows) {
+              const isOther = Boolean(row['is_other']);
+              let value = row['value'];
+              const groupWidth = Number(row['group_width']);
+              if (field?.kind === 'numeric' && value != null && groupWidth > 0) {
+                value = binLabel(Number(row['group_lo']), groupWidth, Number(value));
+              }
+              const [p05, p25, p50, p75, p95] = (row['qs'] as number[]).map(Number);
+              const bin = Number(row['bucket']);
+              const bucketLo = xKind === 'time' ? bin : lo + bin * width;
+              buckets.push({
+                lo: bucketLo,
+                hi: xKind === 'time' ? Number(row['bucket_hi']) : Math.min(hi, lo + (bin + 1) * width),
+                ...(xKind === 'time' ? { start: new Date(Date.UTC(2000, 0, 1) + bucketLo * 86_400_000).toISOString() } : {}),
+                ...(scope.id === undefined ? {} : { cohort: scope.id }),
+                group: isOther ? 'Other' : field === undefined ? null
+                  : isNoneValue(value) ? NONE_LABEL : jsonValue(value),
+                isOther, n: Number(row['n']),
+                quantiles: { p05: p05!, p25: p25!, p50: p50!, p75: p75!, p95: p95! },
+                mean: Number(row['mean']), thin: Boolean(row['thin']),
+              });
+            }
+          }
+          return { xKind, range, buckets };
+        });
       }),
     ),
 

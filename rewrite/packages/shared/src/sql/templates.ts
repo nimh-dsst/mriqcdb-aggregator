@@ -26,12 +26,12 @@ import { DISTRIBUTION_SQL } from './distribution.js';
 import { EXPORT_SQL } from './export.js';
 import { GROUPED_SUMMARY_SQL } from './grouped_summary.js';
 import { SAMPLE_SQL } from './sample.js';
-import { TIME_SUMMARY_SQL } from './time_summary.js';
+import { BINNED_SUMMARY_SQL } from './binned_summary.js';
 
-export { CORRELATION_SQL, COVERAGE_SQL, DENSITY2D_SQL, DISTRIBUTION_SQL, EXPORT_SQL, GROUPED_SUMMARY_SQL, SAMPLE_SQL, TIME_SUMMARY_SQL };
+export { CORRELATION_SQL, COVERAGE_SQL, DENSITY2D_SQL, DISTRIBUTION_SQL, EXPORT_SQL, GROUPED_SUMMARY_SQL, SAMPLE_SQL, BINNED_SUMMARY_SQL };
 
 /** The statistics templates, one per procedure. */
-export type TemplateName = 'distribution' | 'density2d' | 'correlation' | 'grouped_summary' | 'coverage' | 'sample' | 'export' | 'time_summary';
+export type TemplateName = 'distribution' | 'density2d' | 'correlation' | 'grouped_summary' | 'coverage' | 'sample' | 'export' | 'binned_summary';
 
 /** Every template text, keyed by name. */
 export const SQL_TEMPLATES: Readonly<Record<TemplateName, string>> = {
@@ -40,7 +40,7 @@ export const SQL_TEMPLATES: Readonly<Record<TemplateName, string>> = {
   distribution: DISTRIBUTION_SQL,
   grouped_summary: GROUPED_SUMMARY_SQL,
   coverage: COVERAGE_SQL,
-  time_summary: TIME_SUMMARY_SQL,
+  binned_summary: BINNED_SUMMARY_SQL,
   sample: SAMPLE_SQL,
   export: EXPORT_SQL,
 };

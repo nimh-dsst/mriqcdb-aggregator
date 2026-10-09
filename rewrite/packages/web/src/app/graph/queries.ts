@@ -1,6 +1,6 @@
 import { getAuthoredCatalog, asColumnId, fieldsFor, metricsFor, queryKey, fieldValueLabel, isNoneValue, NONE_FILTER_VALUE,
   type ClipMode, type ColumnId, type DistributionResult, type Density2dResult, type Filter, type QueryKey, type Selection,
-  type TimeSummaryQuery, type TimeSummaryResult } from '@mriqc/shared';
+  type BinnedSummaryQuery, type BinnedSummaryResult } from '@mriqc/shared';
 import type { Query } from '../api/api';
 import { exportCountQuery } from '../chrome/export-view';
 import { asDistributionResult, clipBounds } from '../panels/specs';
@@ -200,9 +200,12 @@ export function scopedQuery(state: State, panel: Panel, cohort: Cohort, proc: Qu
       return group ? { ...scoped, source: 'population', proc, group, granularity: panel.options.granularity,
         filters: coverageFilters(cohort.filters, panel) } : null;
     }
-    case 'timeSummary': return panel.y ? { ...scoped, proc, metric: panel.y, granularity: panel.options.granularity,
-      filters: coverageFilters(cohort.filters, panel) } : null;
-    case 'sample': return cohort.source === 'population' ? { ...scoped, source: 'population', proc, columns: sampleColumns(state, cohort.view), cursor: null } : null;
+    case 'binnedSummary': return panel.y ? { ...scoped, proc, x: panel.x, y: panel.y,
+      bins: panel.x === 'created_at' ? panel.options.granularity : panel.options.bins,
+      ...(panel.options.xRange !== 'auto' ? { range: [...panel.options.xRange] as [number, number] } : {}),
+      filters: panel.x === 'created_at' ? coverageFilters(cohort.filters, panel) : cohort.filters } : null;
+    case 'sample': return cohort.source === 'population' ? { ...scoped, source: 'population', proc, columns: sampleColumns(state, cohort.view), cursor: null,
+      filters: panel.x === 'created_at' ? coverageFilters(cohort.filters, panel) : cohort.filters } : null;
     case 'density2d': return panel.y ? { ...scoped, proc, x: panel.x as ColumnId, y: panel.y, bins: 120, clip: panel.options.clip,
       sampleSize: panel.form === 'clusters' ? panel.options.sampleSize ?? 20000 : 2000, seed: panel.options.seed ?? 42 } : null;
     case 'correlation': {
@@ -224,16 +227,19 @@ export function panelQueries(state: State, panel: Panel): readonly Query[] {
   if (panel.form === 'table') {
     return [
       ...samplePages(state, panel).map(page => page.query),
-      ...cohorts.map(cohort => cohortQuery(state, panel, cohort)),
-      ...(groupingSeries(panel) ? [cohortQuery(state, panel, panelCohort(state, panel))] : []),
+      ...[...cohorts, ...(groupingSeries(panel) ? [panelCohort(state, panel)] : [])].flatMap(cohort => {
+        const q = query(cohort, axisType(panel.x) === 'numeric' ? 'distribution' : 'coverage');
+        return q ? [q] : [];
+      }),
     ];
   }
   if (panel.form === 'matrix') return cohorts.flatMap(cohort => { const q = query(cohort, 'correlation'); return q ? [q] : []; });
-  if (axisType(panel.x) === 'numeric' && panel.y) return [
-    ...densityQueries(state, panel), cohortQuery(state, panel, panelCohort(state, panel)),
+  if (panel.y) return [
+    ...(panel.form === 'band' || panel.form === 'lines' ? binnedQueries(state, panel) : densityQueries(state, panel)),
+    ...(axisType(panel.x) === 'numeric' ? [cohortQuery(state, panel, panelCohort(state, panel))] : []),
   ];
   if (axisType(panel.x) === 'time' || axisType(panel.x) === 'categorical') {
-    const proc = axisType(panel.x) === 'categorical' ? 'groupedSummary' : panel.y !== null ? 'timeSummary' : 'coverage';
+    const proc = axisType(panel.x) === 'categorical' ? 'groupedSummary' : 'coverage';
     const results = cohorts.flatMap(cohort => { const q = query(cohort, proc); return q ? [q] : []; });
     // groupedSummary counts finite metric values. Coverage supplies exact row counts, including missing metrics.
     if (axisType(panel.x) === 'categorical') results.push(...cohorts.flatMap(cohort => { const q = query(cohort, 'coverage'); return q ? [q] : []; }));
@@ -268,6 +274,21 @@ export function samplePages(state: State, panel: Panel) {
     const query = scopedQuery(state, panel, cohort, 'sample');
     return query?.proc === 'sample' ? [{ cohort, query: { ...query, cursor: next } }] : [];
   }));
+}
+
+export function binnedQueries(state: State, panel: Panel): readonly BinnedSummaryQuery[] {
+  const cohorts = [...panelCohorts(state, panel), ...(groupingSeries(panel) ? [panelCohort(state, panel)] : [])];
+  const base = cohorts.flatMap(cohort => {
+    const query = scopedQuery(state, panel, cohort, 'binnedSummary');
+    return query?.proc === 'binnedSummary' ? [query] : [];
+  });
+  if (panel.x === 'created_at' || base.length < 2 || panel.options.xRange !== 'auto') return base;
+  const results = base.map(query => resultOf<BinnedSummaryResult>(state, queryKey(query)));
+  if (results.some(result => !result)) return base;
+  const occupied = results.filter(result => result && result.buckets.length) as BinnedSummaryResult[];
+  if (!occupied.length) return base;
+  const range: [number, number] = [Math.min(...occupied.map(result => result.range[0])), Math.max(...occupied.map(result => result.range[1]))];
+  return [...base, ...base.map(query => ({ ...query, range }))];
 }
 
 export function densityQueries(state: State, panel: Panel): readonly Extract<Query, { proc: 'density2d' }>[] {
@@ -360,12 +381,12 @@ export function needed(state: State): Set<QueryKey> {
 }
 
 
-export function timeTailQuery(query: TimeSummaryQuery, result: TimeSummaryResult): TimeSummaryQuery | null {
-  if (!query.group || getAuthoredCatalog().fields.find(field => field.id === query.group)?.kind !== 'categorical') return null;
+export function timeTailQuery(query: BinnedSummaryQuery, result: BinnedSummaryResult): BinnedSummaryQuery | null {
+  if (!query.groups || getAuthoredCatalog().fields.find(field => field.id === query.groups)?.kind !== 'categorical') return null;
   const groups = timeGroups(result);
   const named = groups.filter(group => group.id !== 'other');
   if (named.length <= 6 || groups.some(group => group.id === 'other')) return null;
   const values = named.slice(6).map(group => isNoneValue(group.buckets[0].group) ? NONE_FILTER_VALUE : group.buckets[0].group!);
-  const { group, ...rest } = query;
+  const { groups: group, ...rest } = query;
   return { ...rest, filters: [...query.filters, { field: group, op: 'in', values }] };
 }

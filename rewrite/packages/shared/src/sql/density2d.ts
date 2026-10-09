@@ -1,5 +1,5 @@
 /** Shared SQL for paired statistics, a dense-grid input, and a reproducible sample. */
-export const DENSITY2D_SQL = `-- Holes x/y are validated DOUBLE-cast metrics; where is the shared predicate.
+export const DENSITY2D_SQL = `-- x/y are catalog-resolved continuousAxisExpr expressions (x may be epoch days).
 -- sample_size and seed are validated integer literals: DuckDB's SAMPLE grammar
 -- does not accept bound parameters there. All other values are positional ?.
 

@@ -11,30 +11,81 @@ export function axisType(x: ColumnRef | readonly MetricId[]): AxisType {
     ? 'categorical' : 'numeric';
 }
 
-const NUMERIC_FORMS = ['histogram', 'density', 'ecdf', 'box', 'table'] as const;
-const TIME_FORMS = ['bars', 'line', 'area'] as const;
-const TIME_METRIC_FORMS = ['band', 'lines'] as const;
-const PAIR_FORMS = ['heatmap', 'scatter', 'hexbin', 'clusters'] as const;
-const CATEGORY_FORMS = ['bars', 'share'] as const;
+/** The fixed order shared by form pickers and form availability checks. */
+export const FORM_ORDER = [
+  'histogram', 'line', 'area', 'density', 'ecdf', 'box', 'table',
+  'heatmap', 'scatter', 'hexbin', 'clusters', 'band', 'lines',
+  'bars', 'share', 'matrix',
+] as const;
+
+export type FormAvailability = {
+  form: Form;
+  state: 'enabled' | 'disabled' | 'hidden';
+  reason?: string;
+};
+
+const SECOND_METRIC_REASON = 'add a second metric';
 
 /** The one axis-to-form rule used by the reducer, dropdown and dispatcher. */
-export function formsFor(x: ColumnRef | readonly MetricId[], y: MetricId | null) {
-  switch (axisType(x)) {
-    case 'metrics': return ['matrix'] as const;
-    case 'time': return y === null ? TIME_FORMS : TIME_METRIC_FORMS;
-    case 'categorical': return CATEGORY_FORMS;
-    case 'numeric': return y === null ? NUMERIC_FORMS : PAIR_FORMS;
-  }
+export function formAvailability(
+  x: ColumnRef | readonly MetricId[],
+  y: MetricId | null,
+): readonly FormAvailability[] {
+  const type = axisType(x);
+  const enabled =
+    type === 'metrics'
+      ? new Set<Form>(['matrix'])
+      : type === 'categorical'
+        ? new Set<Form>(['bars', 'share'])
+        : y === null
+          ? new Set<Form>(FORM_ORDER.slice(0, 7))
+          : new Set<Form>(FORM_ORDER.slice(7, 13));
+  const disabled =
+    (type === 'numeric' || type === 'time') && y === null
+      ? new Set<Form>(FORM_ORDER.slice(7, 13))
+      : new Set<Form>();
+
+  return FORM_ORDER.map((form): FormAvailability =>
+    enabled.has(form)
+      ? { form, state: 'enabled' }
+      : disabled.has(form)
+        ? { form, state: 'disabled', reason: SECOND_METRIC_REASON }
+        : { form, state: 'hidden' },
+  );
+}
+
+export function formsFor(x: ColumnRef | readonly MetricId[], y: MetricId | null): readonly Form[] {
+  return formAvailability(x, y)
+    .filter(({ state }) => state === 'enabled')
+    .map(({ form }) => form);
 }
 
 /** A correlation's quantity is its metric set; x remains its primary metric. */
 export function panelForms(panel: Pick<Panel, 'x' | 'y' | 'form' | 'options'>): readonly Form[] {
-  return formsFor(panel.form === 'matrix' ? panel.options.metrics ?? [panel.x as MetricId] : panel.x, panel.y);
+  return panelFormAvailability(panel)
+    .filter(({ state }) => state === 'enabled')
+    .map(({ form }) => form);
+}
+
+/** Resolves a panel's matrix metric set before applying the shared form rule. */
+export function panelFormAvailability(
+  panel: Pick<Panel, 'x' | 'y' | 'form' | 'options'>,
+): readonly FormAvailability[] {
+  return formAvailability(
+    panel.form === 'matrix' ? panel.options.metrics ?? [panel.x as MetricId] : panel.x,
+    panel.y,
+  );
+}
+
+export function defaultForm(x: Panel['x'], y: Panel['y']): Form {
+  return axisType(x) === 'time' && y !== null ? 'band' : formsFor(x, y)[0] ?? 'histogram';
 }
 
 export function validForm(panel: Panel): Panel {
   const forms = panelForms(panel);
-  return forms.includes(panel.form) ? panel : { ...panel, form: forms[0] };
+  return forms.includes(panel.form)
+    ? panel
+    : { ...panel, form: defaultForm(panel.x, panel.y) };
 }
 
 export function brushable(panel: Panel): boolean {
@@ -49,12 +100,12 @@ export const FORM_INFO: Record<Form, FormInfo> = {
   box: { label: 'Box', icon: 'chart-candlestick', hint: 'Median and spread' },
   table: { label: 'Table', icon: 'table-2', hint: 'Individual records behind the chart' },
   bars: { label: 'Bars', icon: 'chart-column', hint: 'Counts per bucket; stacked with series' },
-  band: { label: 'Band', icon: 'chart-area', hint: 'Median and middle half through time' },
-  lines: { label: 'Lines', icon: 'chart-line', hint: '5th, 50th and 95th percentiles through time' },
-  heatmap: { label: 'Heatmap', icon: 'grid-2x2', hint: 'Density across two metrics' },
+  band: { label: 'Band', icon: 'chart-area', hint: 'Median and middle half per x bin' },
+  lines: { label: 'Lines', icon: 'chart-line', hint: '5th, 50th and 95th percentiles per x bin' },
+  heatmap: { label: 'Heatmap', icon: 'grid-2x2', hint: 'Density across paired values' },
   share: { label: 'Share', icon: 'chart-column', hint: 'Proportion in each category' },
   matrix: { label: 'Matrix', icon: 'grid-2x2', hint: 'Relationships within a metric set' },
-  line: { label: 'Line', icon: 'chart-line', hint: 'Upload counts through time' },
+  line: { label: 'Line', icon: 'chart-line', hint: 'Counts per bin as a line' },
   scatter: { label: 'Scatter', icon: 'chart-scatter', hint: 'A sample of paired values' },
   hexbin: { label: 'Hexbin', icon: 'hexagon', hint: 'Sample counts in hexagonal cells' },
   clusters: { label: 'Clusters', icon: 'shapes', hint: 'Exploratory groups in a sample' },

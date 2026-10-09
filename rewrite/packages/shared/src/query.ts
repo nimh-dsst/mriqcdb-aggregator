@@ -7,7 +7,9 @@
 
 import type {
   ClipMode,
+  BinnedSummaryInput,
   ColumnId,
+  ColumnRef,
   Filter,
   FilterValue,
   Granularity,
@@ -31,19 +33,16 @@ interface Scoped extends SelectionScope {
   filters: readonly Filter[];
 }
 
-/** Additive query type until the web dispatcher supports the new panel. */
-export interface TimeSummaryQuery extends Scoped {
+/** Continuous x bins with finite y statistics. */
+export interface BinnedSummaryQuery extends BinnedSummaryInput {
   source: QuerySource;
-  proc: 'timeSummary';
-  metric: ColumnId;
-  granularity: Granularity;
-  group?: ColumnId;
-  /** Inclusive created_at bounds; filtering precedes bucketing. */
-  window?: [string, string];
+  proc: 'binnedSummary';
+  filters: readonly Filter[];
 }
 
 /** One fetchable question. Each variant maps to one tRPC procedure. */
 export type Query =
+  | BinnedSummaryQuery
   | ({
       source: QuerySource;
       proc: 'distribution';
@@ -82,7 +81,7 @@ export type Query =
   | ({
       source: QuerySource;
       proc: 'density2d';
-      x: ColumnId;
+      x: ColumnRef;
       y: ColumnId;
       bins: number;
       clip: ClipMode;
@@ -192,17 +191,21 @@ function scopeParams(query: Scoped): Params {
  * the order of values inside an `in` filter. Any difference that changes the
  * result -- a different metric, bin count, granularity or cursor -- changes it.
  */
-export function queryKey(query: Query | TimeSummaryQuery): QueryKey {
+export function queryKey(query: Query): QueryKey {
   switch (query.proc) {
     case 'catalog':
       return render(query.source, 'catalog', []);
-    case 'timeSummary':
-      return render(query.source, 'timeSummary', [
+    case 'binnedSummary':
+      return render(query.source, 'binnedSummary', [
         ...scopeParams(query),
-        ['metric', encodeURIComponent(query.metric)],
-        ['gran', query.granularity],
-        ['group', query.group === undefined ? '' : encodeURIComponent(query.group)],
-        ['window', query.window?.map(encodeURIComponent).join('..') ?? ''],
+        ['x', encodeURIComponent(query.x)],
+        ['y', encodeURIComponent(query.y)],
+        ['bins', String(query.bins)],
+        ['groups', query.groups === undefined ? '' : encodeURIComponent(query.groups)],
+        ['range', query.range === undefined ? '' : formatRange(query.range)],
+        ['cohorts', query.cohorts === undefined ? '' : JSON.stringify(query.cohorts.map(cohort => [
+          cohort.id, scopeParams({ ...cohort, modality: query.modality, view: query.view }),
+        ]))],
       ]);
     case 'distribution':
       return render(query.source, 'distribution', [

@@ -733,7 +733,10 @@ body {
 .form-option { display: grid; grid-template-columns: 20px 1fr; column-gap: 8px; padding: 5px 0; }
 .form-option app-form-glyph { grid-row: span 2; align-self: center; }
 .form-option-hint { grid-column: 2; font-size: var(--text-caption); color: var(--ink-2); white-space: normal; }
-.form-picker-panel { min-width: 290px !important; }
+.form-picker-panel { min-width: 290px !important; max-height: min(760px, calc(100dvh - 32px)) !important; }
+.form-picker-panel .form-reason { pointer-events: auto; text-decoration: underline; }
+.form-picker-panel .mat-mdc-option[aria-disabled="true"] .form-option { color: var(--ink-2); }
+.form-picker-panel .mat-mdc-option[aria-disabled="true"] .mdc-list-item__primary-text { opacity: 1; }
 .form-select .mat-mdc-select-value { overflow: visible; max-width: none; }
 @media (max-width: 1000px) {
   .column-drawer { height: 70vh; }

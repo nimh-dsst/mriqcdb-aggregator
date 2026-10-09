@@ -603,7 +603,7 @@ describe('panelView', () => {
     const coverage = panel({
       y: null,
       x: 'created_at',
-      form: 'bars',
+      form: 'histogram',
       series: [{ kind: 'field' as const, field: asColumnId('manufacturer') }],
     });
     const counts = panelView(fixture({ panels: [coverage] }), 'p1')?.specKey;
@@ -613,7 +613,7 @@ describe('panelView', () => {
           panel({
             y: null,
             x: 'created_at',
-            form: 'bars',
+            form: 'histogram',
             series: [{ kind: 'field' as const, field: asColumnId('manufacturer') }],
             options: { ...defaultPanelOptions(), share: true },
           }),
@@ -700,7 +700,7 @@ describe('panel stats', () => {
     resetPanelViewMemo();
     const coverage = panel({
       y: null,
-      form: 'bars',
+      form: 'histogram',
       x: 'created_at',
       series: [{ kind: 'field' as const, field: asColumnId('manufacturer') }],
     });
@@ -1073,7 +1073,7 @@ describe('panelMeaning', () => {
     const coverage = {
       ...base,
       x: 'created_at' as const,
-      form: 'bars' as const,
+      form: 'histogram' as const,
       metricLabel: null,
       metricDescription: null,
       metricUnit: null,
@@ -1189,7 +1189,7 @@ describe('panelView help and totals', () => {
       id: 'p2',
       y: null,
       x: 'created_at',
-      form: 'bars',
+      form: 'histogram',
       series: [{ kind: 'field' as const, field: asColumnId('manufacturer') }],
     });
     const base = fixture({ panels: [sample, coverage] });
@@ -1743,7 +1743,7 @@ describe('split groups as cohorts', () => {
     // has no metric, so 'Compare selected' there is a control that can do
     // nothing: the reducer refuses it, silently.
     const coverage = panelView(
-      split({ y: null, x: 'created_at', form: 'bars' }),
+      split({ y: null, x: 'created_at', form: 'histogram' }),
       'p1',
     );
     expect(coverage?.splitCohorts).toEqual([]);

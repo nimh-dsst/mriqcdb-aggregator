@@ -77,6 +77,7 @@
             [fields]="fields()"
             [selected]="panel.x"
             [drawer]="true"
+            [focusY]="focusSecondMetric()"
             [panelId]="panel.id"
             [y]="panel.y"
             (closed)="columnPickerOpen.set(false)"
@@ -115,6 +116,7 @@
       <div class="panel-form flex min-h-9 min-w-0 items-center gap-1">
 
         <mat-select
+          #formPicker
           class="form-select rounded border border-border px-2 text-control text-ink"
           data-testid="panel-form-selector" aria-label="Form"
           panelClass="form-picker-panel"
@@ -122,6 +124,7 @@
           [style.width.px]="formWidth()"
           [value]="panel.form"
           (selectionChange)="changeForm($event.value)"
+          (openedChange)="prepareFormLinks($event, formPicker)"
         >
           <mat-select-trigger>
             @if (formInfo(); as info) {
@@ -131,13 +134,19 @@
               </span>
             }
           </mat-select-trigger>
-          @for (form of forms(); track form) {
-            @if (formDetails(form); as info) {
-              <mat-option [value]="form">
+          @for (entry of forms(); track entry.form) {
+            @if (formDetails(entry.form); as info) {
+              <mat-option [value]="entry.form" [disabled]="entry.state === 'disabled'"
+                [attr.aria-label]="info.label + ': ' + (entry.reason ?? info.hint)">
                 <span class="form-option">
-                  <app-form-glyph [form]="form" />
+                  <app-form-glyph [form]="entry.form" />
                   <span class="font-medium">{{ info.label }}</span>
-                  <span class="form-option-hint">{{ info.hint }}</span>
+                  @if (entry.reason) {
+                    <a class="form-option-hint form-reason" href="#second-metric" aria-disabled="false"
+                      (click)="addSecondMetric($event, formPicker)">{{ entry.reason }}</a>
+                  } @else {
+                    <span class="form-option-hint">{{ info.hint }}</span>
+                  }
                 </span>
               </mat-option>
             }

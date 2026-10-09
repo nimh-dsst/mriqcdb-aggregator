@@ -50,17 +50,27 @@ describe("panel form scheme", () => {
 
     expect(formsFor(snr, null)).toEqual([
       "histogram",
+      "line",
+      "area",
       "density",
       "ecdf",
       "box",
       "table",
     ]);
     expect(formsFor(acquisitionDate, null)).toEqual([
-      "bars",
+      "histogram",
       "line",
       "area",
+      "density",
+      "ecdf",
+      "box",
+      "table",
     ]);
     expect(formsFor(acquisitionDate, tsnr)).toEqual([
+      "heatmap",
+      "scatter",
+      "hexbin",
+      "clusters",
       "band",
       "lines",
     ]);
@@ -69,6 +79,8 @@ describe("panel form scheme", () => {
       "scatter",
       "hexbin",
       "clusters",
+      "band",
+      "lines",
     ]);
     expect(formsFor(manufacturer, null)).toEqual([
       "bars",
@@ -83,6 +95,8 @@ describe("panel form scheme", () => {
 
     expect(panelForms(oneNumeric)).toEqual([
       "histogram",
+      "line",
+      "area",
       "density",
       "ecdf",
       "box",
@@ -120,16 +134,17 @@ describe("panel form scheme", () => {
     });
   });
 
-  it("selects an initial metric when Median band is chosen for a time axis", () => {
-    const initial = withPanel(acquisitionDate);
-    const medianBand = reduce(initial, {
-      t: "setPanelForm",
-      id: firstPanel(initial).id,
-      form: "band",
-    });
+  it.each([snr, acquisitionDate])("rejects disabled forms without changing the axes on %s", x => {
+    const initial = withPanel(x);
+    for (const form of ['heatmap', 'scatter', 'hexbin', 'clusters', 'band', 'lines'] as const) {
+      expect(reduce(initial, { t: 'setPanelForm', id: firstPanel(initial).id, form })).toBe(initial);
+      expect(reduce(initial, { t: 'patchPanel', id: firstPanel(initial).id, patch: { form } })).toBe(initial);
+    }
+  });
 
-    expect(firstPanel(medianBand)).toMatchObject({ form: "band" });
-    expect(firstPanel(medianBand).y).not.toBeNull();
+  it("rejects a hidden form instead of changing the quantity", () => {
+    const initial = withPanel();
+    expect(reduce(initial, { t: 'setPanelForm', id: firstPanel(initial).id, form: 'matrix' })).toBe(initial);
   });
 
   it("keeps ECDF, box, and table forms when a series is added or removed", () => {

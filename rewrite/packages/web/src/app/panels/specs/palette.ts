@@ -291,8 +291,8 @@ export const FILLS_CONTAINER = {
 } as const;
 
 /** X scale for a metric axis: log when the catalog or the panel asks for it. */
-export function valueScale(scale: boolean | 'linear' | 'log' | 'symlog', range?: 'auto' | readonly [number, number], constant = 1): Record<string, unknown> {
-  return { ...(scale === true || scale === 'log' ? { type: 'log', clamp: true, nice: false }
+export function valueScale(scale: boolean | 'linear' | 'log' | 'symlog' | 'time', range?: 'auto' | readonly [number, number], constant = 1): Record<string, unknown> {
+  return { ...(scale === 'time' ? { type: 'utc', nice: false } : scale === true || scale === 'log' ? { type: 'log', clamp: true, nice: false }
     : scale === 'symlog' ? { type: 'symlog', constant, zero: false, nice: false } : { zero: false, nice: true }),
     ...(Array.isArray(range) ? { domain: [...range], nice: false } : {}) };
 }

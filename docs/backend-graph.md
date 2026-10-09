@@ -759,3 +759,116 @@ untouched — the policy key is `(provenance_md5sum, provenance_version,
 provenance_settings_*)` plus `hmc_mode`, never the vendor. `vendors.csv`'s
 content hash is part of `data_version`, so editing the mapping invalidates the
 catalog cache and every ETag.
+
+## Implementation notes: continuous x summaries (Lane S, 2026-10-09)
+
+Binding client contract for Lane W (greenfield rename; no `timeSummary` alias):
+
+```ts
+type MetricId = ColumnId;
+type ColumnRef = MetricId | "created_at";
+interface BinnedSummaryCohort extends SelectionScope {
+  id: string;
+  filters: readonly Filter[];
+}
+interface BinnedSummaryInput extends SelectionScope {
+  modality: Modality;
+  view: View;
+  filters?: readonly Filter[]; // default []
+  x: ColumnRef;
+  y: MetricId;
+  bins: number | Granularity; // metric: integer 1–200; time: day/week/month/year
+  range?: [number, number]; // metric units, or days since 2000-01-01 for time
+  groups?: ColumnId;
+  cohorts?: readonly BinnedSummaryCohort[]; // 1–8, unique ids; omitted = one scope
+}
+interface BinnedSummaryBucket {
+  lo: number;
+  hi: number;
+  start?: string; // ISO calendar bucket start, present for time x
+  group: string | number | boolean | null;
+  cohort?: string; // supplied cohort id
+  isOther: boolean;
+  n: number;
+  quantiles: Pick<Quantiles, "p05" | "p25" | "p50" | "p75" | "p95">;
+  mean: number;
+  thin: boolean; // n < 20
+}
+interface BinnedSummaryResult {
+  xKind: "metric" | "time";
+  range: [number, number];
+  buckets: readonly BinnedSummaryBucket[];
+}
+binnedSummary(input: BinnedSummaryInput): Promise<BinnedSummaryResult>;
+
+interface Density2dInput extends SelectionScope {
+  modality: Modality;
+  view: View;
+  filters?: readonly Filter[];
+  x: ColumnRef;
+  y: MetricId;
+  bins?: number; // integer 10–200, default 120
+  clip?: "p01p99" | "p05p95" | "none"; // default p01p99
+  range?: { x: [number, number]; y: [number, number] };
+  sampleSize?: number; // integer 0–20000, default 2000
+  seed?: number; // integer 0–2147483647, default 1
+}
+interface Density2dResult {
+  xKind: "metric" | "time";
+  x: { lo: number; width: number; bins: number; underflow: number; overflow: number };
+  y: { lo: number; width: number; bins: number; underflow: number; overflow: number };
+  counts: number[];
+  n: number;
+  pearson: number | null;
+  spearman: number | null;
+  sample: Array<[number, number]>;
+}
+density2d(input: Density2dInput): Promise<Density2dResult>;
+```
+
+The shared query union exports `BinnedSummaryQuery` (the input plus `source`
+and `proc: "binnedSummary"`; query filters remain required). Cohort predicates
+are ANDed with the outer scope. Metric x uses finite x/y pairs, p01–p99 bounds
+(falling back to min/max for coincident quantiles), then equal-width bins.
+Cohorts share the union of those bounds, or the exact supplied range. Clients
+fetch un-ranged summaries, union their returned ranges (including local study),
+then refetch with that range, as with distribution. Empty explicit ranges are
+preserved. Only occupied bins are returned; both range endpoints are inclusive.
+Time uses calendar buckets, with numeric lo/hi edges in epoch days and `start`
+as the ISO bucket start. Ranges filter rows before time bucketing. Group ranking
+retains the existing top-50 plus Other policy, before per-bin quantiles.
+
+For density, every x edge and sample x value is a metric value or, when
+`xKind: "time"`, `date_diff('day', DATE '2000-01-01', created_at)`.
+The same exported SQL strings and axis-expression helper serve native DuckDB
+and the study WASM runner; column identifiers must be resolved from its catalog
+before the expression helper is called. No web source is changed by Lane S.
+
+
+Template wiring: `statementsOf("binned_summary")` supplies `stats` and `buckets`.
+Use `continuousAxisExpr(catalogColumn, xKind)` for x and the metric expression
+for y; `binnedSummaryFragments(bins)` supplies the `bucket` and `bucket_hi`
+holes. The buckets statement binds predicate parameters, then `[lo, hi, bins]`
+(use `1` as the numeric bind for calendar bins). Its metric `bucket` is a zero-based
+bin index; its time `bucket` and `bucket_hi` are epoch-day edges. Group holes
+remain `group_expr`, `group_numeric`, `group_bins` (10), and `max_groups` (50).
+The native runner and WASM runner consume this same exported string.
+
+Validation: shared 101 tests passed; server 510 passed, one skipped; both package
+builds and TypeScript check configurations passed. Identifier-injection tests
+reject unknown/noncontinuous x before SQL. Shared SQL execution tests cover both
+axis kinds, local study columns, nonfinite timestamps, grids, samples, and quantiles.
+
+Full-data smoke (2026-10-09): all 1,515,368 rows of the original
+`mriqc_api.bold.parquet`, projected into an isolated in-memory DuckDB table;
+1 GB memory limit, four threads. In-process router calls (loading excluded):
+metric `fd_mean` x / `tsnr` y, 50 bins: **366.1 ms**, 50 occupied bins and
+1,485,061 in-range pairs; monthly upload-time x / `fd_mean` y: **219.0 ms**,
+111 buckets and 1,515,368 observations; time x / `fd_mean` density, 120 by 120,
+2,000 sampled points: **1,480.0 ms**, 1,515,368 finite pairs. These are single
+full-corpus smoke timings, not HTTP or production latency claims. Windows
+prevented copying the locked serving database, so the original read-only
+Parquet supplied the same full raw population. No server was started/stopped.
+
+Deployment remains pending: the API needs `pnpm dev restart api`; the web dev
+server needs `pnpm dev restart web --fresh` for the shared types.

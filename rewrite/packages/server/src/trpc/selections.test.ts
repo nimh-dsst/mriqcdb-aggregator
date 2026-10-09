@@ -23,7 +23,7 @@ type Scope = { selections?: Range[]; selection?: Range | null };
 const first: Range = { metric: 'fd_mean', range: [10, 40] };
 const second: Range = { metric: 'efc', range: [2, 6] };
 const input = { modality: 'bold' as const, view: 'raw' as const };
-const procedures = ['distribution', 'groupedSummary', 'coverage', 'sample', 'density2d', 'correlation', 'timeSummary'] as const;
+const procedures = ['distribution', 'groupedSummary', 'coverage', 'sample', 'density2d', 'correlation', 'binnedSummary'] as const;
 async function count(proc: typeof procedures[number], ranges: Scope): Promise<number> {
   const scope = { ...input, ...ranges };
   switch (proc) {
@@ -36,7 +36,7 @@ async function count(proc: typeof procedures[number], ranges: Scope): Promise<nu
     case 'sample': return (await caller.sample({ ...scope, columns: ['fd_mean', 'efc'], limit: 500 })).rows.length;
     case 'density2d': return (await caller.density2d({ ...scope, x: 'fd_mean', y: 'efc', sampleSize: 0 })).n;
     case 'correlation': return (await caller.correlation({ ...scope, metrics: ['fd_mean', 'efc'], method: 'pearson' })).pairN[0]![1]!;
-    case 'timeSummary': return (await caller.timeSummary({ ...scope, metric: 'fd_mean', granularity: 'month' })).buckets.reduce((n, b) => n + b.n, 0);
+    case 'binnedSummary': return (await caller.binnedSummary({ ...scope, x: 'created_at', y: 'fd_mean', bins: 'month' })).buckets.reduce((n, b) => n + b.n, 0);
   }
 }
 const kept = Array.from({ length: 61 }, (_, i) => i + 20).filter(i => !isNaNRow(i) && !isInfRow(i) && !isNullRow(i));

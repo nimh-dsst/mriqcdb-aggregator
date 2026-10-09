@@ -1,4 +1,4 @@
-import { normalizeSelections, type TimeSummaryQuery, type TimeSummaryResult } from '@mriqc/shared';
+import { normalizeSelections, type BinnedSummaryQuery, type BinnedSummaryResult } from '@mriqc/shared';
 /**
  * The real `Api`, against `@mriqc/server`'s tRPC router.
  *
@@ -194,9 +194,11 @@ export class TrpcApi implements Api {
     );
   }
 
-  timeSummary(query: TimeSummaryQuery): Observable<TimeSummaryResult> {
-    return abortable(signal => this.client.timeSummary.query({ ...scope(query), metric: query.metric,
-      granularity: query.granularity, group: query.group, window: query.window }, { signal }));
+  binnedSummary(query: BinnedSummaryQuery): Observable<BinnedSummaryResult> {
+    return abortable(signal => this.client.binnedSummary.query({ ...scope(query), x: query.x, y: query.y,
+      bins: query.bins, groups: query.groups, range: query.range,
+      cohorts: query.cohorts?.map(cohort => ({ id: cohort.id, filters: cohort.filters.map(wireFilter),
+        selections: normalizeSelections(cohort).map(selection => ({ metric: selection.metric, range: [...selection.range] as [number,number] })) })) }, { signal }));
   }
 
   coverage(query: CoverageQuery): Observable<CoverageResult> {

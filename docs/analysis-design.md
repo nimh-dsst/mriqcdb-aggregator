@@ -5,6 +5,31 @@ Design addendum to `dashboard-graph.md`, `comparison-design.md` and
 kinds into one panel model, and add 2D density (scatter), correlation and
 exploratory clustering.
 
+## Invariants (stated by the owner; every brief is checked against this list)
+
+1. **One chart list everywhere.** There is one fixed, ordered list of forms;
+   every card's picker is a view of that same list, never a different list.
+   A form that physically cannot draw the card's axes is hidden (occluded);
+   a form that would work after one step (adding a second metric) stays
+   visible but disabled, with that step as the reason. The order never
+   changes.
+2. **A form is a drawing, named by its geometry.** Never a description of the
+   data. Forms apply to scale types (continuous, categorical, metric set), not
+   to columns; time is a continuous scale with month bins.
+3. **A card is Rows × Quantity × Series × Form** and nothing else. Anything on
+   a card that is not one of the four is a defect.
+4. **Every way of getting more than one series is a comparison**, chosen in
+   the one Compare control. Split-by is a comparison. Comparisons can be
+   multiple.
+5. **Nothing retiles unless the user drags it.** Explicit geometry per panel;
+   compaction only moves panels up and left into free space, never reorders.
+6. **State changes are never page navigations.** Scroll position survives
+   every change; URL mirrors state with the push/replace rule.
+7. **No per-case UI.** A complaint is answered by the general rule that makes
+   it impossible, written here first, then built once.
+8. **Greenfield.** No legacy decoders, aliases or compatibility shims until
+   something has shipped.
+
 ## The one scheme (owner, 2026-10-09: "a solid continuous scheme to show data how I want to see it so that I can think of what I see")
 
 Every card is one question with four parts. Nothing else exists on a card,
@@ -18,24 +43,24 @@ Any UI element that cannot be named as one of the four is a defect.
 | **Series** | zero or more ways to put groups side by side: `field` (top groups), `values` (chosen values of a field), `population`, `cohort` (saved group), `study`, `span` (earlier time window) | the one **Compare** chip input on the card |
 | **Form** | how it is drawn, derived from the axis types (table below); plus scale, range, bins, layout in the options menu | the icon dropdown on the card; menu for the rest |
 
-Forms by axis types (the dropdown lists exactly this row, nothing else).
-**A form is a drawing, named by its geometry.** If a name describes the data
-("counts over time", "uploads", "correlation") it is a quantity, not a form,
-and must not appear in the picker (owner, 2026-10-09: "counts over time is a
-graph type which it is not").
+Forms by scale type (owner, 2026-10-09: "uploads over time is still a different
+set of graph types?" — it must not be). **A form is a drawing, named by its
+geometry, and it applies to a scale type, not to a column.** Numeric metrics and
+time are both continuous scales; a histogram over months is the same mark as a
+histogram over SNR, bars of counts per bin. The only difference time brings is
+the bin unit (month, week, day) and the axis format. Any form name that
+describes the data ("counts over time", "uploads") is a quantity, not a form.
 
-| x | y | forms (glyph · name · use when) |
+| x scale | y | forms (glyph · name · use when) |
 |---|---|---|
-| numeric metric | none | Histogram (shape, counts per bin) · Density (smooth shape, compare series) · ECDF (read percentiles) · Box (spread per series) · Table (the records) |
-| time | none | Bars (count per bucket; stacked with series) · Line (trend) · Area (stacked share with series) |
-| time | numeric metric | Band (median with p25–p75 per bucket) · Lines (p05/p50/p95 per bucket) |
-| numeric metric | numeric metric | Heatmap (2D density) · Scatter (sample points) · Hexbin (sample, binned) · Clusters (k-means on the sample) |
-| categorical field | none | Bars (count per category) · Share (100% bar) |
+| continuous (metric or time) | none | Histogram (counts per bin) · Line (counts per bin as a line) · Area (counts per bin filled; stacked share with series) · Density (smoothed shape) · ECDF (cumulative share, read percentiles or cumulative uploads) · Box (spread per series) · Table (the records) |
+| continuous (metric or time) | numeric metric | Heatmap (2D density) · Scatter (sample points) · Hexbin (sample, binned) · Clusters (k-means on the sample) · Band (median with p25–p75 per x bin) · Lines (p05/p50/p95 per x bin) |
+| categorical field | none | Bars (count per category) · Share (100% bar) · Table |
 | set of metrics | — | Matrix (pairwise coefficient) |
 
-The picker renders each option as a 20×14 glyph of the mark, the name, and the
-"use when" line; the trigger shows glyph + name untruncated. Each quantity has a
-default form (first in its row).
+Defaults: continuous x → Histogram; continuous x + y → Heatmap, except time x + y
+→ Band; categorical → Bars. Bins for a time x follow the dashboard granularity
+(month by default). The picker is a view of the ONE fixed list (Invariant 1), order: Histogram, Line, Area, Density, ECDF, Box, Table, Heatmap, Scatter, Hexbin, Clusters, Band, Lines, Bars, Share, Matrix. Hidden when physically impossible for the axes (Bars/Share on a continuous x; Histogram…Table on a categorical x; Matrix unless the quantity is a metric set); disabled with the reason "add a second metric" (a link that opens the drawer's y select) for Heatmap/Scatter/Hexbin/Clusters/Band/Lines on a single-metric continuous card. The picker renders glyph · name · use-when; the trigger shows glyph + name untruncated.
 
 Derived, never configured: the title ("Mean framewise displacement", "tSNR vs FD mean", "Uploads over time", "Scans per Manufacturer", "Metric correlations"), the count line, the stat row (quantiles of x for numeric; totals for time and categories), the meaning line, the legend (one, chips, ✕ removes a series, click isolates), the differences table when ≥2 series, the preferred grid size (numeric 4×10; time, categorical, two-metric 8×10; correlation 8×14; +2 rows with series).
 

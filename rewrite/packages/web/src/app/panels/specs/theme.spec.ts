@@ -2,7 +2,7 @@ import {
   DARK_THEME,
   LIGHT_THEME,
   histogramSpec,
-  coverageSpec,
+  countsSpec,
   overlaidDensitySpec,
   boxSpec,
 } from './index';
@@ -22,17 +22,12 @@ describe('chart themes', () => {
     expect(compile(spec).spec).toBeTruthy();
   });
   it('uses the dark surface for stack separators and dark palette variants for cohorts', () => {
-    const coverage = coverageSpec(
-      'bars',
-      'Manufacturer',
-      'month',
-      'Scans',
-      undefined,
-      ['A', 'B', 'Other'],
-      false,
-      DARK_THEME,
-    ) as any;
-    expect(coverage.mark.stroke).toBe(DARK_THEME.surface);
+    const coverage = countsSpec({ ...axis, theme: DARK_THEME, xScale: "time" }, "line", [
+      { id: "a", label: "A", color: DARK_THEME.categories[0] },
+      { id: "b", label: "B", color: DARK_THEME.categories[1] },
+      { id: "other", label: "Other", color: "#8c9196" },
+    ]) as any;
+    expect(coverage.config.axis.labelColor).toBe(DARK_THEME.labelInk);
     expect(coverage.encoding.color.scale.range).toEqual([
       DARK_THEME.categories[0],
       DARK_THEME.categories[1],
