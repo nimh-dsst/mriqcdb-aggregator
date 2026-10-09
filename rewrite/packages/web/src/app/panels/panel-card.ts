@@ -30,7 +30,7 @@ import { type PanelPatch } from '../graph/commands';
 import { Graph } from '../graph/graph';
 import { canStack } from '../graph/panels';
 import { axisType, FORM_INFO, panelFormAvailability } from '../graph/panel-shapes';
-import { type Form, type Panel } from '../graph/state';
+import { parseGroupCohortId, type Form, type Panel } from '../graph/state';
 
 import { ElementControls } from './element-controls';
 import { SettingRow } from './setting-row';
@@ -47,8 +47,8 @@ import {
 
 import { ColumnPicker } from './column-picker';
 import { FormGlyph } from './form-glyphs';
-import { panelCohort, panelCohorts, studyFormReason } from '../graph/queries';
-import { seriesKey } from '../graph/series';
+import { bucketName, panelCohort, panelCohorts, studyFormReason } from '../graph/queries';
+import { seriesKey, withoutGroup, type Series } from '../graph/series';
 import { CompareInput } from './compare-input';
 
 type ChartDatum = {
@@ -472,6 +472,35 @@ export class PanelCard {
 
   removeSeries(key: string): void {
     this.graph.dispatch({ t: 'removePanelSeries', id: this.panelId(), key });
+  }
+
+  /**
+   * Hide one group of a split. The legend id names the group: a field value
+   * for a field split ("Other" folds away by pinning the values on show), a
+   * group name for a custom split.
+   */
+  removeGroup(event: { id: string; descriptorKey: string }): void {
+    const panel = this.panel();
+    const split = panel?.series.find(item => seriesKey(item) === event.descriptorKey);
+    if (!panel || !split) return;
+    const shown = this.legend().flatMap(item => {
+      const parsed = item.descriptorKey === event.descriptorKey ? parseGroupCohortId(item.id) : null;
+      return parsed && !parsed.value.startsWith('other:') ? [parsed.value] : [];
+    });
+    const group = bucketName(event.id) ?? parseGroupCohortId(event.id)?.value ?? event.id;
+    const next = group.startsWith('other:')
+      ? (split.kind === 'field' ? { kind: 'values' as const, field: split.field, values: shown } : split)
+      : withoutGroup(split, group, shown);
+    const series = panel.series.flatMap(item => item === split ? (next ? [next] : []) : [item]);
+    this.patch({ series });
+  }
+
+  /** A custom split replaces the panel's current split, if it has one. */
+  applySplit(split: Series): void {
+    const panel = this.panel();
+    if (!panel) return;
+    const kept = panel.series.filter(item => item.kind !== 'field' && item.kind !== 'values' && item.kind !== 'buckets');
+    this.patch({ series: [split, ...kept] });
   }
 
   async createGroup(): Promise<void> {

@@ -49,8 +49,8 @@ describe('CompareInput', () => {
     else chip.querySelector('button[aria-pressed]')!.dispatchEvent(new KeyboardEvent('keydown', { key: gesture, shiftKey: gesture === 'F10', bubbles: true }));
     fixture.detectChanges(); await fixture.whenStable();
     const items = Array.from(TestBed.inject(OverlayContainer).getContainerElement().querySelectorAll<HTMLButtonElement>('[role="menuitem"]'));
-    expect(items.map(item => item.textContent?.trim())).toEqual(['Isolate', 'Reset', 'Remove', 'Save as group…', 'Only this group']);
-    items[3].click(); expect(actions).toEqual([{ id: 'vendor-a', action: 'save' }]);
+    expect(items.map(item => item.textContent?.trim())).toEqual(['Isolate', 'Reset', 'Hide this group', 'Edit split…', 'Remove the whole split', 'Save as group…', 'Only this group']);
+    items[5].click(); expect(actions).toEqual([{ id: 'vendor-a', action: 'save' }]);
     await fixture.whenStable();
     chip.querySelector<HTMLButtonElement>('[aria-label="Actions for Vendor A"]')!.click();
     fixture.detectChanges(); await fixture.whenStable();

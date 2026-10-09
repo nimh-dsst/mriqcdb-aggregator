@@ -43,6 +43,23 @@ describe('url', () => {
     expect(decoded).toEqual(sample);
   });
 
+  it('round-trips a custom split with merged values and a metric band', () => {
+    const split: UrlState = {
+      ...sample,
+      panels: [{
+        ...sample.panels[0],
+        series: [{
+          kind: 'buckets' as const,
+          buckets: [
+            { name: 'Siemens or GE', filters: [{ field: asColumnId('manufacturer'), op: 'in', values: ['SIEMENS', 'GE MEDICAL SYSTEMS'] }] },
+            { name: 'High tSNR', filters: [], selections: [{ metric: asColumnId('tsnr'), range: [40, 120] }] },
+          ],
+        }],
+      }],
+    };
+    expect(decodeUrlState(encodeUrlState(split))?.panels[0].series).toEqual(split.panels[0].series);
+  });
+
   it('round-trips a dashboard with no filters, panels or selection', () => {
     const empty: UrlState = {
       global: { modality: 'T1w', view: 'raw', filters: [] },

@@ -15,6 +15,7 @@ import {
   type PanelOptions,
 } from './state';
 import { OPEN_LO, OPEN_HI } from './filters';
+import { MAX_BUCKETS } from './series';
 import type { UrlState } from './url';
 import {
   BitReader,
@@ -296,6 +297,19 @@ function reference(kind: 'panels' | 'cohorts'): ContextCodec {
     },
   };
 }
+const BUCKET_FIELDS: Schema = [
+  { field: 'name', codec: textCodec(MAX_COHORT_NAME), default: 'Group' },
+  { field: 'filters', codec: filters, default: undefined },
+  {
+    field: 'selections',
+    codec: list(record([
+      { field: 'metric', codec: metricToken, default: 'fd_mean' },
+      { field: 'range', codec: pair(roundedNumber), default: undefined },
+    ]), 4),
+    default: undefined,
+  },
+];
+
 export const SELECTION_FIELDS: Schema = [
   { field: 'from', codec: reference('panels'), default: undefined },
   { field: 'metric', codec: metricToken, default: 'fd_mean' },
@@ -318,7 +332,7 @@ const selections = list(
 export const SERIES_FIELDS: Schema = [
   {
     field: 'kind',
-    codec: enumeration(['field', 'values', 'population', 'cohort', 'study', 'span']),
+    codec: enumeration(['field', 'values', 'population', 'cohort', 'study', 'span', 'buckets']),
     default: (ctx: Context) => ((ctx.root['cohorts'] as unknown[]).length ? 'cohort' : 'field'),
   },
   { field: 'field', codec: fieldToken, default: undefined },
@@ -333,6 +347,8 @@ export const SERIES_FIELDS: Schema = [
   },
   { field: 'from', codec: dateCodec, default: undefined },
   { field: 'to', codec: dateCodec, default: undefined },
+  // Appended last so links made before custom splits existed still decode.
+  { field: 'buckets', codec: list(record(BUCKET_FIELDS), MAX_BUCKETS), default: undefined },
 ];
 const seriesRecord = record(SERIES_FIELDS);
 const series = list(
@@ -347,6 +363,7 @@ const series = list(
         cohort: ['kind', 'id'],
         study: ['kind'],
         span: ['kind', 'from', 'to'],
+        buckets: ['kind', 'buckets'],
       };
       const keys = expected[value.kind];
       if (
@@ -361,6 +378,8 @@ const series = list(
       )
         throw new Error('Invalid selected values');
       if (value.kind === 'span' && value.from > value.to) throw new Error('Invalid date span');
+      if (value.kind === 'buckets' && (!value.buckets.length || value.buckets.some((bucket: { filters?: unknown[]; selections?: unknown[] }) => !bucket.filters?.length && !bucket.selections?.length)))
+        throw new Error('Invalid custom split');
       return value;
     },
   },

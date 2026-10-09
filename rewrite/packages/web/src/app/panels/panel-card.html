@@ -112,6 +112,9 @@
         [dateRange]="dateRange()"
         (added)="addSeries($event)"
         (removed)="removeSeries($event)"
+        (groupRemoved)="removeGroup($event)"
+        (splitApplied)="applySplit($event)"
+        [metrics]="metrics()"
         (newGroup)="createGroup()"
         (groupAction)="groupAction($event)"
       />

@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   normalizeSeries,
+  withoutGroup,
   seriesDisabledReason,
   seriesLabel,
   seriesSlots,
@@ -119,5 +120,38 @@ describe("graph series", () => {
         { kind: "span", from: "2024-04-02", to: "2024-04-01" },
       ]),
     ).toEqual([{ kind: "span", from: "2024-02-29", to: "2024-03-01" }]);
+  });
+
+  describe("hiding one group of a split", () => {
+    it("turns a whole-field split into the values still showing", () => {
+      expect(withoutGroup({ kind: "field", field: manufacturer }, "", ["SIEMENS", "", "GE"]))
+        .toEqual({ kind: "values", field: manufacturer, values: ["SIEMENS", "GE"] });
+    });
+
+    it("drops one value, and the whole split with its last value", () => {
+      expect(withoutGroup({ kind: "values", field: manufacturer, values: ["SIEMENS", "GE"] }, "GE"))
+        .toEqual({ kind: "values", field: manufacturer, values: ["SIEMENS"] });
+      expect(withoutGroup({ kind: "values", field: manufacturer, values: ["GE"] }, "GE")).toBeNull();
+    });
+
+    it("drops a custom group by name", () => {
+      const a = { name: "A", filters: [{ field: manufacturer, op: "in" as const, values: ["SIEMENS"] }] };
+      const b = { name: "B", filters: [{ field: manufacturer, op: "in" as const, values: ["GE"] }] };
+      expect(withoutGroup({ kind: "buckets", buckets: [a, b] }, "A")).toEqual({ kind: "buckets", buckets: [b] });
+    });
+  });
+
+  it("restores a custom split and drops groups with no conditions", () => {
+    const restored = normalizeSeries([{
+      kind: "buckets",
+      buckets: [
+        { name: "Band", filters: [], selections: [{ metric: "tsnr", range: [1, 2] }] },
+        { name: "Empty", filters: [] },
+      ],
+    }]);
+    expect(restored).toEqual([{
+      kind: "buckets",
+      buckets: [{ name: "Band", filters: [], selections: [{ metric: "tsnr", range: [1, 2] }] }],
+    }]);
   });
 });

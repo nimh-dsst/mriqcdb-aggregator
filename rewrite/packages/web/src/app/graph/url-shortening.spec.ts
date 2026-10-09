@@ -134,11 +134,13 @@ describe('short graph URL tokens', () => {
       maximizedPanel: 'right',
     };
 
+    // Custom splits made the series record's seventh optional field, which
+    // costs every series a second presence mask: six bits, one or two characters.
     const cases = [
       ['default', defaultState, 0],
       ['three-filters', filteredState, 40],
-      ['cohort-comparison', cohortsState, 45],
-      ['split-custom-range', splitState, 18],
+      ['cohort-comparison', cohortsState, 47],
+      ['split-custom-range', splitState, 19],
       ['explicit-layout', layoutState, 26],
     ] as const;
 

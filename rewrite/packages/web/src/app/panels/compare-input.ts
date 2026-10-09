@@ -9,10 +9,13 @@ import {
 import { MatMenuModule, MatMenuTrigger } from '@angular/material/menu';
 import { MatSelectModule } from '@angular/material/select';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { fieldValueLabel, isNoneValue, NONE_FILTER_VALUE, type FieldDef } from '@mriqc/shared';
+import { fieldValueLabel, isNoneValue, NONE_FILTER_VALUE, type FieldDef, type MetricDef } from '@mriqc/shared';
 import { LucideAngularModule, Plus, X } from 'lucide-angular';
 
+import { cohortColor } from './specs';
+import { SplitEditor } from './split-editor';
 import {
+  type Bucket,
   type Series,
   seriesDisabledReason,
   seriesKey,
@@ -61,7 +64,7 @@ const shiftIsoYear = (value: string, years: number): string => {
 @Component({
   selector: 'app-compare-input',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [MatMenuModule, MatSelectModule, MatTooltipModule, LucideAngularModule],
+  imports: [MatMenuModule, MatSelectModule, MatTooltipModule, LucideAngularModule, SplitEditor],
   template: `
     <div class="min-w-0 space-y-2">
       <div class="flex min-w-0 flex-wrap items-center gap-1">
@@ -76,7 +79,11 @@ const shiftIsoYear = (value: string, years: number): string => {
               <mat-menu #chipMenu="matMenu">
                 <button mat-menu-item (click)="isolatedChange.emit(item.id)">Isolate</button>
                 <button mat-menu-item (click)="isolatedChange.emit(null)">Reset</button>
-                @if (item.descriptorKey) {
+                @if (item.descriptorKey && isSplitItem(item.descriptorKey)) {
+                  <button mat-menu-item (click)="removeLegendItem(item.id, item.descriptorKey)">Hide this group</button>
+                  <button mat-menu-item (click)="openSplitEditor()">Edit split…</button>
+                  <button mat-menu-item (click)="removed.emit(item.descriptorKey)">Remove the whole split</button>
+                } @else if (item.descriptorKey) {
                   <button mat-menu-item (click)="removed.emit(item.descriptorKey)">Remove</button>
                 }
                 @if (canSaveGroup(item.descriptorKey)) {
@@ -102,8 +109,8 @@ const shiftIsoYear = (value: string, years: number): string => {
                 <button
                   type="button"
                   class="inline-flex min-h-9 min-w-9 shrink-0 items-center justify-center text-ink-2"
-                  [attr.aria-label]="'Remove comparison ' + item.name"
-                  (click)="removed.emit(item.descriptorKey)"
+                  [attr.aria-label]="(isSplitItem(item.descriptorKey) ? 'Hide group ' : 'Remove comparison ') + item.name"
+                  (click)="removeLegendItem(item.id, item.descriptorKey)"
                 >
                   <lucide-icon [img]="xIcon" [size]="14" aria-hidden="true" />
                 </button>
@@ -144,11 +151,13 @@ const shiftIsoYear = (value: string, years: number): string => {
         >
           @if (!series().length) {
           <input
-            class="w-36 min-w-0 bg-transparent px-2 outline-none"
+            class="w-36 min-w-0 cursor-pointer bg-transparent px-2 outline-none"
             type="text"
             readonly
-            aria-label="Add comparison"
-            placeholder="Add a comparison…"
+            tabindex="-1"
+            aria-hidden="true"
+            placeholder="Split or compare…"
+            (click)="addTrigger.openMenu()"
           />
           }
           <button
@@ -156,11 +165,24 @@ const shiftIsoYear = (value: string, years: number): string => {
             class="inline-flex min-h-9 min-w-9 shrink-0 items-center justify-center"
             aria-label="Add comparison"
             [matMenuTriggerFor]="comparisonMenu"
+            #addTrigger="matMenuTrigger"
           >
             <lucide-icon [img]="plusIcon" [size]="16" aria-hidden="true" />
           </button>
         </div>
       </div>
+
+      @if (splitEditorOpen()) {
+        <app-split-editor
+          [fields]="fieldOptions()"
+          [metrics]="metrics()"
+          [fieldValues]="fieldValues()"
+          [initial]="splitSeed()"
+          [colors]="splitColors"
+          (applied)="applySplit($event)"
+          (cancelled)="splitEditorOpen.set(false)"
+        />
+      }
 
       @if (valuesEditorOpen()) {
         <section class="space-y-2 rounded border border-border bg-surface p-2">
@@ -235,6 +257,7 @@ const shiftIsoYear = (value: string, years: number): string => {
         </div>
       }
 
+      <button mat-menu-item (click)="openSplitEditor()">Custom split…</button>
       <button mat-menu-item (click)="openValuesEditor()">Chosen values…</button>
 
       <div class="px-3 py-1 text-caption text-ink-2">Against</div>
@@ -372,6 +395,7 @@ export class CompareInput {
   }[]>([]);
   readonly isolated = input<string | null>(null);
   readonly fields = input.required<readonly FieldDef[]>();
+  readonly metrics = input<readonly MetricDef[]>([]);
   readonly groups = input.required<readonly SavedGroup[]>();
   readonly fieldValues = input.required<Readonly<Record<string, readonly FieldValue[]>>>();
   readonly studyReady = input(false);
@@ -383,6 +407,51 @@ export class CompareInput {
   readonly isolatedChange = output<string | null>();
   readonly newGroup = output<void>();
   readonly groupAction = output<{ id: string; action: 'save' | 'only' }>();
+  /** One group of a split taken out; the card works out what the split becomes. */
+  readonly groupRemoved = output<{ id: string; descriptorKey: string }>();
+  /** A custom split to put in place of whatever split the panel has. */
+  readonly splitApplied = output<Series>();
+
+  readonly splitEditorOpen = signal(false);
+  readonly splitColors = Array.from({ length: 5 }, (_, index) => cohortColor(index));
+
+  isSplitItem(key: string | undefined): boolean {
+    return this.series().some(item => key === seriesKey(item) && (item.kind === 'field' || item.kind === 'values' || item.kind === 'buckets'));
+  }
+
+  removeLegendItem(id: string, key: string): void {
+    if (this.isSplitItem(key)) this.groupRemoved.emit({ id, descriptorKey: key });
+    else this.removed.emit(key);
+  }
+
+  /**
+   * What the editor opens with: the panel's split as editable groups, so a
+   * manufacturer split can be renamed, merged or narrowed rather than rebuilt.
+   */
+  splitSeed(): readonly Bucket[] {
+    const split = this.series().find(item => item.kind === 'field' || item.kind === 'values' || item.kind === 'buckets');
+    if (!split) return [];
+    if (split.kind === 'buckets') return split.buckets;
+    if (split.kind !== 'field' && split.kind !== 'values') return [];
+    const entries = [...(this.fieldValues()[split.field] ?? [])].sort((a, b) => b.n - a.n);
+    const values = split.kind === 'values'
+      ? split.values.map(text => entries.find(entry => this.valueKey(entry.value) === text)?.value ?? text)
+      : entries.slice(0, 5).map(entry => entry.value);
+    return values.map(value => ({
+      name: fieldValueLabel(split.field, value),
+      filters: [{ field: split.field, op: 'in' as const, values: [isNoneValue(value) ? NONE_FILTER_VALUE : value as string | number | boolean] }],
+    }));
+  }
+
+  openSplitEditor(): void {
+    this.valuesEditorOpen.set(false);
+    this.splitEditorOpen.set(true);
+  }
+
+  applySplit(buckets: readonly Bucket[]): void {
+    this.splitEditorOpen.set(false);
+    this.splitApplied.emit({ kind: 'buckets', buckets });
+  }
 
   canSaveGroup(key: string | undefined): boolean {
     return this.series().some(item => key === seriesKey(item) && (item.kind === 'field' || item.kind === 'values'));

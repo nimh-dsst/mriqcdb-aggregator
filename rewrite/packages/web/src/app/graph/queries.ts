@@ -36,7 +36,12 @@ export function panelCohort(state: State, panel: Panel): Cohort {
   return { ...currentCohort(state), selections: effectiveSelection(state, panel) };
 }
 export type ResolvedSeries = Cohort & { descriptorKey?: string };
-export function groupingSeries(panel: Panel) { return panel.series.find(series => series.kind === 'field' || series.kind === 'values'); }
+export function groupingSeries(panel: Panel) { return panel.series.find(series => series.kind === 'field' || series.kind === 'values' || series.kind === 'buckets'); }
+
+/** The id a custom-split group's cohort carries; `bucketName` reads it back. */
+const BUCKET_PREFIX = 'b\u0000';
+export function bucketCohortId(name: string): string { return BUCKET_PREFIX + name; }
+export function bucketName(id: string): string | null { return id.startsWith(BUCKET_PREFIX) ? id.slice(BUCKET_PREFIX.length) : null; }
 
 /** One expansion for every form. A grouping partitions the dashboard curve; its aggregate still supplies stats. */
 export function panelCohorts(state: State, panel: Panel): readonly ResolvedSeries[] {
@@ -62,6 +67,16 @@ export function panelCohorts(state: State, panel: Panel): readonly ResolvedSerie
         const values = ranked.slice(5).map(entry => wire(entry.value));
         out.push({ ...base, id: groupCohortId(descriptor.field, 'other:' + JSON.stringify(values)), name: 'Other', color: 6,
           filters: [...base.filters, { field: descriptor.field, op: 'in', values }], descriptorKey });
+      }
+      continue;
+    }
+    if (descriptor.kind === 'buckets') {
+      // Each group narrows the dashboard by its own filters. A group that names
+      // a field the top bar also filters gets the intersection, as everywhere.
+      for (const bucket of descriptor.buckets) {
+        out.push({ ...base, id: bucketCohortId(bucket.name), name: bucket.name, color: out.length,
+          filters: [...base.filters, ...bucket.filters],
+          selections: [...(bucket.selections ?? []), ...base.selections].slice(0, 4), descriptorKey });
       }
       continue;
     }

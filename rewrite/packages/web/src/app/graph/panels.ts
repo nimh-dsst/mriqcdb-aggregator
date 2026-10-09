@@ -16,7 +16,7 @@ export function seriesContext(state: State) {
 }
 
 export function canStack(panel: Pick<Panel, 'series'>): boolean {
-  return panel.series.length === 1 && ['field', 'values'].includes(panel.series[0].kind);
+  return panel.series.length === 1 && ['field', 'values', 'buckets'].includes(panel.series[0].kind);
 }
 
 export function revertToDistribution(panel: Panel): Panel {

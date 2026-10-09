@@ -1,4 +1,20 @@
-import { fieldValueLabel, type ColumnId } from "@mriqc/shared";
+import { fieldValueLabel, type ColumnId, type Filter, type Selection } from "@mriqc/shared";
+
+/**
+ * One named group in a custom split: every scan matching all of its filters
+ * and metric ranges. Filters merge field values ("Siemens or GE"); ranges cut
+ * a band out of a metric ("tSNR 1.5–3"), the same way a brush does.
+ */
+export interface Bucket {
+  readonly name: string;
+  readonly filters: readonly Filter[];
+  readonly selections?: readonly Selection[];
+}
+
+/** Bounds at or past this mean "open" once a range has been through a URL. */
+export const OPEN_BOUND = 1e15;
+
+export const MAX_BUCKETS = 5;
 
 /** A descriptor for one explicitly drawn graph series. */
 export type Series =
@@ -11,7 +27,8 @@ export type Series =
   | { readonly kind: "population" }
   | { readonly kind: "cohort"; readonly id: string }
   | { readonly kind: "study" }
-  | { readonly kind: "span"; readonly from: string; readonly to: string };
+  | { readonly kind: "span"; readonly from: string; readonly to: string }
+  | { readonly kind: "buckets"; readonly buckets: readonly Bucket[] };
 
 export interface SeriesContext {
   readonly fieldCount?: (field: string) => number;
@@ -59,7 +76,7 @@ const normalizedFieldCount = (
 };
 
 const isGrouping = (series: Series): boolean =>
-  series.kind === "field" || series.kind === "values";
+  series.kind === "field" || series.kind === "values" || series.kind === "buckets";
 
 const isComparison = (series: Series): boolean => !isGrouping(series);
 
@@ -84,6 +101,8 @@ export const seriesKey = (series: Series): string => {
       return JSON.stringify([series.kind, series.id]);
     case "span":
       return JSON.stringify([series.kind, series.from, series.to]);
+    case "buckets":
+      return JSON.stringify([series.kind, series.buckets.map(bucket => [bucket.name, bucket.filters, bucket.selections ?? []])]);
   }
 };
 
@@ -106,6 +125,8 @@ export const seriesLabel = (
       return "My study";
     case "span":
       return spanLabel(series.from, series.to);
+    case "buckets":
+      return series.buckets.map(bucket => bucket.name).join(" · ");
   }
 };
 
@@ -146,6 +167,8 @@ export const seriesSlots = (
       );
     case "values":
       return distinctValues(series.values).length;
+    case "buckets":
+      return series.buckets.length;
     default:
       return 1;
   }
@@ -252,6 +275,64 @@ const normalizeOne = (input: unknown): Series | null => {
         input["from"] <= input["to"]
         ? { kind: "span", from: input["from"], to: input["to"] }
         : null;
+    case "buckets": {
+      if (!Array.isArray(input["buckets"])) return null;
+      const buckets = input["buckets"].flatMap((raw): Bucket[] => {
+        if (!isRecord(raw) || !isNonEmptyString(raw["name"])) return [];
+        const filters = Array.isArray(raw["filters"]) ? raw["filters"].filter(isFilter) : [];
+        const selections = Array.isArray(raw["selections"]) ? raw["selections"].filter(isSelection) : [];
+        if (!filters.length && !selections.length) return [];
+        return [{ name: raw["name"].trim(), filters, ...(selections.length ? { selections } : {}) }];
+      }).slice(0, MAX_BUCKETS);
+      return buckets.length ? { kind: "buckets", buckets } : null;
+    }
+    default:
+      return null;
+  }
+};
+
+const isSelection = (value: unknown): value is Selection =>
+  isRecord(value) && isNonEmptyString(value["metric"]) && Array.isArray(value["range"]) &&
+  value["range"].length === 2 && value["range"].every(bound => typeof bound === "number" && Number.isFinite(bound));
+
+const isFilter = (value: unknown): value is Filter => {
+  if (!isRecord(value) || !isNonEmptyString(value["field"])) return false;
+  switch (value["op"]) {
+    case "in":
+      return Array.isArray(value["values"]) && value["values"].length > 0;
+    case "between":
+      return ["number", "string"].includes(typeof value["lo"]) && ["number", "string"].includes(typeof value["hi"]);
+    case "isNull":
+    case "notNull":
+      return true;
+    default:
+      return false;
+  }
+};
+
+/**
+ * The split with one of its groups taken out. A whole-field split becomes the
+ * explicit values that were showing minus that one; a split down to nothing is
+ * removed altogether (null).
+ */
+export const withoutGroup = (
+  series: Series,
+  group: string,
+  shownValues: readonly string[] = [],
+): Series | null => {
+  switch (series.kind) {
+    case "field": {
+      const values = shownValues.filter(value => value !== group);
+      return values.length ? { kind: "values", field: series.field, values } : null;
+    }
+    case "values": {
+      const values = series.values.filter(value => value !== group);
+      return values.length ? { ...series, values } : null;
+    }
+    case "buckets": {
+      const buckets = series.buckets.filter(bucket => bucket.name !== group);
+      return buckets.length ? { ...series, buckets } : null;
+    }
     default:
       return null;
   }

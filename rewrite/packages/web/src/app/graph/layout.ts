@@ -162,8 +162,8 @@ export function preferredSize(panel: LayoutPanel, columnsWide: number): GridPos 
   const wide = panel.form === 'matrix' || axisType(panel.x) !== 'numeric' || panel.y !== null;
   const w = wide ? Math.min(12, baseWidth(columnsWide) * 2) : baseWidth(columnsWide);
   // A field expands to up to five groups and Other; chosen values are exact.
-  const additional = panel.series.reduce((n, series) => n + (series.kind === 'field' ? 6 : series.kind === 'values' ? new Set(series.values).size : 1), 0);
-  const chipWidth = panel.series.reduce((n, series) => n + (series.kind === 'field' ? 6 * 160 : series.kind === 'values' ? series.values.reduce((sum, value) => sum + 110 + value.length * 7, 0) : 210), 0);
+  const additional = panel.series.reduce((n, series) => n + (series.kind === 'field' ? 6 : series.kind === 'values' ? new Set(series.values).size : series.kind === 'buckets' ? series.buckets.length : 1), 0);
+  const chipWidth = panel.series.reduce((n, series) => n + (series.kind === 'field' ? 6 * 160 : series.kind === 'values' ? series.values.reduce((sum, value) => sum + 110 + value.length * 7, 0) : series.kind === 'buckets' ? series.buckets.reduce((sum, bucket) => sum + 110 + bucket.name.length * 7, 0) : 210), 0);
   // Reserve one row for the table header, one per pair of added series, and
   // another when the chips exceed the control space at this grid width.
   const wraps = chipWidth > w * 120 - 180;
