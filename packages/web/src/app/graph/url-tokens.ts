@@ -1,6 +1,6 @@
 /** Scalar codecs for the schema-positional, six-bit URL stream. */
 import { MODALITIES, VIEWS, getAuthoredCatalog } from '@mriqc/shared';
-import { FORM_ORDER } from './panel-shapes';
+import { FORM_ORDER } from '../forms/registry';
 import { MAX_BINS, MIN_BINS, defaultPanelOptions } from './state';
 
 export const URL_VERSION = '1';

@@ -1,3 +1,4 @@
+import { formDef } from '../forms/registry';
 import { asColumnId, fieldValueLabel, fieldsFor, type ColumnId, type CoverageResult, type GroupedSummaryResult, type QueryKey, type SampleResult, type SampleRow } from '@mriqc/shared';
 import { queryKey } from '../api/api';
 import type { TopLevelSpec } from 'vega-lite';
@@ -8,8 +9,6 @@ import { withCountRange } from '../panels/specs/axis-ranges';
 import { LIGHT_THEME, OTHER_COLOR, type ChartTheme, type CohortResult, type MetricAxis } from '../panels/specs';
 import { type ChartInput, type ChartOutput } from '../panels/specs/select';
 import { stackedHistogram, COHORTS_DATA } from '../panels/specs/comparison';
-import { categoryChart } from '../panels/specs/categories';
-import { continuousChart } from '../panels/specs/continuous';
 import { timePanelView } from './time-view';
 import { analysisPanelView, type AnalysisRow } from './analysis-view';
 import type { CohortChip } from '../graph/cohorts';
@@ -307,7 +306,7 @@ function sameDeps(a: readonly unknown[], b: readonly unknown[]): boolean {
 
 
 function titleFor(state: State, panel: Panel): string {
-  if (panel.form === 'matrix') return 'Metric correlations';
+  if (formDef(panel.form).metricSet) return 'Metric correlations';
   if (panel.x === 'created_at') return panel.y ? `${metricDef(state, panel.y)?.shortLabel ?? metricDef(state, panel.y)?.label ?? panel.y} over time` : 'Uploads over time';
   if (axisType(panel.x) === 'categorical') return 'Scans per ' + (fieldDef(state, panel.x)?.label ?? panel.x);
   const x = metricDef(state, panel.x), y = metricDef(state, panel.y);
@@ -318,18 +317,18 @@ function titleFor(state: State, panel: Panel): string {
 export function panelView(state: State, id: PanelId, theme: ChartTheme = LIGHT_THEME): PanelView | null {
   const panel = state.panels.find(panel => panel.id === id);
   if (!panel) { memos.delete(id); return null; }
-  const keys = panelKeys(state, panel), total = panel.form === 'table' ? corpusTotal(state) : null;
+  const keys = panelKeys(state, panel), total = formDef(panel.form).table ? corpusTotal(state) : null;
   const deps = [theme, panel, state.global, state.catalog, state.dataVersion, state.selections, state.cohorts, state.study, total, ...keys.map(key => state.datasets[key])];
   const memo = memos.get(id);
   if (memo && sameDeps(memo.deps, deps)) return memo.view;
-  if ((axisType(panel.x) === 'time' && (panel.y !== null || panel.form === 'band')) || (axisType(panel.x) === 'numeric' && panel.y !== null) || panel.form === 'matrix') {
-    const view = (panel.form === 'band' || panel.form === 'lines') ? timePanelView(state, panel, theme) : analysisPanelView(state, panel, theme);
+  if ((axisType(panel.x) === 'time' && (panel.y !== null || formDef(panel.form).countBand)) || (axisType(panel.x) === 'numeric' && panel.y !== null) || formDef(panel.form).metricSet) {
+    const view = formDef(panel.form).spec({ state, panel, theme, projections: { time: timePanelView, analysis: analysisPanelView } });
     const quantityKey = queryKey(cohortQuery(state, panel, panelCohort(state, panel)));
-    const numericStats = axisType(panel.x) === 'numeric' && panel.form !== 'matrix' ? panelStats(state, panel, [quantityKey]) : null;
+    const numericStats = axisType(panel.x) === 'numeric' ? formDef(panel.form).stats(state, panel, [quantityKey], panelStats) : null;
     const derived = { ...view, title: titleFor(state, panel), stats: numericStats ?? view.stats,
       notes: [...view.notes, ...(panel.series.some(series => series.kind === 'study') && studyFormReason(panel, state) ? [studyFormReason(panel, state)!] : [])],
       spec: view.spec ? withChipLegend(view.spec) : null };
-    if (panel.form !== 'clusters') memos.set(id, { deps, view: derived });
+    if (formDef(panel.form).memoize) memos.set(id, { deps, view: derived });
     return derived;
   }
   const cohorts = panelCohorts(state, panel);
@@ -339,26 +338,26 @@ export function panelView(state: State, id: PanelId, theme: ChartTheme = LIGHT_T
   const axis = { ...axisFor(state, panel), theme };
   const numeric = axisType(panel.x) === 'numeric';
   const results = numeric ? cohortResults(state, panel, cohorts) : [];
-  const required = numeric && panel.form !== 'table' ? cohorts.map(cohort => queryKey(cohortQuery(state, panel, cohort))) : keys;
+  const required = numeric && !formDef(panel.form).table ? cohorts.map(cohort => queryKey(cohortQuery(state, panel, cohort))) : keys;
   const status: PanelStatus = keys.length && panelForms(panel).includes(panel.form) ? statusOf(state, keys, required) : { kind: 'empty', message: 'Choose a column and an available form.' };
   const aggregateKey = numeric ? queryKey(cohortQuery(state, panel, panelCohort(state, panel))) : undefined;
   const aggregate = distributionResult(state, aggregateKey);
-  const table = panel.form === 'table' ? tableFor(state, panel, keys) : null;
+  const table = formDef(panel.form).table ? tableFor(state, panel, keys) : null;
   let chart: ChartOutput = { spec: null, datasets: {}, brushable: false, n: aggregate?.n ?? null };
-  let stats = numeric ? panelStats(state, panel, aggregateKey ? [aggregateKey] : []) : null;
+  let stats = numeric ? formDef(panel.form).stats(state, panel, aggregateKey ? [aggregateKey] : [], panelStats) : null;
   let counts: (number | null)[] = results.map(result => result.base?.n ?? null);
   let analysisHeaders: string[] = [], analysisRows: AnalysisRow[] = [];
-  if (numeric && panel.form !== 'table') {
+  if (numeric && !formDef(panel.form).table) {
     const input: ChartInput = { form: panel.form, axis, clip: panel.options.clip, brush: ownSelection(state, panel), groupLabel: 'Series', groupField: null,
       groupOrdered: false, cohortLabel: 'This dashboard', granularity: panel.options.granularity, options: panel.options,
       result: aggregate, cohorts: series, cohortResults: results };
-    chart = continuousChart(input);
-    if (panel.options.layout !== 'overlaid' && panel.series.length && !['histogram', 'line', 'area'].includes(panel.form)) {
+    chart = formDef(panel.form).spec(input);
+    if (panel.options.layout !== 'overlaid' && panel.series.length && !formDef(panel.form).stacked) {
       const stacked = stackedHistogram(axis, series, results, panel.options.layout === 'stacked100');
       chart = { ...chart, spec: stacked.spec, datasets: { [COHORTS_DATA]: stacked.rows } };
     }
     chart.n = aggregate?.n ?? null;
-  } else if (panel.form !== 'table') {
+  } else if (!formDef(panel.form).table) {
     const coverage = (cohort: typeof cohorts[number]) => {
       const query = scopedQuery(state, panel, cohort, 'coverage');
       return query ? resultOf<CoverageResult>(state, queryKey(query)) : null;
@@ -381,10 +380,10 @@ export function panelView(state: State, id: PanelId, theme: ChartTheme = LIGHT_T
         }
         return { id: cohort.id, name: cohort.name, color: colors[index], counts: [...countMap].map(([category, n]) => ({ category, n })) };
       });
-      const rendered = categoryChart(categorySeries, category?.label ?? String(panel.x), panel.form === 'share', countAxisTitle(activeView(state)), theme);
+      const rendered = formDef(panel.form).categorySpec(categorySeries, category?.label ?? String(panel.x), false, countAxisTitle(activeView(state)), theme);
       chart = { ...rendered, brushable: false, n };
     } else {
-      chart = { ...continuousChart({ form: panel.form, axis, clip: 'none', brush: null, groupLabel: 'Series', groupField: null,
+      chart = { ...formDef(panel.form).spec({ form: panel.form, axis, clip: 'none', brush: null, groupLabel: 'Series', groupField: null,
         groupOrdered: false, cohortLabel: cohorts[0]?.name ?? 'This dashboard', granularity: panel.options.granularity,
         options: panel.options, result: null, cohorts: series, cohortResults: [] }, cohorts.map(coverage)), n };
     }
@@ -422,7 +421,7 @@ export function panelView(state: State, id: PanelId, theme: ChartTheme = LIGHT_T
     n: chart.n, countLabel: countLabel(state, panel), stats, xPositive: axisEvidence(state,panel).positive,
     cohorts: panel.series.length ? cohorts.map((cohort, index) => ({ id: cohort.id, name: cohort.name, color: colors[index], n: counts[index] ?? null, editable: false, descriptorKey: cohort.descriptorKey })) : null,
     comparison, splitCohorts: [], outsideNotes: numeric ? outsideRangeNotes(cohorts, results) : [],
-    partial: numeric && panel.form !== 'table' && panel.series.length > 0 && status.kind === 'ready' && results.some(result => result.ranged === null),
+    partial: numeric && !formDef(panel.form).table && panel.series.length > 0 && status.kind === 'ready' && results.some(result => result.ranged === null),
     analysisHeaders, analysisRows,
   };
   memos.set(id, { deps, view });

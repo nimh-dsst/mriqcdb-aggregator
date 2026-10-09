@@ -1,3 +1,5 @@
+import { FORM_DEFS } from '../forms/registry';
+import { commonOptionFields } from '../forms/common-options';
 /**
  * The stream grammar. Every record is one presence bitmap (six optional fields
  * per character), then its non-default values in schema order. Both directions
@@ -387,56 +389,14 @@ const series = list(
 );
 
 const optionDefault = (key: keyof PanelOptions) => () => defaultPanelOptions()[key];
+const optionCodecs = { clampBins, enumeration, pair, roundedNumber, unsigned, optionDefault, tokenCodec,
+  CLIP_TOKENS, bool, GRANULARITY_TOKENS, filterValue, shortText, list, metricToken, exactNumber };
+export type OptionCodecs = typeof optionCodecs;
+/** Form ownership is separate from pinned version-1 wire positions. */
 export const EXTRA_OPTION_FIELDS: Schema = [
-  { field: 'colorScale', codec: enumeration(['linear', 'log', 'sqrt']), default: undefined },
-  { field: 'colorDomain', codec: pair(roundedNumber), default: 'auto' },
-  { field: 'cells', codec: enumeration([30, 60, 120]), default: 60 },
-  { field: 'quantiles', codec: enumeration(['quartiles', 'tails'], 1), default: optionDefault('quantiles') },
-  {
-    field: 'bins',
-    codec: {
-      write: (w, v) => unsigned.write(w, clampBins(v)),
-      read: (r) => clampBins(unsigned.read(r)),
-    },
-    default: optionDefault('bins'),
-  },
-  { field: 'clip', codec: tokenCodec(CLIP_TOKENS), default: optionDefault('clip') },
-  {
-    field: 'yMode',
-    codec: enumeration(['count', 'share', 'logCount']),
-    default: optionDefault('yMode'),
-  },
-  { field: 'useSelection', codec: bool, default: optionDefault('useSelection') },
-  {
-    field: 'granularity',
-    codec: tokenCodec(GRANULARITY_TOKENS),
-    default: optionDefault('granularity'),
-  },
-  {
-    field: 'splitPresentation',
-    codec: enumeration(['overlay', 'facets']),
-    default: optionDefault('splitPresentation'),
-  },
-  { field: 'cumulative', codec: bool, default: optionDefault('cumulative') },
-  { field: 'share', codec: bool, default: optionDefault('share') },
-  {
-    field: 'coverageWindow',
-    codec: enumeration(['all', '12m', '5y', 'custom']),
-    default: optionDefault('coverageWindow'),
-  },
-  { field: 'coverageCustom', codec: pair(filterValue), default: optionDefault('coverageCustom') },
-  { field: 'coverageLogY', codec: bool, default: optionDefault('coverageLogY') },
-  { field: 'boxSort', codec: enumeration(['median', 'n']), default: optionDefault('boxSort') },
-  { field: 'coefficient', codec: enumeration(['spearman', 'pearson']), default: undefined },
-  { field: 'family', codec: shortText, default: undefined },
-  { field: 'metrics', codec: list(metricToken, 63), default: undefined },
-  { field: 'sampleSize', codec: exactNumber, default: undefined },
-  { field: 'seed', codec: exactNumber, default: undefined },
-  { field: 'k', codec: unsigned, default: undefined },
-  { field: 'showPoints', codec: bool, default: undefined },
-  { field: 'clusterOrder', codec: bool, default: undefined },
-  { field: 'clusterSplit', codec: bool, default: undefined },
-];
+  ...commonOptionFields(optionCodecs),
+  ...FORM_DEFS.flatMap(def => def.options.url(optionCodecs)),
+].sort((a, b) => a.slot - b.slot);
 const extraDefaults = () =>
   Object.fromEntries(
     EXTRA_OPTION_FIELDS.map((field) => [field.field, fallback(field, {} as Context)]),

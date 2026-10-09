@@ -107,7 +107,6 @@ export interface ChartOutput {
   degenerateNote?: string;
 }
 
-const EMPTY_DATASETS: Readonly<Record<string, readonly unknown[]>> = {};
 
 /**
  * A ready result, only if it actually looks like a `DistributionResult`.
@@ -434,9 +433,9 @@ export function groupedChart(input: ChartInput): ChartOutput {
 }
 
 /** The raw drill-down draws no Vega chart at all; the CDK table has the rows. */
-export function sampleChart(): ChartOutput {
-  return { spec: null, datasets: EMPTY_DATASETS, brushable: false, n: null };
-}
+export { sampleChart } from '../table/spec';
+
+
 
 /**
  * One metric across cohorts: overlaid silhouettes, one ECDF line each, or a box

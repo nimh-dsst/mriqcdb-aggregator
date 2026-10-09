@@ -1,7 +1,8 @@
 import type { CoverageResult } from '@mriqc/shared';
 import { comparisonChart, distributionChart, type ChartInput, type ChartOutput } from './select';
 import { distributionBins } from './rows';
-import { countsSpec } from '../line/counts';
+import { lineSpec } from '../line/spec';
+import { areaSpec } from '../area/spec';
 import { continuousAxisSpec } from './continuous-axis';
 import { stackedHistogram } from './comparison';
 import { coverageBins, coverageDistribution, timeBinValue } from './time-bins';
@@ -32,7 +33,7 @@ export function continuousChart(input: ChartInput, coverage?: readonly (Coverage
       return distributionBins(result).map(bin => ({ ...bin, cohort: cohort.id, label: cohort.name,
         value: (bin.lo + bin.hi) / 2, share: total ? bin.count / total : 0 }));
     });
-    chart = { spec: countsSpec(input.axis, input.form as 'line' | 'area', input.cohorts, input.options.layout),
+    chart = { spec: (input.form === 'area' ? areaSpec : lineSpec)(input.axis, input.cohorts, input.options.layout),
       datasets: { counts: rows }, brushable: false, n: distributions?.[0]?.n ?? (input.result as { n?: number } | null)?.n ?? null };
   } else {
     chart = input.cohorts.length > 1 ? comparisonChart(resolved) : distributionChart(resolved);

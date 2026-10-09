@@ -1,3 +1,4 @@
+import { formDef } from '../forms/registry';
 import { getAuthoredCatalog, asColumnId, fieldsFor, metricsFor, fieldValueLabel, isNoneValue, NONE_FILTER_VALUE,
   type ClipMode, type ColumnId, type DistributionResult, type Density2dResult, type Filter, type QueryKey, type Selection,
   type BinnedSummaryQuery, type BinnedSummaryResult } from '@mriqc/shared';
@@ -21,7 +22,7 @@ export function studyFormReason(panel: Panel, state: State): string | null {
   const study = state.study;
   if (typeof study !== 'object' || study.status !== 'ready') return null;
   const columns = study.columns ?? study.metrics;
-  if (panel.form === 'matrix') {
+  if (formDef(panel.form).metricSet) {
     const metrics = correlationMetrics(panel, state.global.modality);
     const available = metrics.filter(metric => study.metrics.includes(metric));
     if (panel.options.family === 'custom' && available.length !== metrics.length) return 'your file is missing a selected metric';
@@ -139,7 +140,7 @@ export function coverageFilters(
 export function cohortQuery(state: State, panel: Panel, cohort: Cohort, range?: readonly [number, number]): Extract<Query, { proc: 'distribution' }> {
   if (!panel.series.length && panel.options.xRange !== 'auto') range ??= panel.options.xRange;
   return { source: cohort.source, proc: 'distribution', metric: panel.x as ColumnId,
-    bins: panel.form === 'density' ? DENSITY_BINS : panel.options.bins, clip: panel.options.clip,
+    bins: formDef(panel.form).distributionBins(panel), clip: panel.options.clip,
     modality: state.global.modality, view: cohort.view, filters: cohort.filters, selections: cohort.selections,
     ...(range ? { range: [range[0], range[1]] } : {}) };
 }
@@ -249,7 +250,7 @@ export function scopedQuery(state: State, panel: Panel, cohort: Cohort, proc: Qu
         filters: panel.x === 'created_at' ? coverageFilters(cohort.filters, panel) : cohort.filters,
       } : null;
     case 'density2d': return panel.y ? { ...scoped, proc, x: panel.x as ColumnId, y: panel.y, grid: panel.options.cells ?? 60, bins: 120, clip: panel.options.clip,
-      sampleSize: panel.form === 'clusters' ? panel.options.sampleSize ?? 20000 : 2000, seed: panel.options.seed ?? 42 } : null;
+      sampleSize: formDef(panel.form).densitySampleSize(panel), seed: panel.options.seed ?? 42 } : null;
     case 'correlation': {
       let metrics = correlationMetrics(panel, state.global.modality);
       if (cohort.source === 'study' && typeof state.study === 'object' && state.study.status === 'ready' && panel.options.family !== 'custom') {
@@ -268,52 +269,12 @@ export function countBandQuery(state: State, panel: Panel, cohort: Cohort): Quer
   return query?.proc === 'coverage' ? { ...query, granularity: fineGranularity(panel.options.granularity) } : null;
 }
 export function isCountBand(panel: Panel): boolean {
-  return panel.form === 'band' && panel.y === null && axisType(panel.x) === 'time';
+  return formDef(panel.form).countBand && panel.y === null && axisType(panel.x) === 'time';
 }
 
 export function panelQueries(state: State, panel: Panel): readonly Query[] {
   if (!panelForms(panel).includes(panel.form)) return [];
-  const cohorts = panelCohorts(state, panel);
-  const query = (cohort: Cohort, proc: Query['proc']) => scopedQuery(state, panel, cohort, proc);
-  if (isCountBand(panel)) {
-    return [...cohorts, ...(groupingSeries(panel) ? [panelCohort(state, panel)] : [])]
-      .flatMap(cohort => { const q = countBandQuery(state, panel, cohort); return q ? [q] : []; });
-  }
-  if (panel.form === 'table') {
-    return [
-      ...samplePages(state, panel).map(page => page.query),
-      ...[...cohorts, ...(groupingSeries(panel) ? [panelCohort(state, panel)] : [])].flatMap(cohort => {
-        const q = query(cohort, axisType(panel.x) === 'numeric' ? 'distribution' : 'coverage');
-        return q ? [q] : [];
-      }),
-    ];
-  }
-  if (panel.form === 'matrix') return cohorts.flatMap(cohort => { const q = query(cohort, 'correlation'); return q ? [q] : []; });
-  if (panel.y) return [
-    ...(panel.form === 'band' || panel.form === 'lines' ? binnedQueries(state, panel) : densityQueries(state, panel)),
-    ...(axisType(panel.x) === 'numeric' ? [cohortQuery(state, panel, panelCohort(state, panel))] : []),
-  ];
-  if (axisType(panel.x) === 'time' || axisType(panel.x) === 'categorical') {
-    const proc = axisType(panel.x) === 'categorical' ? 'groupedSummary' : 'coverage';
-    const results = cohorts.flatMap(cohort => { const q = query(cohort, proc); return q ? [q] : []; });
-    // groupedSummary counts finite metric values. Coverage supplies exact row counts, including missing metrics.
-    if (axisType(panel.x) === 'categorical') results.push(...cohorts.flatMap(cohort => { const q = query(cohort, 'coverage'); return q ? [q] : []; }));
-    if (groupingSeries(panel)) {
-      const aggregate = query(panelCohort(state, panel), proc);
-      if (aggregate) results.push(aggregate);
-      if (axisType(panel.x) === 'categorical') {
-        const count = query(panelCohort(state, panel), 'coverage');
-        if (count) results.push(count);
-      }
-    }
-    return results;
-  }
-  if (!panel.series.length) return [cohortQuery(state, panel, panelCohort(state, panel))];
-  const base = cohorts.map(cohort => cohortQuery(state, panel, cohort));
-  const range = panelSharedRange(state, panel, cohorts);
-  const queries: Query[] = range ? [...base, ...cohorts.map(cohort => cohortQuery(state, panel, cohort, range))] : [...base];
-  if (groupingSeries(panel)) queries.push(cohortQuery(state, panel, panelCohort(state, panel)));
-  return queries;
+  return formDef(panel.form).queries(state, panel, { panelCohorts, panelCohort, scopedQuery, samplePages, groupingSeries, countBandQuery, cohortQuery, panelSharedRange, binnedQueries, densityQueries });
 }
 
 /** Each pagination round carries an independent cursor for every displayed series. */
@@ -365,13 +326,10 @@ export function densityQueries(state: State, panel: Panel): readonly Extract<Que
   return range.x[1] <= range.x[0] || range.y[1] <= range.y[0] ? base : [...base, ...base.map(query => ({ ...query, range }))];
 }
 export function clusterKey(state: State, panel: Panel, index = 0): string | null {
-  if (panel.form !== 'clusters') return null;
-  const query = densityQueries(state, panel)[index];
-  return query ? `clusters/${queryKey(query)}/k=${panel.options.k ?? 3}/seed=${panel.options.seed ?? 42}` : null;
+  return formDef(panel.form).localKey?.(state, panel, index, { panelCohorts, panelCohort, scopedQuery, samplePages, groupingSeries, countBandQuery, cohortQuery, panelSharedRange, binnedQueries, densityQueries }) ?? null;
 }
-
 export function clusterKeys(state: State, panel: Panel): readonly string[] {
-  return panel.form === 'clusters' ? panelCohorts(state, panel).flatMap((_, index) => {
+  return formDef(panel.form).localKey ? panelCohorts(state, panel).flatMap((_, index) => {
     const key = clusterKey(state, panel, index); return key ? [key] : [];
   }) : [];
 }

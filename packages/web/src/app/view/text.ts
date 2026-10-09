@@ -1,3 +1,4 @@
+import { formDef } from '../forms/registry';
 import { axisType } from '../graph/panel-shapes';
 /**
  * The words a card says, and the numbers in them.
@@ -189,21 +190,7 @@ export function panelMeaning(input: MeaningInput): string {
   const unit = unitNoun(input.view);
   const metric = input.metricLabel ? metricPhrase(input.metricLabel, input.metricDescription, input.metricUnit) : 'values';
   const across = (input.cohortCount ?? 0) > 1 ? `, across ${input.cohortCount} series` : '';
-  if (input.form === 'table') return `The individual ${unit} behind these charts, most recent first.`;
-  if (input.x === 'created_at') {
-    if (input.form === 'band') return `${metric} over upload time: median and middle half${across}.`;
-    if (input.form === 'lines') return `${metric} over upload time: 5th, 50th and 95th percentiles${across}.`;
-    if (input.form === 'ecdf') return `Cumulative share of ${unit} uploaded by each date${across}.`;
-    if (input.form === 'density') return `Smoothed ${unit} counts per ${input.granularity}${across}.`;
-    if (input.form === 'box') return `Spread of upload dates, approximated from ${input.granularity} counts${across}.`;
-    return `${unit[0].toUpperCase() + unit.slice(1)} uploaded per ${input.granularity}${across}.`;
-  }
-  if (input.form === 'bars' || input.form === 'share') return `${input.form === 'share' ? 'Share' : 'Number'} of ${unit} per ${input.groupLabel ?? 'category'}${across}.`;
-  if (input.form === 'ecdf') return `Share of ${unit} at or below each value of ${metric}${across}.`;
-  if (input.form === 'density') return `Smoothed share of ${unit} at each value of ${metric}${across}.`;
-  if (input.form === 'histogram') return `How many ${unit} fall in each range of ${metric}${across}.`;
-  if (input.form === 'line' || input.form === 'area') return `${input.form === 'area' && (input.cohortCount ?? 0) > 1 ? 'Share' : 'Number'} of ${unit} per bin of ${metric}${across}.`;
-  return `Spread of ${metric}${across}.`;
+  return formDef(input.form).meaning(input, unit, metric, across);
 }
 
 /* ------------------------------------------------------- notes and the clip */
@@ -239,7 +226,7 @@ export const CLIP_CHIP: Record<ClipMode, string> = {
  * should mean: someone changed this.
  */
 export function clipChip(clip: ClipMode, metric: MetricDef | null, panel: Panel): string | null {
-  if (axisType(panel.x) !== 'numeric' || panel.form === 'table' || panel.form === 'matrix') return null;
+  if (axisType(panel.x) !== 'numeric' || !formDef(panel.form).clip) return null;
   if (clip === (metric?.clipDefault ?? 'p01p99')) return null;
   return CLIP_CHIP[clip];
 }
@@ -258,5 +245,5 @@ export function clipChip(clip: ClipMode, metric: MetricDef | null, panel: Panel)
  */
 export function countLabel(state: State, panel: Panel): string {
   const noun = viewNoun(state.global.modality, activeView(state));
-  return axisType(panel.x) === 'numeric' && panel.form !== 'table' ? `${noun} with a value` : noun;
+  return axisType(panel.x) === 'numeric' && formDef(panel.form).countWithValue ? `${noun} with a value` : noun;
 }

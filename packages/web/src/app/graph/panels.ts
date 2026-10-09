@@ -1,10 +1,13 @@
+import type { PanelOptions } from '../forms/options';
+import { FORM_DEFS } from '../forms/registry';
+import { validateCommonOptions } from '../forms/common-options';
 import { asColumnId, getAuthoredCatalog, isValidField, isValidMetric, metricsFor, type Modality, type View } from '@mriqc/shared';
 import { evict } from './datasets';
 import { panelCohorts } from './queries';
 import type { PanelPatch } from './commands';
 import { axisType, formsFor, panelFormAvailability, validForm, brushable } from './panel-shapes';
 import { normalizeSeries, seriesDisabledReason, seriesKey, type Series } from './series';
-import { FIRST_PAGE, defaultPanelOptions, type ColumnRef, type Panel, type PanelId, type PanelOptions, type State } from './state';
+import { FIRST_PAGE, defaultPanelOptions, type ColumnRef, type Panel, type PanelId, type State } from './state';
 import { clampBins } from './url-tokens';
 
 export function seriesContext(state: State) {
@@ -93,37 +96,11 @@ export function normalizedOptions(panel: Panel, patch: Partial<PanelOptions>, mo
   const legacy = options as PanelOptions & { logScale?: boolean };
   if (legacy.logScale === true && !('xScale' in panel.options)) options.xScale = 'log';
   delete legacy.logScale;
-  if (options.colorScale !== undefined && !['linear', 'log', 'sqrt'].includes(options.colorScale)) delete options.colorScale;
-  if (options.cells !== undefined && ![30, 60, 120].includes(options.cells)) delete options.cells;
-  if (options.colorDomain !== undefined) {
-    const domain = options.colorDomain;
-    options.colorDomain = Array.isArray(domain) && domain.length === 2 && domain.every(Number.isFinite) && domain[0] < domain[1]
-      ? [domain[0], domain[1]] : 'auto';
-    if ((options.colorScale ?? (panel.form === 'matrix' ? 'linear' : 'log')) === 'log' && options.colorDomain !== 'auto' && options.colorDomain[0] <= 0) options.colorDomain = 'auto';
-  }
-  for (const key of ['xScale', 'yScale'] as const) if (!['linear', 'log', 'symlog'].includes(options[key])) options[key] = 'linear';
-  for (const key of ['xRange', 'yRange'] as const) {
-    const range = options[key];
-    options[key] = Array.isArray(range) && range.length === 2 && range.every(Number.isFinite) && range[0] !== range[1]
-      ? [Math.min(...range), Math.max(...range)] : 'auto';
-  }
-  if (!['count', 'share', 'logCount'].includes(options.yMode)) options.yMode = 'count';
-  options.quantiles = options.quantiles === 'tails' ? 'tails' : 'quartiles';
-  if (!canStack(panel) || !['stacked', 'stacked100'].includes(options.layout)) options.layout = 'overlaid';
-  if (options.coefficient !== undefined) options.coefficient = options.coefficient === 'pearson' ? 'pearson' : 'spearman';
-  options.bins = clampBins(options.bins);
-  options.splitPresentation = options.splitPresentation === 'facets' ? 'facets' : 'overlay';
-  if (!['12m', '5y', 'custom'].includes(options.coverageWindow)) options.coverageWindow = 'all';
-  if (!Array.isArray(options.coverageCustom) || options.coverageCustom.length !== 2 || !options.coverageCustom.every(d => typeof d === 'string')) options.coverageCustom = null;
-  else if (options.coverageCustom[0] > options.coverageCustom[1]) options.coverageCustom = [options.coverageCustom[1], options.coverageCustom[0]];
-  options.boxSort = options.boxSort === 'n' ? 'n' : 'median';
-  for (const key of ['cumulative','share','coverageLogY'] as const) options[key] = options[key] === true;
-  if (options.k !== undefined) options.k = Math.max(2, Math.min(8, Math.round(Number(options.k)) || 3));
-  if (options.seed !== undefined) options.seed = Math.max(0, Math.min(2147483647, Math.round(Number(options.seed)) || 0));
-  if (options.sampleSize !== undefined) options.sampleSize = Math.max(1, Math.min(20000, Math.round(Number(options.sampleSize)) || 20000));
-  if (options.metrics !== undefined) options.metrics = Array.isArray(options.metrics) ? [...new Set(options.metrics)].filter(m => typeof m === 'string' && (!modality || isValidMetric(modality, m))).slice(0,24) : [];
-  if (options.family !== undefined && typeof options.family !== 'string') delete options.family;
-  for (const key of ['showPoints','clusterOrder','clusterSplit'] as const) if (options[key] !== undefined) options[key] = options[key] === true;
+  validateCommonOptions(options, panel);
+  // Inactive bags survive form changes and have always been normalized too.
+  for (const def of FORM_DEFS) def.options.validate(options, panel, {
+    modality, clampBins, colorScale: FORM_DEFS.find(def => def.id === panel.form)?.metricSet ? 'linear' : 'log',
+  });
   return options;
 }
 
