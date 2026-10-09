@@ -1,0 +1,61 @@
+@let panel = this.panel();
+@if (drawer()) {
+          @if (numericX()) {
+            <button type="button" class="btn btn-quiet" (click)="openMetricSet()">Metric correlations</button>
+          }
+          @if (metricSetOpen()) {
+            <mat-select aria-label="Metric set" multiple [value]="correlationMetrics()" (selectionChange)="setCorrelationMetrics($event.value)">
+              @for (metric of metrics(); track metric.id) { <mat-option [value]="metric.id">{{ metric.label }}</mat-option> }
+            </mat-select>
+            <button type="button" class="btn" [disabled]="correlationMetrics().length < 2" (click)="applyMetricSet()">Create matrix</button>
+          }
+} @else {
+    @if (panel.form === 'matrix') {
+      <section class="space-y-2 border-b border-border p-2" title="Metric correlations">
+        <div class="flex items-center gap-2">
+          <span class="text-caption text-ink-2">Metric correlations</span>
+          <button
+            type="button"
+            class="min-h-9 rounded border border-border px-2 text-control text-ink"
+            (click)="openMetricSet()"
+          >
+            Metric set…
+          </button>
+          <label class="text-caption text-ink-2">
+            Coefficient
+            <select
+              class="ml-1 rounded border border-border bg-surface px-1 py-1 text-control text-ink"
+              [value]="panel.options.coefficient" (change)="patch.emit({coefficient: $any($event.target).value})"
+            >
+              <option value="spearman">Spearman</option>
+              <option value="pearson">Pearson</option>
+            </select>
+          </label>
+        </div>
+        @if (metricSetOpen()) {
+          <div class="flex items-end gap-2">
+            <mat-select
+              class="min-w-64 rounded border border-border px-2 py-1 text-control text-ink"
+              aria-label="Metric set"
+              multiple
+              [value]="correlationMetrics()"
+              (selectionChange)="setCorrelationMetrics($event.value)"
+            >
+              @for (metric of metrics(); track metric.id) {
+                <mat-option [value]="metric.id">{{ metric.shortLabel || metric.label }}</mat-option>
+              }
+            </mat-select>
+            <button
+              type="button"
+              class="min-h-9 rounded border border-border px-2 text-control text-ink disabled:opacity-50"
+              [disabled]="correlationMetrics().length < 2"
+              (click)="applyMetricSet()"
+            >
+              Create matrix
+            </button>
+          </div>
+        }
+      </section>
+    }
+
+}

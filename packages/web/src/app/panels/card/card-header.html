@@ -1,0 +1,80 @@
+@let panel = this.panel();
+    <header class="flex min-h-12 min-w-0 items-center gap-1 px-4 pt-3 pb-1">
+      <button
+        type="button"
+        class="metric-title inline-flex min-w-0 flex-1 items-center gap-2 text-left text-title font-semibold text-ink"
+        data-testid="metric-title" [title]="view()?.title ?? panel.x" aria-haspopup="dialog" [attr.aria-expanded]="columnPickerOpen()"
+        #columnButton
+        [attr.aria-label]="'Change column: ' + (view()?.title ?? panel.x)"
+        (click)="toggleColumnPicker()"
+      >
+        <span class="truncate">{{ view()?.title ?? panel.x }}</span>
+        <lucide-icon class="metric-pencil" name="pencil" [size]="13" aria-hidden="true" />
+      </button>
+
+      <button
+        type="button"
+        class="inline-flex min-h-9 min-w-9 shrink-0 items-center justify-center text-ink-2"
+        data-grid-drag
+        aria-label="Move panel (drag, or arrow keys)"
+      >
+        <lucide-icon name="grip-vertical" [size]="15" aria-hidden="true" />
+      </button>
+
+      <button
+        type="button"
+        class="inline-flex min-h-9 min-w-9 items-center justify-center text-ink-2"
+        [attr.aria-label]="maximized() ? 'Minimize' : 'Maximize'"
+        (click)="maximize.emit()"
+      >
+        <lucide-icon
+          [name]="maximized() ? 'minimize-2' : 'maximize-2'"
+          [size]="15"
+          aria-hidden="true"
+        />
+      </button>
+      <button
+        type="button"
+        class="inline-flex min-h-9 min-w-9 items-center justify-center text-ink-2"
+        aria-label="Panel options"
+        aria-haspopup="menu" [attr.aria-expanded]="optionsOpen()"
+        (click)="openOptions()"
+        #optionsButton
+      >
+        <lucide-icon name="sliders-horizontal" [size]="15" aria-hidden="true" />
+      </button>
+      <button
+        type="button"
+        class="inline-flex min-h-9 min-w-9 items-center justify-center text-ink-2"
+        aria-label="Remove panel"
+        (click)="removed.emit()"
+      >
+        <lucide-icon name="x" [size]="15" aria-hidden="true" />
+      </button>
+
+      <ng-template #columnTemplate>
+        <div class="column-drawer" data-testid="metric-popover" role="dialog" aria-modal="true" aria-label="Choose column" cdkTrapFocus [cdkTrapFocusAutoCapture]="true">
+          <app-series-chips [panel]="panel" [controls]="controls()" [legend]="panel.series.length ? legend() : []" [editing]="true"
+            [isolatedId]="isolatedId()" (isolatedChange)="isolatedChange.emit($event)"
+            (added)="added.emit($event)" (removed)="seriesRemoved.emit($event)" (patch)="patch.emit($event)"
+            (newGroup)="newGroup.emit()" (groupAction)="groupAction.emit($event)" />
+          <app-column-picker
+            [metrics]="controls().metrics"
+            [fields]="controls().fields"
+            [selected]="panel.x"
+            [drawer]="true"
+            [focusY]="focusSecondMetric()"
+            [panelId]="panel.id"
+    [y]="panel.y"
+            [pendingForm]="pendingForm()"
+            (closed)="closeColumnPicker()"
+          >
+          <app-matrix-control [panel]="panel" [metrics]="controls().metrics" [drawer]="true" [(draft)]="matrixDraft" (applied)="applyMatrix($event)" />
+          </app-column-picker>
+        </div>
+      </ng-template>
+    </header>
+
+<ng-template #optionsTemplate>
+  <app-card-options [panel]="panel" (patch)="options.emit($event)" (axis)="openAxis($event)" />
+</ng-template>

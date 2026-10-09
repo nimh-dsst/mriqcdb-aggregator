@@ -1,0 +1,9 @@
+@let panelView = view();
+      <div class="flex flex-none items-baseline gap-3 px-4 py-3 text-caption leading-4 text-ink-2">
+        <p class="mr-auto">
+          @if (panelView.subtitle) { <span data-testid="panel-shown">{{ panelView.subtitle }}</span> }
+          @if (panelView.n !== null) { <span class="tnum cursor-help" data-testid="panel-count" tabindex="0" [title]="(panelView.n | number) + ' ' + panelView.countLabel" [attr.aria-label]="(panelView.n | number) + ' ' + panelView.countLabel">{{ panelView.n | number }}</span> }
+          @for (note of panelView.notes; track note) { <span data-testid="panel-note">&#160;· {{ note }}</span> }
+          @if (panelView.clipChip; as clip) { <span class="chip chip-quiet ml-1" data-testid="panel-clip">{{ clip }}</span> }
+        </p>
+      </div>

@@ -1,0 +1,76 @@
+@let panelView = view();
+        @if (statsOpen() && panelView.stats; as stats) {
+          <div class="stat-row-container flex-none border-t border-border">
+            <div class="stat-row py-3" data-testid="panel-stats">
+              @for (stat of stats; track stat.label) {
+                <div class="stat-cell" [attr.data-stat]="stat.label">
+                  <span class="stat-label" [title]="stat.title" tabindex="0">{{ stat.label }}</span>
+                  <span class="stat-value">{{ stat.value }}</span>
+                </div>
+              }
+            </div>
+          </div>
+        }
+<ng-content />
+        @if (statsOpen() && (panelView.comparison || panelView.analysisRows?.length)) {
+        <div class="min-h-0 shrink overflow-auto" style="flex: 0 1 auto" tabindex="0" role="region" [attr.aria-label]="panelView.title + ' series statistics'">
+          @if (panelView.comparison; as comparison) {
+            <table class="w-full whitespace-nowrap text-left text-[12px] leading-6 tabular-nums [&_tr]:h-6 [&_th]:px-1 [&_td]:px-1" data-testid="comparison-table">
+              <thead>
+                <tr>
+                  @for (header of comparison.headers; track header) {
+                    <th class="text-left text-ink-2" [title]="header === 'IQR' ? 'p25–p75' : header === 'Δmedian/IQR' ? 'Median shift as a share of the first row’s IQR' : header === 'KS' ? 'Approximate KS distance vs the first row, at histogram resolution' : header">{{ header }}</th>
+                  }
+                </tr>
+              </thead>
+              <tbody>
+                @for (row of comparison.rows; track row.id) {
+                  <tr>
+                    <th class="text-left font-normal">
+                      <span class="mr-1 inline-block size-2 rounded-full" [style.background-color]="row.color"></span>
+                      {{ row.name }}
+                    </th>
+                    @for (cell of row.cells; track $index) {
+                      <td>{{ cell }}</td>
+                    }
+                  </tr>
+                }
+              </tbody>
+            </table>
+          }
+
+          @if (panelView.analysisRows?.length) {
+            <table class="w-full whitespace-nowrap text-left text-[12px] leading-6 tabular-nums [&_tr]:h-6 [&_th]:px-1 [&_td]:px-1">
+              <thead>
+                <tr>
+                  <th class="text-left text-ink-2">Series</th>
+                  @for (header of panelView.analysisHeaders; track header) {
+                    <th class="text-left text-ink-2">{{ header }}</th>
+                  }
+                </tr>
+              </thead>
+              <tbody>
+                @for (row of panelView.analysisRows; track row.name) {
+                  <tr>
+                    <th class="text-left font-normal">
+                      <span class="mr-1 inline-block size-2 rounded-full" [style.background-color]="row.color"></span>
+                      {{ row.name }}
+                    </th>
+                    @for (cell of row.cells; track $index) {
+                      <td>{{ cell }}</td>
+                    }
+                  </tr>
+                }
+              </tbody>
+            </table>
+          }
+
+
+        </div>
+        }
+        @if ((statsOpen() || !panelView.analysisRows?.length) && panelView.analysisNote) { <p class="flex-none pt-2 text-caption text-ink-2" data-testid="analysis-note">{{ panelView.analysisNote }}</p> }
+        @if (panelView.correlationPairs?.length) {
+          <details class="correlation-pairs flex-none text-caption"><summary>Inspect a metric pair</summary>
+            <div class="flex max-h-32 flex-wrap gap-2 overflow-auto py-2">@for (pair of panelView.correlationPairs; track pair.label) { <button type="button" class="btn" (click)="this.pair.emit(pair)">{{ pair.label }}</button> }</div>
+          </details>
+        }

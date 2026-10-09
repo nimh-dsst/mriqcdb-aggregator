@@ -3,481 +3,57 @@
     class="panel-box relative flex h-full min-h-0 min-w-0 flex-col overflow-hidden rounded-card border border-border bg-surface text-ink"
     [attr.data-panel-id]="panel.id" [attr.aria-label]="view()?.title"
     [attr.data-panel-form]="panel.form"
-    (elementcontext)="openElementContext($event)"
-    data-testid="panel-card" cdkOverlayOrigin #contextOrigin="cdkOverlayOrigin"
+    (elementcontext)="axisMenu.openElement($event)"
+    data-testid="panel-card"
     [attr.data-columns]="columns()"
     tabindex="0"
     (keydown.escape)="onEscape()"
   >
-    <header class="flex min-h-12 min-w-0 items-center gap-1 px-4 pt-3 pb-1">
-      <button
-        type="button"
-        class="metric-title inline-flex min-w-0 flex-1 items-center gap-2 text-left text-title font-semibold text-ink"
-        data-testid="metric-title" [title]="view()?.title ?? panel.x" aria-haspopup="dialog" [attr.aria-expanded]="columnPickerOpen()"
-        cdkOverlayOrigin
-        #columnOrigin="cdkOverlayOrigin"
-        [attr.aria-label]="'Change column: ' + (view()?.title ?? panel.x)"
-        (click)="toggleColumnPicker()"
-      >
-        <span class="truncate">{{ view()?.title ?? panel.x }}</span>
-        <lucide-icon class="metric-pencil" name="pencil" [size]="13" aria-hidden="true" />
-      </button>
-
-      <button
-        type="button"
-        class="inline-flex min-h-9 min-w-9 shrink-0 items-center justify-center text-ink-2"
-        data-grid-drag
-        aria-label="Move panel (drag, or arrow keys)"
-      >
-        <lucide-icon name="grip-vertical" [size]="15" aria-hidden="true" />
-      </button>
-
-      <button
-        type="button"
-        class="inline-flex min-h-9 min-w-9 items-center justify-center text-ink-2"
-        [attr.aria-label]="maximized() ? 'Minimize' : 'Maximize'"
-        (click)="toggleMaximized()"
-      >
-        <lucide-icon
-          [name]="maximized() ? 'minimize-2' : 'maximize-2'"
-          [size]="15"
-          aria-hidden="true"
-        />
-      </button>
-      <button
-        type="button"
-        class="inline-flex min-h-9 min-w-9 items-center justify-center text-ink-2"
-        aria-label="Panel options"
-        [matMenuTriggerFor]="optionsMenu"
-        #optionsTrigger="matMenuTrigger"
-        #optionsButton
-      >
-        <lucide-icon name="sliders-horizontal" [size]="15" aria-hidden="true" />
-      </button>
-      <button
-        type="button"
-        class="inline-flex min-h-9 min-w-9 items-center justify-center text-ink-2"
-        aria-label="Remove panel"
-        (click)="removePanel()"
-      >
-        <lucide-icon name="x" [size]="15" aria-hidden="true" />
-      </button>
-
-      <ng-template
-        cdkConnectedOverlay
-        [cdkConnectedOverlayOrigin]="columnOrigin"
-        [cdkConnectedOverlayOpen]="columnPickerOpen()"
-        [cdkConnectedOverlayHasBackdrop]="true"
-        [cdkConnectedOverlayPush]="true"
-        [cdkConnectedOverlayViewportMargin]="16"
-        (backdropClick)="columnPickerOpen.set(false)"
-        (overlayKeydown)="$event.key === 'Escape' && columnPickerOpen.set(false)"
-        (detach)="columnPickerOpen.set(false)"
-      >
-        <div class="column-drawer" data-testid="metric-popover" role="dialog" aria-modal="true" aria-label="Choose column" cdkTrapFocus [cdkTrapFocusAutoCapture]="true">
-          <app-compare-input
-            [studyFormReason]="studyCapabilityReason()"
-            [series]="panel.series"
-            [legend]="panel.series.length ? legend() : []"
-            [isolated]="isolatedId()"
-            (isolatedChange)="isolatedId.set($event)"
-            [fields]="fields()"
-            [groups]="groups()"
-            [fieldValues]="fieldValues()"
-            [studyReady]="studyReady()"
-            [dateRange]="dateRange()"
-            (added)="addSeries($event)"
-            (removed)="removeSeries($event)"
-            (groupRemoved)="removeGroup($event)"
-            (splitApplied)="applySplit($event)"
-            [metrics]="metrics()"
-            (newGroup)="createGroup()"
-            (groupAction)="groupAction($event)"
-          />
-          <app-column-picker
-            [metrics]="metrics()"
-            [fields]="fields()"
-            [selected]="panel.x"
-            [drawer]="true"
-            [focusY]="focusSecondMetric()"
-            [panelId]="panel.id"
-    [y]="panel.y"
-            [pendingForm]="pendingForm()"
-            (closed)="closeColumnPicker()"
-          >
-          @if (numericX()) {
-            <button type="button" class="btn btn-quiet" (click)="openMetricSet()">Metric correlations</button>
-          }
-          @if (metricSetOpen()) {
-            <mat-select aria-label="Metric set" multiple [value]="correlationMetrics()" (selectionChange)="setCorrelationMetrics($event.value)">
-              @for (metric of metrics(); track metric.id) { <mat-option [value]="metric.id">{{ metric.label }}</mat-option> }
-            </mat-select>
-            <button type="button" class="btn" [disabled]="correlationMetrics().length < 2" (click)="applyMetricSet()">Create matrix</button>
-          }
-          </app-column-picker>
-        </div>
-      </ng-template>
-    </header>
-
-    <div class="panel-controls min-w-0 gap-2 px-4 py-2">
-      <div class="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1 text-caption" role="group" aria-label="Legend" data-testid="panel-legend">
-        @for (item of legend(); track item.id) {
-          <button type="button" class="inline-flex min-h-8 items-center gap-1.5 text-ink"
-            [class.opacity-50]="isolatedId() !== null && isolatedId() !== item.id"
-            [attr.aria-pressed]="isolatedId() === item.id"
-            (click)="isolatedId.set(isolatedId() === item.id ? null : item.id)" (dblclick)="isolatedId.set(null)">
-            <span class="inline-block size-2.5 rounded-full" [style.background]="item.color" aria-hidden="true"></span>
-            {{ item.name }}
-            @if (item.n !== null) { <span class="text-ink-2">{{ item.n | number }}</span> }
-          </button>
-        }
-        <button type="button" class="inline-flex min-h-8 items-center gap-1 text-ink-2 hover:text-ink" (click)="toggleColumnPicker()" data-testid="edit-groups"
-          [attr.aria-label]="legend().length ? 'Edit groups' : 'Compare'" [title]="legend().length ? 'Edit groups' : 'Compare'">
-          <lucide-icon [name]="legend().length ? 'pencil' : 'plus'" [size]="13" aria-hidden="true" />
-          @if (!legend().length) { Compare }
-        </button>
-      </div>
-
-      <div class="panel-form flex min-h-9 min-w-0 items-center gap-1">
+    @if (view(); as panelView) {
+      <app-card-header #header [view]="panelView" [controls]="panelView.controls" [maximized]="maximized()"
+        [(matrixDraft)]="matrixDraft"
+        [isolatedId]="isolatedId()" (isolatedChange)="isolatedId.set($event)"
+        (maximize)="toggleMaximized()" (removed)="removePanel()"
+        (added)="addSeries($event)" (seriesRemoved)="removeSeries($event)" (patch)="patch($event)"
+        (options)="patchOptions($event)" (axis)="axisMenu.openOptions($event)"
+        (newGroup)="createGroup()" (groupAction)="groupAction($event)" />
+      <div class="panel-controls min-w-0 gap-2 px-4 py-2">
+        <app-series-chips [panel]="panel" [controls]="panelView.controls" [legend]="panelView.cohorts ?? []"
+          [isolatedId]="isolatedId()" (isolatedChange)="isolatedId.set($event)" (edit)="header.toggleColumnPicker()" />
+        <div class="panel-form flex min-h-9 min-w-0 items-center gap-1">
         @if (view()?.stats || view()?.comparison || view()?.analysisRows?.length) {
           <button type="button" class="inline-flex min-h-9 items-center gap-1 rounded border border-border px-2 text-caption"
             [class.text-ink-2]="!statsOpen()" [attr.aria-pressed]="statsOpen()" (click)="statsOpen.set(!statsOpen())" data-testid="stats-toggle">
             <lucide-icon name="table-2" [size]="14" aria-hidden="true" /> Stats
           </button>
         }
-        @if (panel.form === 'clusters') {
-          <div class="inline-flex min-h-9 items-center rounded border border-border text-caption" role="group" aria-label="Number of clusters">
-            <button type="button" class="min-h-9 min-w-8 text-ink-2 disabled:opacity-40" aria-label="Fewer clusters"
-              [disabled]="(panel.options.k ?? 3) <= 2" (click)="setClusters((panel.options.k ?? 3) - 1)">−</button>
-            <span class="min-w-4 text-center text-ink tabular-nums">{{ panel.options.k ?? 3 }}</span>
-            <button type="button" class="min-h-9 min-w-8 text-ink-2 disabled:opacity-40" aria-label="More clusters"
-              [disabled]="(panel.options.k ?? 3) >= 6" (click)="setClusters((panel.options.k ?? 3) + 1)">+</button>
-            <span class="pr-2 text-ink-2">clusters</span>
-          </div>
-        }
-        @if (panel.form === 'heatmap' || panel.form === 'hexbin') {
-          <div class="inline-flex min-h-9 items-center rounded border border-border text-caption" role="group" aria-label="Cells per axis">
-            @for (cells of cellOptions; track cells) {
-              <button type="button" class="min-h-9 px-2 disabled:opacity-40"
-                [disabled]="cells > maxCells() && (panel.options.cells ?? 60) !== cells"
-                [title]="cells > maxCells() ? 'Too few scans to fill ' + cells + ' cells per axis' : ''"
-                [class.bg-highlight-soft]="(panel.options.cells ?? 60) === cells"
-                [class.text-highlight-soft-ink]="(panel.options.cells ?? 60) === cells"
-                [class.text-ink-2]="(panel.options.cells ?? 60) !== cells"
-                [attr.aria-pressed]="(panel.options.cells ?? 60) === cells"
-                (click)="setCells(cells)">{{ cells }}</button>
-            }
-            <span class="pr-2 text-ink-2">cells</span>
-          </div>
-        }
-        @if (binsVisible()) {
-          @if (timeX()) {
-            <div class="inline-flex min-h-9 items-center rounded border border-border text-caption" role="group" aria-label="Bin size">
-              @for (unit of granularities; track unit.value) {
-                <button type="button" class="min-h-9 px-2"
-                  [class.bg-highlight-soft]="panel.options.granularity === unit.value"
-                  [class.text-highlight-soft-ink]="panel.options.granularity === unit.value"
-                  [class.text-ink-2]="panel.options.granularity !== unit.value"
-                  [attr.aria-pressed]="panel.options.granularity === unit.value"
-                  (click)="setGranularity(unit.value)">{{ unit.label }}</button>
-              }
-            </div>
-          } @else {
-            <div class="inline-flex min-h-9 items-center rounded border border-border text-control text-ink" role="group" aria-label="Bins">
-              <button type="button" class="min-h-9 min-w-8 text-ink-2" aria-label="Fewer bins" (click)="stepBins(-1)">−</button>
-              <input class="w-12 bg-transparent text-center outline-none" type="number" aria-label="Bins"
-                [min]="minBins" [max]="hardMaxBins" [value]="panel.options.bins" (change)="changeNumberOption($event, 'bins')" />
-              <button type="button" class="min-h-9 min-w-8 text-ink-2 disabled:opacity-40" aria-label="More bins" [disabled]="panel.options.bins >= maxBins()" (click)="stepBins(1)">+</button>
-              <span class="pr-2 text-caption text-ink-2">bins</span>
-            </div>
-          }
-        }
-
-        <mat-select
-          #formPicker
-          class="form-select rounded border border-border px-2 text-control text-ink"
-          data-testid="panel-form-selector" aria-label="Form"
-          panelClass="form-picker-panel"
-          [panelWidth]="320"
-          [style.width.px]="formWidth()"
-          [value]="panel.form"
-          (selectionChange)="changeForm($event.value)"
-          (openedChange)="prepareFormLinks($event, formPicker)"
-        >
-          <mat-select-trigger>
-            @if (formInfo(); as info) {
-              <span class="inline-flex items-center gap-1">
-                <app-form-glyph [form]="panel.form" />
-                <span>{{ info.label }}</span>
-              </span>
-            }
-          </mat-select-trigger>
-          @for (entry of forms(); track entry.form) {
-            @if (formDetails(entry.form); as info) {
-              <mat-option [value]="entry.form" [disabled]="entry.state === 'disabled'"
-                [attr.aria-label]="info.label + ': ' + (entry.reason ?? info.hint)">
-                <span class="form-option">
-                  <app-form-glyph [form]="entry.form" />
-                  <span class="font-medium">{{ info.label }}</span>
-                  @if (entry.reason) {
-                    <a class="form-option-hint form-reason" href="#second-column" aria-disabled="false" [attr.data-form]="entry.form"
-                      (click)="addSecondMetric($event, formPicker, entry.form)">{{ entry.reason }}</a>
-                  } @else {
-                    <span class="form-option-hint">{{ info.hint }}</span>
-                  }
-                </span>
-              </mat-option>
-            }
-          }
-        </mat-select>
-      </div>
-    </div>
-
-    @if (panel.form === 'matrix') {
-      <section class="space-y-2 border-b border-border p-2" title="Metric correlations">
-        <div class="flex items-center gap-2">
-          <span class="text-caption text-ink-2">Metric correlations</span>
-          <button
-            type="button"
-            class="min-h-9 rounded border border-border px-2 text-control text-ink"
-            (click)="openMetricSet()"
-          >
-            Metric set…
-          </button>
-          <label class="text-caption text-ink-2">
-            Coefficient
-            <select
-              class="ml-1 rounded border border-border bg-surface px-1 py-1 text-control text-ink"
-              [value]="panel.options.coefficient" (change)="changeOption($event, 'coefficient')"
-            >
-              <option value="spearman">Spearman</option>
-              <option value="pearson">Pearson</option>
-            </select>
-          </label>
+          <app-bin-control [panel]="panel" [n]="panelView.n" (patch)="patchOptions($event)" />
+          <app-form-picker [panel]="panel" [forms]="forms()" (selected)="changeForm($event)" (secondMetric)="header.addSecondMetric($event)" />
         </div>
-        @if (metricSetOpen()) {
-          <div class="flex items-end gap-2">
-            <mat-select
-              class="min-w-64 rounded border border-border px-2 py-1 text-control text-ink"
-              aria-label="Metric set"
-              multiple
-              [value]="correlationMetrics()"
-              (selectionChange)="setCorrelationMetrics($event.value)"
-            >
-              @for (metric of metrics(); track metric.id) {
-                <mat-option [value]="metric.id">{{ metric.shortLabel || metric.label }}</mat-option>
-              }
-            </mat-select>
-            <button
-              type="button"
-              class="min-h-9 rounded border border-border px-2 text-control text-ink disabled:opacity-50"
-              [disabled]="correlationMetrics().length < 2"
-              (click)="applyMetricSet()"
-            >
-              Create matrix
-            </button>
-          </div>
-        }
-      </section>
-    }
-
-    <mat-menu #optionsMenu="matMenu" class="panel-options-menu">
-      <div class="panel-settings" data-testid="panel-settings" (click)="$event.stopPropagation()" cdkTrapFocus [cdkTrapFocusAutoCapture]="true" (keydown)="$event.key !== 'Escape' && $event.stopPropagation()">
-        @if (panel.form !== 'table' && panel.form !== 'matrix') {
-          <div class="flex items-center justify-between gap-3 py-1" role="group" aria-label="Axis options">
-            <span>Axes</span>
-            <span class="flex gap-1">
-              <button type="button" class="btn btn-quiet" (click)="optionsTrigger.closeMenu(); openElementOptions('x', optionsButton)">X…</button>
-              <button type="button" class="btn btn-quiet" (click)="optionsTrigger.closeMenu(); openElementOptions('y', optionsButton)">Y…</button>
-              @if (panel.y && ['heatmap', 'hexbin'].includes(panel.form)) {
-                <button type="button" class="btn btn-quiet" (click)="optionsTrigger.closeMenu(); openElementOptions('color', optionsButton)">Colour…</button>
-              }
-            </span>
-          </div>
-        }
-        @if (panel.form === 'band' || panel.form === 'lines') {
-          <label appSettingRow class="setting-row"><span>Quantiles</span>
-            <select aria-label="Quantiles" [value]="panel.options.quantiles" (change)="changeOption($event, 'quantiles')">
-              <option value="quartiles">Quartiles</option><option value="tails">Tails</option>
-            </select>
-          </label>
-        }
-        @if (numericX() && panel.form !== 'table' && panel.form !== 'matrix') {
-          <label appSettingRow class="setting-row"><span>Clip</span>
-            <select aria-label="Clip" [value]="panel.options.clip" (change)="changeOption($event, 'clip')">
-              <option value="p01p99">p01–p99</option><option value="p05p95">p05–p95</option><option value="none">None</option>
-            </select>
-          </label>
-        }
-        @if (panel.series.length && !panel.y && ['histogram', 'line', 'area', 'density'].includes(panel.form)) {
-          <label appSettingRow class="setting-row"><span>Layout</span>
-            <select aria-label="Layout" [value]="panel.options.layout" (change)="changeOption($event, 'layout')">
-              <option value="overlaid">Overlaid</option><option value="stacked" [disabled]="!canStack()">Stacked</option><option value="stacked100" [disabled]="!canStack()">100%</option>
-            </select>
-          </label>
-        }
-        <label appSettingRow class="setting-row"><span>Follow brushed range</span>
-          <input aria-label="Follow brushed range" type="checkbox" [checked]="panel.options.useSelection" (change)="changeBooleanOption($event, 'useSelection')" />
-        </label>
       </div>
-    </mat-menu>
-
-    <ng-template cdkConnectedOverlay [cdkConnectedOverlayOrigin]="contextOrigin" [cdkConnectedOverlayOpen]="contextTarget() !== null">
-    @if (contextTarget(); as target) {
-      <div class="fixed inset-0 z-50" (click)="closeContext()" (contextmenu)="$event.preventDefault(); closeContext()">
-        <section class="panel-context fixed rounded border border-border bg-surface text-ink" role="dialog"
-          [attr.aria-label]="target === 'body' ? 'Chart actions' : target === 'color' ? 'Colour legend options' : target.toUpperCase() + ' axis options'"
-          [style.left.px]="contextPosition().x" [style.top.px]="contextPosition().y"
-          cdkTrapFocus [cdkTrapFocusAutoCapture]="true" (click)="$event.stopPropagation()" (contextmenu)="$event.stopPropagation(); $event.preventDefault()"
-          (keydown.escape)="closeContext(); $event.stopPropagation()" (keydown)="contextNavigation($event)">
-          @if (target === 'body') {
-            <div class="panel-settings" role="menu" aria-label="Chart actions">
-              <button role="menuitem" class="context-action" (click)="zoomToBrush(); closeContext()" [disabled]="!hasBrush()">Zoom to brush</button>
-              <button role="menuitem" class="context-action" (click)="resetPanelRanges(); closeContext()">Reset axes</button>
-              <button role="menuitem" class="context-action" (click)="toggleMaximized(); closeContext()">Maximize</button>
-              <button role="menuitem" class="context-action" (click)="exportCard(); closeContext()">Export this card's rows</button>
-              <button role="menuitem" class="context-action" (click)="copyCardLink(); closeContext()">Copy link to this card</button>
-            </div>
-          } @else {
-            <app-element-controls [options]="panel.options" [axis]="target" [rangeMemory]="rangeMemory" [countAxis]="target === 'y' && !panel.y"
-              [unit]="contextUnit(target)"
-              [colorDefault]="panel.form === 'matrix' ? 'linear' : 'log'" (changed)="patch({options: $event})" />
-          }
-        </section>
-      </div>
-    }
-    </ng-template>
-    @if (view(); as panelView) {
+      <app-matrix-control [panel]="panel" [metrics]="panelView.controls.metrics" [(draft)]="matrixDraft" (patch)="patchOptions($event)" (applied)="header.applyMatrix($event)" />
       @if (copyLinkError(); as link) {
         <label class="p-4 text-caption">Copy this card's link
           <input class="w-full" aria-label="Card link" readonly [value]="link" (focus)="$any($event.target).select()" />
         </label>
       }
       <div class="flex min-h-0 min-w-0 flex-1 flex-col px-4">
-        @if (statsOpen() && panelView.stats; as stats) {
-          <div class="stat-row-container flex-none border-t border-border">
-            <div class="stat-row py-3" data-testid="panel-stats">
-              @for (stat of stats; track stat.label) {
-                <div class="stat-cell" [attr.data-stat]="stat.label">
-                  <span class="stat-label" [title]="stat.title" tabindex="0">{{ stat.label }}</span>
-                  <span class="stat-value">{{ stat.value }}</span>
-                </div>
-              }
-            </div>
-          </div>
-        }
+        <app-stats-sheet [view]="panelView" [statsOpen]="statsOpen()" (pair)="chart.onCell($event)">
         @if (panel.options.layout !== 'overlaid' && panel.form === 'histogram') {
           <p class="pb-2 text-caption text-ink-2" data-testid="stacking-note"><lucide-icon name="info" [size]="16" aria-hidden="true" /> Stacking uses a step histogram instead of smoothed density.</p>
         }
 
-        <div class="panel-chart-slot relative flex-1" style="min-height: 160px" tabindex="0" aria-label="Chart body" (contextmenu)="openContext($event, 'body')" (keydown)="contextKey($event, 'body')">
-        @if (panelView.status.kind === 'ready') {
-          @if (panelView.status.stale) { <p class="text-caption text-ink-2" role="status">Updating… Showing the previous result.</p> }
-          @if (panelView.partial) { <p class="text-caption text-ink-2" role="status">Loading the shared chart range…</p> }
-          @for (retryKey of panelView.status.failedExtra; track retryKey) {
-            <button type="button" class="btn" (click)="retry(retryKey)">Retry chart data</button>
-          }
-        }
-        @if (panelView.status.kind === 'loading') {
-          <p class="text-caption text-ink-2">Loading chart…</p>
-        } @else if (panelView.status.kind === 'error') {
-          <div class="flex items-center gap-2 text-caption text-ink-2">
-            <span data-testid="panel-error-message">{{ panelView.status.message }}</span>
-            @for (retryKey of panelView.status.retryKeys; track retryKey) {
-              <button type="button" class="btn" data-testid="panel-retry" (click)="retry(retryKey)">Try again</button>
-            }
-          </div>
-        } @else if (panelView.status.kind === 'empty') {
-          <p class="text-caption text-ink-2">{{ panelView.status.message }}</p>
-        } @else if (panelView.table; as table) {
-          <app-sample-table [table]="table" (requestPage)="requestPage($event)" />
-        } @else if (vegaInput(); as vega) {
-          <div
-            class="chart-box h-full min-h-0 min-w-0"
-            [appVegaView]="vega"
-            (brush)="onBrush($event)"
-            (brush2d)="onBrush2d($event)"
-            (axisRange)="setAxisRange($event)"
-            (cell)="onCell($event)"
-          ></div>
-        }
-
-        </div>
-        @if (statsOpen() && (panelView.comparison || panelView.analysisRows?.length)) {
-        <div class="min-h-0 shrink overflow-auto" style="flex: 0 1 auto" tabindex="0" role="region" [attr.aria-label]="panelView.title + ' series statistics'">
-          @if (panelView.comparison; as comparison) {
-            <table class="w-full whitespace-nowrap text-left text-[12px] leading-6 tabular-nums [&_tr]:h-6 [&_th]:px-1 [&_td]:px-1" data-testid="comparison-table">
-              <thead>
-                <tr>
-                  @for (header of comparison.headers; track header) {
-                    <th class="text-left text-ink-2" [title]="header === 'IQR' ? 'p25–p75' : header === 'Δmedian/IQR' ? 'Median shift as a share of the first row’s IQR' : header === 'KS' ? 'Approximate KS distance vs the first row, at histogram resolution' : header">{{ header }}</th>
-                  }
-                </tr>
-              </thead>
-              <tbody>
-                @for (row of comparison.rows; track row.id) {
-                  <tr>
-                    <th class="text-left font-normal">
-                      <span class="mr-1 inline-block size-2 rounded-full" [style.background-color]="row.color"></span>
-                      {{ row.name }}
-                    </th>
-                    @for (cell of row.cells; track $index) {
-                      <td>{{ cell }}</td>
-                    }
-                  </tr>
-                }
-              </tbody>
-            </table>
-          }
-
-          @if (panelView.analysisRows?.length) {
-            <table class="w-full whitespace-nowrap text-left text-[12px] leading-6 tabular-nums [&_tr]:h-6 [&_th]:px-1 [&_td]:px-1">
-              <thead>
-                <tr>
-                  <th class="text-left text-ink-2">Series</th>
-                  @for (header of panelView.analysisHeaders; track header) {
-                    <th class="text-left text-ink-2">{{ header }}</th>
-                  }
-                </tr>
-              </thead>
-              <tbody>
-                @for (row of panelView.analysisRows; track row.name) {
-                  <tr>
-                    <th class="text-left font-normal">
-                      <span class="mr-1 inline-block size-2 rounded-full" [style.background-color]="row.color"></span>
-                      {{ row.name }}
-                    </th>
-                    @for (cell of row.cells; track $index) {
-                      <td>{{ cell }}</td>
-                    }
-                  </tr>
-                }
-              </tbody>
-            </table>
-          }
-
-
-        </div>
-        }
-        @if ((statsOpen() || !panelView.analysisRows?.length) && panelView.analysisNote) { <p class="flex-none pt-2 text-caption text-ink-2" data-testid="analysis-note">{{ panelView.analysisNote }}</p> }
-        @if (panelView.correlationPairs?.length) {
-          <details class="correlation-pairs flex-none text-caption"><summary>Inspect a metric pair</summary>
-            <div class="flex max-h-32 flex-wrap gap-2 overflow-auto py-2">@for (pair of panelView.correlationPairs; track pair.label) { <button type="button" class="btn" (click)="onCell(pair)">{{ pair.label }}</button> }</div>
-          </details>
-        }
+          <app-chart-host #chart [view]="panelView" [isolatedId]="isolatedId()" (command)="dispatch($event)"
+            (patch)="patch($event)" (context)="axisMenu.open($event, 'body')" (retry)="retry($event)"
+            (requestPage)="requestPage($event)" (axisRange)="setAxisRange($event)" />
+        </app-stats-sheet>
       </div>
-      <div class="flex flex-none items-baseline gap-3 px-4 py-3 text-caption leading-4 text-ink-2">
-        <p class="mr-auto">
-          @if (panelView.subtitle) { <span data-testid="panel-shown">{{ panelView.subtitle }}</span> }
-          @if (panelView.n !== null) { <span class="tnum cursor-help" data-testid="panel-count" tabindex="0" [title]="(panelView.n | number) + ' ' + panelView.countLabel" [attr.aria-label]="(panelView.n | number) + ' ' + panelView.countLabel">{{ panelView.n | number }}</span> }
-          @for (note of panelView.notes; track note) { <span data-testid="panel-note">&#160;· {{ note }}</span> }
-          @if (panelView.clipChip; as clip) { <span class="chip chip-quiet ml-1" data-testid="panel-clip">{{ clip }}</span> }
-        </p>
-      </div>
-    } @else {
-      <p class="p-3 text-caption text-ink-2">Loading panel…</p>
+      <app-card-footer [view]="panelView" />
     }
-
+    <app-axis-menu #axisMenu [panel]="panel" [metrics]="view()!.controls.metrics" [hasBrush]="view()!.controls.hasBrush"
+      (patch)="patchOptions($event)" (action)="contextAction($event)" />
     <span class="panel-resize-handle" data-grid-resize role="img" aria-label="Resize panel" title="Drag to resize; Shift + arrow keys"><lucide-icon name="grip" [size]="16" aria-hidden="true" /></span>
   </section>
+} @else {
+  <p class="p-3 text-caption text-ink-2">Loading panel…</p>
 }

@@ -1,0 +1,38 @@
+@let panel = this.panel();
+        <mat-select
+          #formPicker
+          class="form-select rounded border border-border px-2 text-control text-ink"
+          data-testid="panel-form-selector" aria-label="Form"
+          panelClass="form-picker-panel"
+          [panelWidth]="320"
+          [style.width.px]="formWidth()"
+          [value]="panel.form"
+          (selectionChange)="changeForm($event.value)"
+          (openedChange)="prepareFormLinks($event, formPicker)"
+        >
+          <mat-select-trigger>
+            @if (formInfo(); as info) {
+              <span class="inline-flex items-center gap-1">
+                <app-form-glyph [form]="panel.form" />
+                <span>{{ info.label }}</span>
+              </span>
+            }
+          </mat-select-trigger>
+          @for (entry of forms(); track entry.form) {
+            @if (formDetails(entry.form); as info) {
+              <mat-option [value]="entry.form" [disabled]="entry.state === 'disabled'"
+                [attr.aria-label]="info.label + ': ' + (entry.reason ?? info.hint)">
+                <span class="form-option">
+                  <app-form-glyph [form]="entry.form" />
+                  <span class="font-medium">{{ info.label }}</span>
+                  @if (entry.reason) {
+                    <a class="form-option-hint form-reason" href="#second-column" aria-disabled="false" [attr.data-form]="entry.form"
+                      (click)="addSecondMetric($event, formPicker, entry.form)">{{ entry.reason }}</a>
+                  } @else {
+                    <span class="form-option-hint">{{ info.hint }}</span>
+                  }
+                </span>
+              </mat-option>
+            }
+          }
+        </mat-select>

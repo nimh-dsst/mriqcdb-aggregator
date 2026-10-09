@@ -32,6 +32,8 @@
             [gridMaximized]="!!maximized()"
             (geometryAnnouncement)="announcement.set($event)"
             [panelId]="panel.id"
+            #cardProjection="cardProjection"
+            [view]="cardProjection.view()"
             [index]="i"
             [count]="panels().length"
             [columns]="columns()"

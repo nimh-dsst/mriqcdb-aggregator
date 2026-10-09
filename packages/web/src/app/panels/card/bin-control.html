@@ -1,0 +1,48 @@
+@let panel = this.panel();
+        @if (panel.form === 'clusters') {
+          <div class="inline-flex min-h-9 items-center rounded border border-border text-caption" role="group" aria-label="Number of clusters">
+            <button type="button" class="min-h-9 min-w-8 text-ink-2 disabled:opacity-40" aria-label="Fewer clusters"
+              [disabled]="(panel.options.k ?? 3) <= 2" (click)="patch.emit({k: (panel.options.k ?? 3) - 1})">−</button>
+            <span class="min-w-4 text-center text-ink tabular-nums">{{ panel.options.k ?? 3 }}</span>
+            <button type="button" class="min-h-9 min-w-8 text-ink-2 disabled:opacity-40" aria-label="More clusters"
+              [disabled]="(panel.options.k ?? 3) >= 6" (click)="patch.emit({k: (panel.options.k ?? 3) + 1})">+</button>
+            <span class="pr-2 text-ink-2">clusters</span>
+          </div>
+        }
+        @if (panel.form === 'heatmap' || panel.form === 'hexbin') {
+          <div class="inline-flex min-h-9 items-center rounded border border-border text-caption" role="group" aria-label="Cells per axis">
+            @for (cells of cellOptions; track cells) {
+              <button type="button" class="min-h-9 px-2 disabled:opacity-40"
+                [disabled]="cells > maxCells() && (panel.options.cells ?? 60) !== cells"
+                [title]="cells > maxCells() ? 'Too few scans to fill ' + cells + ' cells per axis' : ''"
+                [class.bg-highlight-soft]="(panel.options.cells ?? 60) === cells"
+                [class.text-highlight-soft-ink]="(panel.options.cells ?? 60) === cells"
+                [class.text-ink-2]="(panel.options.cells ?? 60) !== cells"
+                [attr.aria-pressed]="(panel.options.cells ?? 60) === cells"
+                (click)="patch.emit({cells})">{{ cells }}</button>
+            }
+            <span class="pr-2 text-ink-2">cells</span>
+          </div>
+        }
+        @if (binsVisible()) {
+          @if (timeX()) {
+            <div class="inline-flex min-h-9 items-center rounded border border-border text-caption" role="group" aria-label="Bin size">
+              @for (unit of granularities; track unit.value) {
+                <button type="button" class="min-h-9 px-2"
+                  [class.bg-highlight-soft]="panel.options.granularity === unit.value"
+                  [class.text-highlight-soft-ink]="panel.options.granularity === unit.value"
+                  [class.text-ink-2]="panel.options.granularity !== unit.value"
+                  [attr.aria-pressed]="panel.options.granularity === unit.value"
+                  (click)="patch.emit({granularity: unit.value})">{{ unit.label }}</button>
+              }
+            </div>
+          } @else {
+            <div class="inline-flex min-h-9 items-center rounded border border-border text-control text-ink" role="group" aria-label="Bins">
+              <button type="button" class="min-h-9 min-w-8 text-ink-2" aria-label="Fewer bins" (click)="stepBins(-1)">−</button>
+              <input class="w-12 bg-transparent text-center outline-none" type="number" aria-label="Bins"
+                [min]="minBins" [max]="hardMaxBins" [value]="panel.options.bins" (change)="numberChanged($event)" />
+              <button type="button" class="min-h-9 min-w-8 text-ink-2 disabled:opacity-40" aria-label="More bins" [disabled]="panel.options.bins >= maxBins()" (click)="stepBins(1)">+</button>
+              <span class="pr-2 text-caption text-ink-2">bins</span>
+            </div>
+          }
+        }

@@ -1,0 +1,34 @@
+@let panelView = view();
+        <div class="panel-chart-slot relative flex-1" style="min-height: 160px" tabindex="0" aria-label="Chart body" (contextmenu)="context.emit($event)" (keydown)="contextKey($event)">
+        @if (panelView.status.kind === 'ready') {
+          @if (panelView.status.stale) { <p class="text-caption text-ink-2" role="status">Updating… Showing the previous result.</p> }
+          @if (panelView.partial) { <p class="text-caption text-ink-2" role="status">Loading the shared chart range…</p> }
+          @for (retryKey of panelView.status.failedExtra; track retryKey) {
+            <button type="button" class="btn" (click)="retry.emit(retryKey)">Retry chart data</button>
+          }
+        }
+        @if (panelView.status.kind === 'loading') {
+          <p class="text-caption text-ink-2">Loading chart…</p>
+        } @else if (panelView.status.kind === 'error') {
+          <div class="flex items-center gap-2 text-caption text-ink-2">
+            <span data-testid="panel-error-message">{{ panelView.status.message }}</span>
+            @for (retryKey of panelView.status.retryKeys; track retryKey) {
+              <button type="button" class="btn" data-testid="panel-retry" (click)="retry.emit(retryKey)">Try again</button>
+            }
+          </div>
+        } @else if (panelView.status.kind === 'empty') {
+          <p class="text-caption text-ink-2">{{ panelView.status.message }}</p>
+        } @else if (panelView.table; as table) {
+          <app-sample-table [table]="table" (requestPage)="requestPage.emit($event)" />
+        } @else if (vegaInput(); as vega) {
+          <div
+            class="chart-box h-full min-h-0 min-w-0"
+            [appVegaView]="vega"
+            (brush)="onBrush($event)"
+            (brush2d)="onBrush2d($event)"
+            (axisRange)="axisRange.emit($event)"
+            (cell)="onCell($event)"
+          ></div>
+        }
+
+        </div>

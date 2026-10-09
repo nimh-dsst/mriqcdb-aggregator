@@ -1,0 +1,43 @@
+@let panel = this.panel();
+<div class="mat-mdc-menu-panel panel-options-menu text-ink" role="menu">
+  <div class="mat-mdc-menu-content">
+      <div class="panel-settings" data-testid="panel-settings" (click)="$event.stopPropagation()" cdkTrapFocus [cdkTrapFocusAutoCapture]="true" (keydown)="$event.key !== 'Escape' && $event.stopPropagation()">
+        @if (panel.form !== 'table' && panel.form !== 'matrix') {
+          <div class="flex items-center justify-between gap-3 py-1" role="group" aria-label="Axis options">
+            <span>Axes</span>
+            <span class="flex gap-1">
+              <button type="button" class="btn btn-quiet" (click)="axis.emit('x')">X…</button>
+              <button type="button" class="btn btn-quiet" (click)="axis.emit('y')">Y…</button>
+              @if (panel.y && ['heatmap', 'hexbin'].includes(panel.form)) {
+                <button type="button" class="btn btn-quiet" (click)="axis.emit('color')">Colour…</button>
+              }
+            </span>
+          </div>
+        }
+        @if (panel.form === 'band' || panel.form === 'lines') {
+          <label appSettingRow class="setting-row"><span>Quantiles</span>
+            <select aria-label="Quantiles" [value]="panel.options.quantiles" (change)="patch.emit({quantiles: $any($event.target).value})">
+              <option value="quartiles">Quartiles</option><option value="tails">Tails</option>
+            </select>
+          </label>
+        }
+        @if (numericX() && panel.form !== 'table' && panel.form !== 'matrix') {
+          <label appSettingRow class="setting-row"><span>Clip</span>
+            <select aria-label="Clip" [value]="panel.options.clip" (change)="patch.emit({clip: $any($event.target).value})">
+              <option value="p01p99">p01–p99</option><option value="p05p95">p05–p95</option><option value="none">None</option>
+            </select>
+          </label>
+        }
+        @if (panel.series.length && !panel.y && ['histogram', 'line', 'area', 'density'].includes(panel.form)) {
+          <label appSettingRow class="setting-row"><span>Layout</span>
+            <select aria-label="Layout" [value]="panel.options.layout" (change)="patch.emit({layout: $any($event.target).value})">
+              <option value="overlaid">Overlaid</option><option value="stacked" [disabled]="!canStack()">Stacked</option><option value="stacked100" [disabled]="!canStack()">100%</option>
+            </select>
+          </label>
+        }
+        <label appSettingRow class="setting-row"><span>Follow brushed range</span>
+          <input aria-label="Follow brushed range" type="checkbox" [checked]="panel.options.useSelection" (change)="patch.emit({useSelection: $any($event.target).checked})" />
+        </label>
+      </div>
+  </div>
+</div>

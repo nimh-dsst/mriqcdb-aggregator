@@ -1,0 +1,22 @@
+<ng-template #contents>
+@let panel = this.panel();
+@let target = contextTarget();
+        <section class="panel-context rounded border border-border bg-surface text-ink" role="dialog"
+          [attr.aria-label]="target === 'body' ? 'Chart actions' : target === 'color' ? 'Colour legend options' : target.toUpperCase() + ' axis options'"
+          cdkTrapFocus [cdkTrapFocusAutoCapture]="true" (click)="$event.stopPropagation()" (contextmenu)="$event.stopPropagation(); $event.preventDefault()"
+          (keydown.escape)="menu.close(); $event.stopPropagation()">
+          @if (target === 'body') {
+            <div class="panel-settings" role="menu" aria-label="Chart actions">
+              <button role="menuitem" class="context-action" (click)="action.emit('zoom'); menu.close()" [disabled]="!hasBrush()">Zoom to brush</button>
+              <button role="menuitem" class="context-action" (click)="action.emit('reset'); menu.close()">Reset axes</button>
+              <button role="menuitem" class="context-action" (click)="action.emit('maximize'); menu.close()">Maximize</button>
+              <button role="menuitem" class="context-action" (click)="action.emit('export'); menu.close()">Export this card's rows</button>
+              <button role="menuitem" class="context-action" (click)="action.emit('copy'); menu.close()">Copy link to this card</button>
+            </div>
+          } @else {
+            <app-element-controls [options]="panel.options" [axis]="target" [rangeMemory]="rangeMemory" [countAxis]="target === 'y' && !panel.y"
+              [unit]="contextUnit(target)"
+              [colorDefault]="panel.form === 'matrix' ? 'linear' : 'log'" (changed)="patch.emit($event)" />
+          }
+        </section>
+</ng-template>

@@ -1,0 +1,41 @@
+@let panel = this.panel();
+@if (editing()) {
+          <app-compare-input
+            [studyFormReason]="controls().studyCapabilityReason"
+            [series]="panel.series"
+            [legend]="panel.series.length ? legend() : []"
+            [isolated]="isolatedId()"
+            (isolatedChange)="isolatedChange.emit($event)"
+            [fields]="controls().fields"
+            [groups]="controls().groups"
+            [fieldValues]="controls().fieldValues"
+            [studyReady]="controls().studyReady"
+            [dateRange]="controls().dateRange"
+            (added)="added.emit($event)"
+            (removed)="removed.emit($event)"
+            (groupRemoved)="removeGroup($event)"
+            (splitApplied)="applySplit($event)"
+            [metrics]="controls().metrics"
+            (newGroup)="newGroup.emit()"
+            (groupAction)="groupAction.emit($event)"
+          />
+} @else {
+      <div class="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1 text-caption" style="flex: 1 1 12rem" role="group" aria-label="Legend" data-testid="panel-legend">
+        @for (item of legend(); track item.id) {
+          <button type="button" class="inline-flex min-h-8 items-center gap-1.5 text-ink"
+            [class.opacity-50]="isolatedId() !== null && isolatedId() !== item.id"
+            [attr.aria-pressed]="isolatedId() === item.id"
+            (click)="isolatedChange.emit(isolatedId() === item.id ? null : item.id)" (dblclick)="isolatedChange.emit(null)">
+            <span class="inline-block size-2.5 rounded-full" [style.background]="item.color" aria-hidden="true"></span>
+            {{ item.name }}
+            @if (item.n !== null) { <span class="text-ink-2">{{ item.n | number }}</span> }
+          </button>
+        }
+        <button type="button" class="inline-flex min-h-8 items-center gap-1 text-ink-2 hover:text-ink" (click)="edit.emit()" data-testid="edit-groups"
+          [attr.aria-label]="legend().length ? 'Edit groups' : 'Compare'" [title]="legend().length ? 'Edit groups' : 'Compare'">
+          <lucide-icon [name]="legend().length ? 'pencil' : 'plus'" [size]="13" aria-hidden="true" />
+          @if (!legend().length) { Compare }
+        </button>
+      </div>
+
+}
