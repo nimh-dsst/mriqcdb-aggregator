@@ -1,67 +1,21 @@
-import { shapeOf } from '../graph/panel-shapes';
+import { asColumnId, fieldValueLabel, queryKey, fieldsFor, type ColumnId, type CoverageResult, type GroupedSummaryResult, type QueryKey, type SampleResult, type SampleRow } from '@mriqc/shared';
+import type { TopLevelSpec } from 'vega-lite';
+import { axisType, panelForms } from '../graph/panel-shapes';
 import { axisEvidence } from '../graph/axis-options';
 import { withChipLegend } from '../panels/specs/chip-legend';
-/**
- * One panel's view: the spec, the named datasets, and why it is or is not
- * drawing -- all from the same state value, so no card ever renders a spec from
- * one state beside data from another (`docs/dashboard-graph.md`, "Outputs").
- *
- * Everything per-kind is a lookup in `PANEL_KINDS`: which spec builder draws
- * it, what its heading says, whether it carries a cohort list, a split or a
- * stat row.
- */
-
-import {
-  fieldsFor,
-  type ColumnId,
-  type CoverageResult,
-  type QueryKey,
-  type SampleResult,
-  type SampleRow,
-} from '@mriqc/shared';
-import type { TopLevelSpec } from 'vega-lite';
-import {
-  cohortColor,
-  CATEGORY_PALETTE,
-  OTHER_COLOR,
-  themedColor,
-  groupRange,
-  LIGHT_THEME,
-  type ChartTheme,
-  type CohortResult,
-  type CohortSeries,
-  type MetricAxis,
-} from '../panels/specs';
-import { foldCohorts, OTHER_COHORT } from '../panels/specs/fold-cohorts';
+import { LIGHT_THEME, OTHER_COLOR, type ChartTheme, type CohortResult, type MetricAxis } from '../panels/specs';
+import { comparisonChart, distributionChart, type ChartInput, type ChartOutput } from '../panels/specs/select';
+import { stackedHistogram, COHORTS_DATA } from '../panels/specs/comparison';
+import { categoryChart } from '../panels/specs/categories';
+import { baseConfig } from '../panels/specs/palette';
 import { timePanelView } from './time-view';
 import { analysisPanelView, type AnalysisRow } from './analysis-view';
-import { cohortChip, splitCohorts, type CohortChip } from '../graph/cohorts';
-import { PANEL_KINDS } from '../graph/panel-shapes';
-import {
-  cohortResults,
-  panelCohort,
-  distributionResult,
-  panelCohorts,
-  panelKeys,
-  resultOf,
-  sampleColumns,
-  splitDistributionCohorts,
-} from '../graph/queries';
-import { CURRENT_COHORT, isDerivedCohort, type Cohort, type CohortId, type Panel, type PanelId, type State } from '../graph/state';
+import type { CohortChip } from '../graph/cohorts';
+import { cohortQuery, cohortResults, panelCohort, distributionResult, panelCohorts, panelKeys, panelSharedRange, resultOf, sampleColumns, samplePages, scopedQuery, studyFormReason } from '../graph/queries';
+import type { CohortId, Panel, PanelId, State } from '../graph/state';
 import { comparisonStats, outsideRangeNotes, panelStats, type ComparisonStats, type PanelStat } from './stats';
-import {
-  activeView,
-  clipChip,
-  countAxisTitle,
-  countLabel,
-  fieldDef,
-  metricDef,
-  panelMeaning,
-  panelNotes,
-  unitNoun,
-} from './text';
+import { activeView, clipChip, countAxisTitle, countLabel, fieldDef, metricDef, panelMeaning, panelNotes, unitNoun } from './text';
 
-/** Why a panel is not drawing a chart, or that it is. */
 export type PanelStatus =
   | { kind: 'empty'; message: string }
   | { kind: 'loading' }
@@ -114,6 +68,7 @@ export interface CohortLegendEntry {
   n: number | null;
   /** False for `current` and `all`, which follow the top bar and cannot be edited. */
   editable: boolean;
+  descriptorKey?: string;
 }
 
 /** Spec and data from the same state, so no panel renders a mismatched pair. */
@@ -211,26 +166,16 @@ function ownSelection(state: State, panel: Panel): readonly [number, number] | n
   return selection.range;
 }
 
-function corpusTotal(state: State): number | null {
-  let fallback: number | null = null;
-  for (const other of state.panels) {
-    const total = PANEL_KINDS[shapeOf(other)].recordTotal;
-    if (total === null) continue;
-    const keys = panelKeys(state, other);
-    if (total === 'buckets') {
-      const result = resultOf<CoverageResult>(state, keys[0]);
-      if (result) return result.buckets.reduce((sum, bucket) => sum + bucket.n, 0);
-    }
-    // A grouped result has one `n` per group and no single total, so only an
-    // ungrouped distribution answers.
-    if (total === 'n' && other.split === null && fallback === null) {
-      const result = distributionResult(state, keys[0]);
-      if (result) fallback = result.n;
-    }
-  }
-  return fallback;
-}
 
+function corpusTotal(state: State): number | null {
+  for (const panel of state.panels) {
+    if (panel.x !== 'created_at') continue;
+    const query = scopedQuery(state, panel, panelCohort(state, panel), 'coverage');
+    const result = query ? resultOf<CoverageResult>(state, queryKey(query)) : null;
+    if (result) return result.buckets.reduce((sum, bucket) => sum + bucket.n, 0);
+  }
+  return null;
+}
 function axisFor(state: State, panel: Panel): MetricAxis {
   const metric = metricDef(state, panel.x);
   const evidence = axisEvidence(state, panel);
@@ -311,65 +256,27 @@ function panelSubtitle(
  */
 function tableFor(state: State, panel: Panel, keys: readonly QueryKey[]): PanelTable {
   const view = panelCohort(state, panel).view;
-  const columns = sampleColumns(state, view);
+  const columns = [...(panel.series.length ? [asColumnId('__series')] : []), ...sampleColumns(state, view)];
   const fields = fieldsFor(state.global.modality, view, 'export');
   const rows: SampleRow[] = [];
   let nextCursor: string | null = null;
-  for (const key of keys) {
-    const page = resultOf<SampleResult>(state, key);
+  const nextBySeries: Record<string, string | null> = {};
+  for (const { query, cohort } of samplePages(state, panel)) {
+    const page = resultOf<SampleResult>(state, queryKey(query));
     if (!page) break;
-    for (const row of page.rows) rows.push(row);
+    for (const row of page.rows) rows.push(panel.series.length ? { ...row, __series: cohort.name } : row);
     nextCursor = page.nextCursor ?? null;
+    nextBySeries[cohort.id] = nextCursor;
   }
+  if (panel.series.length) nextCursor = Object.values(nextBySeries).some(Boolean) ? JSON.stringify(nextBySeries) : null;
   return {
     columns,
-    headers: columns.map((id) => fields.find((f) => f.id === id)?.label ?? String(id)),
+    headers: columns.map((id) => id === '__series' ? 'Series' : fields.find((f) => f.id === id)?.label ?? String(id)),
     rows,
     nextCursor,
   };
 }
 
-/**
- * The cohorts as a chart encodes them: keyed by id, labelled by name.
- *
- * Keyed on the id because two cohorts can legitimately share a name, and a
- * name-keyed series merged them into one -- one ECDF line through both curves,
- * two boxes on one row, one legend entry. The name is the label and nothing
- * else.
- */
-function cohortSeries(
-  cohorts: readonly Cohort[],
-  split = false,
-  ordered = false,
-): readonly CohortSeries[] {
-  const colors = split ? groupRange(cohorts.map((cohort) => cohort.name), ordered) : [];
-  const slots = new Map<string, number>();
-  const used = new Set<number>();
-  for (const cohort of [...cohorts].filter((c) => c.id !== OTHER_COHORT).sort((a, b) => a.color - b.color || a.id.localeCompare(b.id))) {
-    let slot = ((cohort.color % CATEGORY_PALETTE.length) + CATEGORY_PALETTE.length) % CATEGORY_PALETTE.length;
-    while (used.has(slot) && used.size < CATEGORY_PALETTE.length) slot = (slot + 1) % CATEGORY_PALETTE.length;
-    used.add(slot); slots.set(cohort.id, slot);
-  }
-  return cohorts.map((cohort, index) => ({
-    id: cohort.id, label: cohort.name,
-    color: cohort.id === OTHER_COHORT ? OTHER_COLOR : split ? colors[index] : CATEGORY_PALETTE[slots.get(cohort.id)!],
-  }));
-}
-
-/**
- * The groups of one split field, as chips the card can tick and compare -- but
- * only on a panel a comparison could actually be made from.
- *
- * A coverage panel is split by manufacturer as often as a grouped one is, and it
- * has no metric, so offering "Compare selected" there is a control that can do
- * nothing: `convertToComparison` refuses a kind with no metric, silently, which
- * is worse than not asking.
- */
-function splitChips(state: State, panel: Panel): readonly CohortChip[] {
-  if (!PANEL_KINDS[shapeOf(panel)].supportsSplit) return [];
-  if (panel.split === null || panel.x === null) return [];
-  return splitCohorts(state, panel.split as CohortId).map(cohortChip);
-}
 
 interface Memo {
   deps: readonly unknown[];
@@ -392,191 +299,152 @@ function sameDeps(a: readonly unknown[], b: readonly unknown[]): boolean {
   return a.length === b.length && a.every((value, i) => Object.is(value, b[i]));
 }
 
-/** The view for one panel: spec, named datasets, and why it is or is not drawing. */
+
+function titleFor(state: State, panel: Panel): string {
+  if (panel.form === 'matrix') return 'Metric correlations';
+  if (panel.x === 'created_at') return 'Uploads over time';
+  if (axisType(panel.x) === 'categorical') return 'Scans per ' + (fieldDef(state, panel.x)?.label ?? panel.x);
+  const x = metricDef(state, panel.x), y = metricDef(state, panel.y);
+  return panel.y ? (x?.shortLabel ?? x?.label ?? panel.x) + ' vs ' + (y?.shortLabel ?? y?.label ?? panel.y) : x?.label ?? String(panel.x);
+}
+
+/** A card is one quantity, its resolved series, and a valid form. */
 export function panelView(state: State, id: PanelId, theme: ChartTheme = LIGHT_THEME): PanelView | null {
-  const panel = state.panels.find((p) => p.id === id);
-  if (!panel) {
-    memos.delete(id);
-    return null;
-  }
-  const def = PANEL_KINDS[shapeOf(panel)];
-  const keys = panelKeys(state, panel);
-  // A sample panel's denominator comes from a sibling's result, so the memo has
-  // to see that result change; every other kind reads nothing outside `keys`.
-  const total = def.rowsTable ? corpusTotal(state) : null;
-  const deps: readonly unknown[] = [
-    theme,
-    panel,
-    state.global,
-    state.catalog,
-    state.dataVersion,
-    state.selections,
-    // A comparison panel reads the cohort list by id, so a rename or a filter
-    // change on a cohort it draws has to re-derive it.
-    state.cohorts,
-    state.study,
-    total,
-    ...keys.map((key) => state.datasets[key]),
-  ];
+  const panel = state.panels.find(panel => panel.id === id);
+  if (!panel) { memos.delete(id); return null; }
+  const keys = panelKeys(state, panel), total = panel.form === 'table' ? corpusTotal(state) : null;
+  const deps = [theme, panel, state.global, state.catalog, state.dataVersion, state.selections, state.cohorts, state.study, total, ...keys.map(key => state.datasets[key])];
   const memo = memos.get(id);
   if (memo && sameDeps(memo.deps, deps)) return memo.view;
-  if ((panel.y !== null && panel.chart !== 'table') || panel.chart === 'correlation') {
-    const view = panel.chart === 'medianBand' ? timePanelView(state, panel, theme) : analysisPanelView(state, panel, theme);
-    // Worker results are another dataset entry read by this view.
-    if (panel.chart !== 'clusters') memos.set(id, { deps, view });
-    return view;
+  if ((axisType(panel.x) === 'time' && panel.y !== null) || (axisType(panel.x) === 'numeric' && panel.y !== null) || panel.form === 'matrix') {
+    const view = (axisType(panel.x) === 'time' && panel.y !== null) ? timePanelView(state, panel, theme) : analysisPanelView(state, panel, theme);
+    const quantityKey = queryKey(cohortQuery(state, panel, panelCohort(state, panel)));
+    const numericStats = axisType(panel.x) === 'numeric' && panel.form !== 'matrix' ? panelStats(state, panel, [quantityKey]) : null;
+    const derived = { ...view, title: titleFor(state, panel), stats: numericStats ?? view.stats,
+      spec: view.spec ? withChipLegend(view.spec) : null };
+    if (panel.form !== 'clusters') memos.set(id, { deps, view: derived });
+    return derived;
   }
-
-  const splitCandidates =
-    shapeOf(panel) === 'grouped' && panel.split !== null && panel.chart !== 'box'
-      ? splitDistributionCohorts(state, panel)
-      : [];
-  const splitSeries = splitCandidates.length > 0;
-  const queryCohorts = def.supportsCohorts
-    ? panelCohorts(state, panel)
-    : splitSeries
-      ? splitCandidates
-      : [];
-  // A cohort-backed panel's keys come in two groups and only the first is required
-  // before it can draw: `panelQueries` emits each cohort's own distribution
-  // first, then the shared-range histograms, so the head of the list is step one.
-  const required = queryCohorts.length > 0 ? keys.slice(0, queryCohorts.length) : keys;
-  const status: PanelStatus =
-    keys.length === 0
-      ? { kind: 'empty', message: def.emptyMessage }
-      : statusOf(state, keys, required);
-  const queryResults: readonly CohortResult[] =
-    queryCohorts.length > 0 ? cohortResults(state, panel, queryCohorts) : [];
-  const { cohorts, results, folded } = def.supportsCohorts
-    ? foldCohorts(queryCohorts, queryResults)
-    : { cohorts: queryCohorts, results: queryResults, folded: false };
+  const cohorts = panelCohorts(state, panel);
+  const colors = cohorts.map((cohort, index) => cohort.name === 'Other' ? OTHER_COLOR : theme.categories[index % 6]);
+  const series = cohorts.map((cohort, index) => ({ id: cohort.id, label: cohort.name, color: colors[index] }));
+  const metric = metricDef(state, panel.x), category = fieldDef(state, panel.x as ColumnId);
   const axis = { ...axisFor(state, panel), theme };
-  const groupDef = fieldDef(state, panel.split);
-  const series = cohortSeries(cohorts, splitSeries,
-    groupDef?.kind === 'numeric' || groupDef?.id === 'magnetic_field_strength');
-  const seriesColor = (id: string) => themedColor(series.find((s) => s.id === id)?.color ?? OTHER_COLOR, theme);
-  const comparison = comparisonStats(state, panel, cohorts, results);
-  if (comparison) {
-    comparison.rows = comparison.rows.map((row) => ({ ...row, color: seriesColor(row.id),
-      cells: row.id === OTHER_COHORT ? row.cells.map((cell, i) => i >= 4 && cell !== '--' ? `≈ ${cell}` : cell) : row.cells }));
-    if (comparison.differences) comparison.differences = { ...comparison.differences,
-      rows: comparison.differences.rows.map((row) => ({ ...row, color: seriesColor(row.id) })) };
-  }
-  const chart = def.spec({
-    chart: panel.chart,
-    axis,
-    clip: panel.options.clip,
-    brush: ownSelection(state, panel),
-    groupLabel: groupDef?.label ?? 'Group',
-    // The id, not the label: `fieldValueLabel` keys its display names by field
-    // id so an axis, a legend and a filter list all write `afni` the same way.
-    groupField: panel.split === null ? null : String(panel.split),
-    groupOrdered: groupDef?.kind === 'numeric' || groupDef?.id === 'magnetic_field_strength',
-    cohortLabel: panelCohort(state, panel).name,
-    granularity: panel.options.granularity,
-    options: panel.options,
-    result: resultOf<unknown>(state, keys[0]),
-    cohorts: series,
-    cohortResults: results,
-  });
-  const table = def.rowsTable ? tableFor(state, panel, keys) : null;
-  const metric = metricDef(state, panel.x);
-  const viewDef = activeView(state);
-  const chips = splitChips(state, panel);
-  const hasChipLegend = chips.length > 0 || (def.supportsCohorts && cohorts.length > 0);
-  const view: PanelView = {
-    id,
-    xPositive: axisEvidence(state, panel).positive,
-    panel,
-    title: def.title(metric?.label ?? null),
-    meaning: panelMeaning({
-      kind: shapeOf(panel),
-      chart: panel.chart,
-      modality: state.global.modality,
-      view: viewDef,
-      metricLabel: metric?.label ?? null,
-      metricDescription: metric?.description ?? null,
-      metricUnit: metric?.unit ?? null,
-      groupLabel: fieldDef(state, panel.split)?.label ?? null,
-      granularity: panel.options.granularity,
-      cohortCount: cohorts.length,
-    }),
-    subtitle: panelSubtitle(state, panel, table, total),
-    notes: [...panelNotes(state, panel), ...(chart.degenerateNote ? [chart.degenerateNote] : []), ...(folded ? ['Other pools cohort memberships; overlaps count repeatedly. Its quantiles are estimated from shared bins.'] : [])],
-    clipChip: clipChip(panel.options.clip, metric, panel),
-    metricHelp: metric
-      ? {
-          label: metric.label,
-          taxonomy: metric.subfamily ? `${metric.family} / ${metric.subfamily}` : metric.family,
-          description: metric.description ?? null,
-          unit: metric.unit ?? null,
+  const numeric = axisType(panel.x) === 'numeric';
+  const results = numeric ? cohortResults(state, panel, cohorts) : [];
+  const required = numeric && panel.form !== 'table' ? cohorts.map(cohort => queryKey(cohortQuery(state, panel, cohort))) : keys;
+  const status: PanelStatus = keys.length && panelForms(panel).includes(panel.form) ? statusOf(state, keys, required) : { kind: 'empty', message: 'Choose a column and an available form.' };
+  const aggregateKey = numeric ? queryKey(cohortQuery(state, panel, panelCohort(state, panel))) : undefined;
+  const aggregate = distributionResult(state, aggregateKey);
+  const table = panel.form === 'table' ? tableFor(state, panel, keys) : null;
+  let chart: ChartOutput = { spec: null, datasets: {}, brushable: false, n: aggregate?.n ?? null };
+  let stats = numeric ? panelStats(state, panel, aggregateKey ? [aggregateKey] : []) : null;
+  let counts: (number | null)[] = results.map(result => result.base?.n ?? null);
+  let analysisHeaders: string[] = [], analysisRows: AnalysisRow[] = [];
+  if (numeric && panel.form !== 'table') {
+    const input: ChartInput = { form: panel.form, axis, clip: panel.options.clip, brush: ownSelection(state, panel), groupLabel: 'Series', groupField: null,
+      groupOrdered: false, cohortLabel: 'This dashboard', granularity: panel.options.granularity, options: panel.options,
+      result: aggregate, cohorts: series, cohortResults: results };
+    chart = panel.series.length ? comparisonChart(input) : distributionChart(input);
+    if (panel.options.layout !== 'overlaid' && panel.series.length) {
+      const stacked = stackedHistogram(axis, series, results, panel.options.layout === 'stacked100');
+      chart = { ...chart, spec: stacked.spec, datasets: { [COHORTS_DATA]: stacked.rows } };
+    }
+    chart.n = aggregate?.n ?? null;
+  } else if (panel.form !== 'table') {
+    const coverage = (cohort: typeof cohorts[number]) => {
+      const query = scopedQuery(state, panel, cohort, 'coverage');
+      return query ? resultOf<CoverageResult>(state, queryKey(query)) : null;
+    };
+    const aggregateCoverage = coverage(panelCohort(state, panel));
+    counts = cohorts.map(cohort => coverage(cohort)?.buckets.reduce((sum, bucket) => sum + bucket.n, 0) ?? null);
+    const n = aggregateCoverage?.buckets.reduce((sum, bucket) => sum + bucket.n, 0) ?? counts[0] ?? null;
+    stats = [{ label: 'Total', value: n?.toLocaleString('en-US') ?? '—', title: 'Records in this dashboard, before adding comparison references.' }];
+    if (axisType(panel.x) === 'categorical') {
+      const categorySeries = cohorts.map((cohort, index) => {
+        const countMap = new Map<string, number>();
+        const exact = coverage(cohort);
+        if (exact) for (const bucket of exact.buckets) {
+          const category = fieldValueLabel(String(panel.x), bucket.group);
+          countMap.set(category, (countMap.get(category) ?? 0) + bucket.n);
+        } else {
+          const query = scopedQuery(state, panel, cohort, 'groupedSummary');
+          const result = query ? resultOf<GroupedSummaryResult>(state, queryKey(query)) : null;
+          for (const group of [...result?.groups ?? [], ...result?.other ? [result.other] : []]) countMap.set(fieldValueLabel(String(panel.x), group.value), group.n);
         }
-      : null,
-    // `clip` is deliberately absent: no spec builder reads it, it only decides
-    // which rows the chart builder produces, and hashing it here would tear
-    // down and re-embed the view -- losing the visible brush -- on a Range
-    // change that a dataset push already covers.
-    specKey: JSON.stringify([
-      theme.mode,
-      shapeOf(panel),
-      panel.chart,
-      hasChipLegend,
-      panel.split,
-      axis.label,
-      axis.unit ?? null,
-      axis.xScale, axis.xRange, axis.xScale === 'symlog' ? axis.constant : null, axis.yMode, panel.options.layout,
-      axis.countTitle,
-      panel.options.granularity,
-      // These options change the Vega spec itself, not only its rows. Without
-      // them the directive pushes new data into the old view: choosing facets
-      // leaves the overlay on screen, and coverage keeps the old axis title.
-      panel.options.splitPresentation,
-      panel.options.boxSort,
-      panel.options.cumulative,
-      panel.options.share,
-      panel.options.coverageLogY,
-      // A comparison spec declares its colour scale's domain, its range and its
-      // legend labels from the cohort list, so a cohort added, renamed or
-      // recoloured changes the spec's shape and has to re-embed rather than
-      // push rows. The ids are in it because they are the scale's domain.
-      series.map((cohort) => `${cohort.id}\u0000${cohort.label}\u0000${cohort.color}`),
-    ]),
-    spec: chart.spec && hasChipLegend ? withChipLegend(chart.spec) : chart.spec,
-    datasets: chart.datasets,
-    table,
-    status,
-    brushable: chart.brushable,
-    hasRows: Object.values(chart.datasets).some((rows) => rows.length > 0),
-    live: status.kind === 'ready',
-    n: chart.n,
-    countLabel:
-      (panel.cohorts[0] ?? CURRENT_COHORT) === CURRENT_COHORT
-        ? countLabel(state, panel)
-        : `${countLabel(state, panel)} · ${panelCohort(state, panel).name}`,
-    stats: panelStats(state, panel, keys),
-    cohorts: def.supportsCohorts
-      ? cohorts.map((cohort, i) => ({
-          id: cohort.id,
-          name: cohort.name,
-          color: seriesColor(cohort.id),
-          n: results[i]?.base?.n ?? null,
-          editable: !isDerivedCohort(cohort.id),
-        }))
-      : null,
-    comparison,
-    splitCohorts: chips.map((entry) => ({
-      ...entry,
-      color: series.some((s) => s.id === entry.cohort.id)
-        ? seriesColor(entry.cohort.id) : themedColor(entry.color, theme),
-    })),
-    outsideNotes: outsideRangeNotes(cohorts, results),
-    // Step one is in (`status` says so) but a cohort's shared-range histogram is
-    // not, which is the one state where the card has a real chart and a real
-    // table and is still waiting for something.
-    partial:
-      cohorts.length > 0 &&
-      status.kind === 'ready' &&
-      results.some((result) => result.ranged === null),
+        return { id: cohort.id, name: cohort.name, color: colors[index], counts: [...countMap].map(([category, n]) => ({ category, n })) };
+      });
+      const rendered = categoryChart(categorySeries, category?.label ?? String(panel.x), panel.form === 'share', countAxisTitle(activeView(state)), theme);
+      chart = { ...rendered, brushable: false, n };
+    } else {
+      const rows = cohorts.flatMap((cohort, index) => {
+        const buckets = new Map<string, { start: string; n: number }>();
+        for (const bucket of coverage(cohort)?.buckets ?? []) {
+          const prior = buckets.get(bucket.start);
+          buckets.set(bucket.start, { start: bucket.start, n: (prior?.n ?? 0) + bucket.n });
+        }
+        let cumulative = 0;
+        return [...buckets.values()].sort((a,b) => a.start.localeCompare(b.start)).map(bucket => {
+          cumulative += bucket.n;
+          return { ...bucket, n: panel.options.cumulative ? cumulative : bucket.n, series: cohort.id, label: cohort.name };
+        });
+      });
+      const line = panel.form === 'line';
+      const grouped = panel.series.length === 1 && (panel.series[0].kind === 'field' || panel.series[0].kind === 'values');
+      if (panel.options.share && !grouped) {
+        for (const row of rows) {
+          const denominator = counts[cohorts.findIndex(cohort => cohort.id === row.series)] ?? 0;
+          row.n = denominator ? row.n / denominator : 0;
+        }
+      }
+      chart = { n, brushable: false, datasets: { coverage: rows }, spec: {
+        $schema: 'https://vega.github.io/schema/vega-lite/v6.json', ...baseConfig(theme), width: 'container', height: 'container', data: { name: 'coverage' },
+        mark: line ? { type: 'line' } : { type: 'bar' },
+        encoding: { x: { field: 'start', type: 'temporal', title: 'Upload time', timeUnit: ({day:'yearmonthdate',week:'yearweek',month:'yearmonth',year:'year'} as const)[panel.options.granularity] },
+          y: { field: 'n', type: 'quantitative', title: panel.options.share ? 'Share' : countAxisTitle(activeView(state)),
+            stack: grouped && !line ? panel.options.share ? 'normalize' : 'zero' : null,
+            axis: { format: panel.options.share ? '.0%' : undefined },
+            scale: { type: panel.options.coverageLogY && !panel.options.share ? 'log' : 'linear' } },
+          color: { field: 'series', type: 'nominal', scale: { domain: cohorts.map(cohort => cohort.id), range: colors }, legend: null },
+          tooltip: [{ field: 'label', title: 'Series' }, { field: 'start', type: 'temporal', title: 'Upload time' }, { field: 'n', type: 'quantitative', title: 'Count' }] },
+      } as TopLevelSpec };
+    }
+    if (panel.series.length) {
+      const dashboard = panelCohort(state, panel);
+      analysisHeaders = ['n', 'Difference from dashboard'];
+      analysisRows = [{ id: dashboard.id, name: 'This dashboard', color: colors[cohorts.findIndex(cohort => cohort.id === dashboard.id)] ?? OTHER_COLOR,
+        cells: [n?.toLocaleString('en-US') ?? '—', '—'] },
+        ...cohorts.flatMap((cohort, index) => cohort.id === dashboard.id ? [] : [{ id: cohort.id, name: cohort.name, color: colors[index],
+          cells: [counts[index]?.toLocaleString('en-US') ?? '—', counts[index] !== null && n !== null ? (counts[index]! - n).toLocaleString('en-US') : '—'] }])];
+    }
+  }
+  const dashboard = { ...panelCohort(state, panel), name: 'This dashboard' };
+  const statsCohorts = [dashboard, ...cohorts.filter(cohort => cohort.id !== dashboard.id)];
+  const sharedRange = numeric ? panelSharedRange(state, panel, cohorts) : null;
+  const statsResults = numeric ? statsCohorts.map(cohort => results.find(result => result.id === cohort.id) ?? {
+    id: cohort.id, name: cohort.name, base: aggregate,
+    ranged: sharedRange ? distributionResult(state, queryKey(cohortQuery(state, panel, cohort, sharedRange))) : null,
+  }) : [];
+  const comparison = numeric && panel.series.length ? comparisonStats(state, panel, statsCohorts, statsResults) : null;
+  if (comparison) {
+    comparison.rows = comparison.rows.map(row => ({ ...row, color: colors[cohorts.findIndex(cohort => cohort.id === row.id)] ?? OTHER_COLOR }));
+  }
+  if (panel.series.length) stats = null;
+  const view: PanelView = {
+    id, panel, title: titleFor(state, panel), meaning: panelMeaning({ x: panel.x, form: panel.form, modality: state.global.modality,
+      view: activeView(state), metricLabel: metric?.label ?? null, metricDescription: metric?.description ?? null, metricUnit: metric?.unit ?? null,
+      groupLabel: category?.label ?? null, granularity: panel.options.granularity, cohortCount: cohorts.length }),
+    subtitle: panelSubtitle(state, panel, table, total), notes: [...panelNotes(state, panel), ...chart.degenerateNote ? [chart.degenerateNote] : [],
+      ...(cohorts.some(cohort => cohort.source === 'study') && studyFormReason(panel) ? [studyFormReason(panel)!] : [])],
+    clipChip: clipChip(panel.options.clip, metric, panel), metricHelp: metric ? { label: metric.label, taxonomy: [metric.family, metric.subfamily].filter(Boolean).join(' / '), description: metric.description ?? null, unit: metric.unit ?? null } : null,
+    specKey: JSON.stringify([theme.mode, panel.x, panel.y, panel.form, panel.options, series, chart.spec]),
+    spec: chart.spec ? withChipLegend(chart.spec) : null, datasets: chart.datasets, table, status, brushable: chart.brushable,
+    hasRows: table ? table.rows.length > 0 : Object.values(chart.datasets).some(rows => rows.length > 0), live: status.kind === 'ready',
+    n: chart.n, countLabel: countLabel(state, panel), stats, xPositive: axisEvidence(state,panel).positive,
+    cohorts: panel.series.length ? cohorts.map((cohort, index) => ({ id: cohort.id, name: cohort.name, color: colors[index], n: counts[index] ?? null, editable: false, descriptorKey: cohort.descriptorKey })) : null,
+    comparison, splitCohorts: [], outsideNotes: numeric ? outsideRangeNotes(cohorts, results) : [],
+    partial: numeric && panel.form !== 'table' && panel.series.length > 0 && status.kind === 'ready' && results.some(result => result.ranged === null),
+    analysisHeaders, analysisRows,
   };
   memos.set(id, { deps, view });
   return view;

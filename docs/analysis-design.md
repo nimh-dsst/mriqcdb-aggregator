@@ -18,15 +18,24 @@ Any UI element that cannot be named as one of the four is a defect.
 | **Series** | zero or more ways to put groups side by side: `field` (top groups), `values` (chosen values of a field), `population`, `cohort` (saved group), `study`, `span` (earlier time window) | the one **Compare** chip input on the card |
 | **Form** | how it is drawn, derived from the axis types (table below); plus scale, range, bins, layout in the options menu | the icon dropdown on the card; menu for the rest |
 
-Forms by axis types (the dropdown lists exactly this row, nothing else):
+Forms by axis types (the dropdown lists exactly this row, nothing else).
+**A form is a drawing, named by its geometry.** If a name describes the data
+("counts over time", "uploads", "correlation") it is a quantity, not a form,
+and must not appear in the picker (owner, 2026-10-09: "counts over time is a
+graph type which it is not").
 
-| x | y | forms |
+| x | y | forms (glyph · name · use when) |
 |---|---|---|
-| numeric metric | none | Histogram, Density, ECDF, Box, Table |
-| time | none | Counts over time (bars / stacked when series), Line, Median band (of a chosen metric: the metric is then the y) |
-| numeric metric | numeric metric | 2D density, Scatter sample, Hexbin, Clusters |
-| categorical field | none | Counts per category (bars), Share per category |
-| set of metrics | — | Correlation matrix |
+| numeric metric | none | Histogram (shape, counts per bin) · Density (smooth shape, compare series) · ECDF (read percentiles) · Box (spread per series) · Table (the records) |
+| time | none | Bars (count per bucket; stacked with series) · Line (trend) · Area (stacked share with series) |
+| time | numeric metric | Band (median with p25–p75 per bucket) · Lines (p05/p50/p95 per bucket) |
+| numeric metric | numeric metric | Heatmap (2D density) · Scatter (sample points) · Hexbin (sample, binned) · Clusters (k-means on the sample) |
+| categorical field | none | Bars (count per category) · Share (100% bar) |
+| set of metrics | — | Matrix (pairwise coefficient) |
+
+The picker renders each option as a 20×14 glyph of the mark, the name, and the
+"use when" line; the trigger shows glyph + name untruncated. Each quantity has a
+default form (first in its row).
 
 Derived, never configured: the title ("Mean framewise displacement", "tSNR vs FD mean", "Uploads over time", "Scans per Manufacturer", "Metric correlations"), the count line, the stat row (quantiles of x for numeric; totals for time and categories), the meaning line, the legend (one, chips, ✕ removes a series, click isolates), the differences table when ≥2 series, the preferred grid size (numeric 4×10; time, categorical, two-metric 8×10; correlation 8×14; +2 rows with series).
 
@@ -272,7 +281,8 @@ were abbreviations, and a four-metric family is a trivial matrix.
 
 The axes and stacking controls now use the shared-range query machinery and
 catalog/legend series order. Stacking a density switches to a histogram with
-a notice. Typed custom bounds retain their precision in shared links.
+a notice. Typed custom bounds retain their precision in the session; the URL
+stream rounds shared ranges to three significant digits.
 
 Correlation has its own shape and Metrics/Coefficient controls. Its default
 set spans eight IQMs per modality; the selected coefficient (Spearman by
@@ -293,3 +303,40 @@ pointer resize and restoration, fresh-context geometry and axes links,
 stacked and stacked100 splits, disabled cohort stacking, correlation, and
 maximize/Escape. A Bruker-filtered export downloaded 733 rows in both Arrow
 (58,112 bytes) and CSV (89,607 bytes), with no browser console errors.
+
+## Implementation notes: the one scheme (2026-10-09)
+
+The web graph now stores `Panel { id, x, y, series, form, options }` (plus
+ephemeral table cursors and an optional statistics reference). There is no live
+panel kind or kinds table. `graph/panel-shapes.ts:formsFor` owns the axis-to-form
+table; the reducer, dropdown and spec dispatcher all use it. Axis changes keep
+a valid form and otherwise choose the first allowed form. Series edits preserve
+the form; stacked density becomes a step histogram.
+
+The shared column picker includes Upload time, metric families and categorical
+fields. Categorical forms request groupedSummary counts and coverage totals;
+the latter include rows with missing metric values. Time counts use coverage,
+median bands use timeSummary, numeric series use distribution on a shared
+range, paired quantities use density2d, matrices use correlation, and Table
+uses sample. Table pagination keeps each comparison's cursor independently.
+All calls use existing API procedures; the server is unchanged.
+
+Titles, count labels, numeric quantiles or totals, meaning and comparisons are
+view projections. Preferred sizes start at numeric 4×10; time, categories and
+pairs 8×10; Matrix 8×14. Series count and control wrapping add height, while
+explicit user sizing remains part of layout state.
+
+The sole URL format is the version-1 six-bit stream. Default state emits no
+`s` parameter; undecodable links restore the default dashboard with a notice.
+Shared ranges round to three significant digits. Compression dictionaries,
+legacy readers and form aliases are removed.
+
+`formsFor` separates time counts (bars/line/area) from time summaries
+(band/lines). Pairs use heatmap/scatter/hexbin/clusters, categories bars/share,
+and metric sets matrix. It also supplies the TypeScript form vocabulary and
+one-character URL tokens in row order. Numeric-only forms are unchanged.
+Query planning and view dispatch use those names throughout: choosing a time
+metric requests timeSummary, Band draws the median and p25–p75, and Lines
+passes its mode to `medianBandChart` to draw p05/p50/p95. Area normalizes
+multiple series to shares. Compare chips carry the plotted colours and counts,
+and numeric comparisons use one compact series table.

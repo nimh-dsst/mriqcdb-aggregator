@@ -1,4 +1,3 @@
-import { shapeOf } from '../graph/panel-shapes';
 /**
  * The page: the top bar, the panel grid, and the menu that adds panels.
  *
@@ -20,11 +19,10 @@ import { toSignal } from '@angular/core/rxjs-interop';
 import { MatMenuModule } from '@angular/material/menu';
 import { OverlayModule } from '@angular/cdk/overlay';
 import { A11yModule } from '@angular/cdk/a11y';
-import { MetricPicker } from '../panels/metric-picker';
-import { asColumnId, metricsFor } from '@mriqc/shared';
+import { ColumnPicker } from '../panels/column-picker';
+import { asColumnId, metricsFor, fieldsFor } from '@mriqc/shared';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { LucideAngularModule } from 'lucide-angular';
-import type { PanelKind } from '@mriqc/shared';
 import { deriveLayout, panelsWithPreferredRows } from '../graph/layout';
 import { GridInteractionDirective } from './grid-interaction.directive';
 import { map, distinctUntilChanged } from 'rxjs';
@@ -36,7 +34,6 @@ import {
   matchesMedia,
 } from '../chrome/media';
 import { Graph } from '../graph/graph';
-import { PANEL_KINDS, PANEL_KIND_IDS } from '../graph/panel-shapes';
 import { PanelCard } from '../panels/panel-card';
 import type { Panel } from '../graph/state';
 import { environment } from '../../environments/environment';
@@ -47,39 +44,6 @@ const SHARE_NOTICE_MS = 3000;
 
 /** How long "Removed … · Undo" stays up. */
 export const UNDO_NOTICE_MS = 6000;
-
-/** One entry of the "+ panel" menu. */
-export interface PanelKindEntry {
-  kind: PanelKind;
-  label: string;
-  hint: string;
-}
-
-const PANEL_KIND_LABELS: readonly PanelKindEntry[] = PANEL_KIND_IDS.map((kind) => ({
-  kind,
-  label: PANEL_KINDS[kind].label,
-  hint: PANEL_KINDS[kind].hint,
-}));
-
-/**
- * The kinds the "+ panel" menu offers.
- *
- * Every one of them, now. The comparison entry used to be hidden behind
- * `features.studyUpload`, because a comparison meant "this population against an
- * uploaded study" and nothing in the UI could choose a file -- a permanently
- * greyed row with no picker to act on. A comparison is between *cohorts*, and
- * two of those always exist ("This dashboard" and "Whole population"), so the
- * entry can always be chosen and always produces a panel that draws something.
- *
- * The parameter stays, unused by the filter, because the signature is what the
- * study-upload pass will hand a `study` cohort entry to.
- */
-export function visiblePanelKinds(
-  kinds: readonly PanelKindEntry[],
-  _studyUpload: boolean,
-): readonly PanelKindEntry[] {
-  return kinds;
-}
 
 /** A removed panel, held just long enough for its undo offer. */
 interface RemovedPanel {
@@ -100,7 +64,7 @@ interface RemovedPanel {
     GridInteractionDirective,
     OverlayModule,
     A11yModule,
-    MetricPicker,
+    ColumnPicker,
   ],
   templateUrl: './dashboard.html',
   host: { '(document:keydown.escape)': 'restoreMaximized()' },
@@ -112,8 +76,9 @@ export class Dashboard {
   protected readonly chrome = toSignal(this.graph.chrome$);
   protected readonly addOpen = signal(false);
   protected readonly metrics = computed(() => metricsFor(this.chrome()?.modality ?? 'bold'));
+  protected readonly fields = computed(() => fieldsFor(this.chrome()?.modality ?? 'bold', this.chrome()?.view ?? 'raw', 'group'));
   protected addMetric(metric: string): void {
-    this.graph.dispatch({ t: 'addPanel', kind: 'distribution', metric: asColumnId(metric) });
+    this.graph.dispatch({ t: 'addPanel', x: asColumnId(metric) });
     this.addOpen.set(false);
   }
   protected readonly gridState = toSignal(this.graph.state$.pipe(map(state => ({layout:state.layout,panels:panelsWithPreferredRows(state)}))));
@@ -121,10 +86,6 @@ export class Dashboard {
   protected readonly announcement = signal('');
   private readonly host = inject(ElementRef<HTMLElement>).nativeElement;
   protected readonly maximizedHeight = signal(600);
-  protected readonly panelKinds = visiblePanelKinds(
-    PANEL_KIND_LABELS,
-    environment.features.studyUpload,
-  );
 
   /* ------------------------------------------------------------- the grid */
 
@@ -145,10 +106,6 @@ export class Dashboard {
   protected resetLayout(): void { this.graph.dispatch({ t: 'resetLayout' }); }
   protected restoreMaximized(): void {
     if (this.maximized()) this.graph.dispatch({ t: 'maximizePanel', id: null });
-  }
-
-  protected add(kind: PanelKind): void {
-    this.graph.dispatch({ t: 'addPanel', kind });
   }
 
   /* ------------------------------------------------------------ remove / undo */

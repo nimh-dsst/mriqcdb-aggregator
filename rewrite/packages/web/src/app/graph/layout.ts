@@ -1,3 +1,4 @@
+import { axisType } from './panel-shapes';
 import type { Panel, State } from './state';
 
 /** A panel rectangle in the fixed twelve-column dashboard grid. */
@@ -13,7 +14,7 @@ export type DashboardLayout = Readonly<Record<string, GridPos>>;
 /** The panel fields used to choose a default dashboard size. */
 export type LayoutPanel = Pick<
   Panel,
-  'id' | 'x' | 'y' | 'chart' | 'split' | 'cohorts' | 'options'
+  'id' | 'x' | 'y' | 'form' | 'series' | 'options'
 > & { readonly rows?: number };
 
 const GRID_COLUMNS = 12;
@@ -154,66 +155,19 @@ function baseWidth(columnsWide: number): number {
   return GRID_COLUMNS / columns;
 }
 
-function isTwoDimensionalChart(chart: string): boolean {
-  return ['density2d', 'scatter', 'hexbin', 'clusters'].includes(chart.toLowerCase());
-}
+export function panelsWithPreferredRows(state: State): readonly LayoutPanel[] { return state.panels; }
 
-function isBoxOrSmallMultiples(chart: string): boolean {
-  return [
-    'box',
-    'boxplot',
-    'smallmultiples',
-    'facetedhistogram',
-    'facetedecdf',
-  ].includes(chart.toLowerCase());
-}
-
-function declaredRows(panel: LayoutPanel): number {
-  const rows = panel.rows;
-  if (typeof rows === 'number' && Number.isFinite(rows)) {
-    return Math.max(0, Math.trunc(rows));
-  }
-
-  return panel.cohorts.length;
-}
-
-/** Preferred row counts come from series metadata, never measured card content. */
-export function panelsWithPreferredRows(state: Pick<State, 'panels' | 'catalog' | 'global'>): readonly LayoutPanel[] {
-  return state.panels.map(panel => {
-    if (!isBoxOrSmallMultiples(panel.chart) && !(panel.split && panel.options.splitPresentation === 'facets')) return panel;
-    const count = panel.split
-      ? state.catalog?.fieldValues[panel.split]?.[state.global.modality]?.[state.global.view]?.length ?? 7
-      : panel.cohorts.length;
-    // Categorical chart rendering keeps six named series and one Other row.
-    return { ...panel, rows: Math.min(7, count) };
-  });
-}
-
-/**
- * Return the default grid rectangle for a panel at the current responsive width.
- * The rectangle is only a preference; placement is handled by deriveLayout and
- * reconcileLayout.
- */
+/** Preferred size is derived only from the quantity, form, and presence of series. */
 export function preferredSize(panel: LayoutPanel, columnsWide: number): GridPos {
-  const chart = panel.chart.toLowerCase();
-
-  if (chart === 'correlation') {
-    return normalizePos({ x: 0, y: 0, w: 8, h: 14 });
-  }
-
-  if (isTwoDimensionalChart(chart)) {
-    return normalizePos({ x: 0, y: 0, w: 6, h: 12 });
-  }
-
-  const minimumHeight = panel.split && panel.x !== 'created_at' ? 12 : DEFAULT_HEIGHT;
-  const h = isBoxOrSmallMultiples(chart) || (panel.split && panel.options.splitPresentation === 'facets')
-    ? Math.max(minimumHeight, 4 + declaredRows(panel))
-    : minimumHeight;
-  let w = baseWidth(columnsWide);
-  if (panel.x === 'created_at' || panel.cohorts.length > 1) {
-    w *= 2;
-  }
-
+  const wide = panel.form === 'matrix' || axisType(panel.x) !== 'numeric' || panel.y !== null;
+  const w = wide ? Math.min(12, baseWidth(columnsWide) * 2) : baseWidth(columnsWide);
+  // A field expands to up to five groups and Other; chosen values are exact.
+  const additional = panel.series.reduce((n, series) => n + (series.kind === 'field' ? 6 : series.kind === 'values' ? new Set(series.values).size : 1), 0);
+  const chipWidth = panel.series.reduce((n, series) => n + (series.kind === 'field' ? 6 * 160 : series.kind === 'values' ? series.values.reduce((sum, value) => sum + 110 + value.length * 7, 0) : 210), 0);
+  // Reserve one row for the table header, one per pair of added series, and
+  // another when the chips exceed the control space at this grid width.
+  const wraps = chipWidth > w * 120 - 180;
+  const h = (panel.form === 'matrix' ? 14 : 10) + (additional ? 1 + Math.ceil(additional / 2) + Number(wraps) : 0);
   return normalizePos({ x: 0, y: 0, w, h });
 }
 

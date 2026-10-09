@@ -6,7 +6,8 @@
  * `File`), so a session is a replayable log.
  */
 
-import type { ColumnId, Filter, Modality, PanelKind, QueryKey, View } from '@mriqc/shared';
+import type { ColumnId, Filter, Modality, QueryKey, View } from '@mriqc/shared';
+import type { Series } from './series';
 import type {
   Cohort,
   CohortId,
@@ -34,13 +35,12 @@ export type Command =
   | { t: 'setView'; view: View }
   | { t: 'setFilters'; filters: readonly Filter[] }
   // panels
-  /**
-   * `cohorts` is how a comparison panel is born already configured, which is
-   * what "Compare time spans" needs: it creates two cohorts and then one panel
-   * over exactly those two. Ignored for every other kind, and a comparison
-   * panel added without it opens on `current` + `all`.
-   */
-  | { t: 'addPanel'; kind: PanelKind; metric?: MetricId; cohorts?: readonly CohortId[] }
+  /** Create a quantity, optionally with explicit series and a valid form. */
+  | { t: 'addPanel'; x?: MetricId | 'created_at'; y?: MetricId | null; form?: PanelChart; series?: readonly Series[] }
+  | { t: 'addPanelSeries'; id: PanelId; series: Series }
+  | { t: 'removePanelSeries'; id: PanelId; key: string }
+  | { t: 'setPanelForm'; id: PanelId; form: PanelChart }
+  | { t: 'addGroupToPanels'; id: CohortId; panelIds?: readonly PanelId[] }
   | { t: 'removePanel'; id: PanelId }
   /**
    * Put a removed panel back exactly as it was, at the place it was removed
@@ -63,7 +63,7 @@ export type Command =
   | { t: 'setPanelMetric'; id: PanelId; metric: MetricId }
   | { t: 'setPanelAxis'; id: PanelId; axis: 'x' | 'y'; value: MetricId | 'created_at' | null }
   | { t: 'setPanelSplit'; id: PanelId; split: GroupField | null }
-  | { t: 'setPanelChart'; id: PanelId; chart: PanelChart }
+  | { t: 'setPanelChart'; id: PanelId; form: PanelChart }
   | { t: 'setPanelGroup'; id: PanelId; group: GroupField | null }
   | { t: 'setPanelOptions'; id: PanelId; options: Partial<PanelOptions> }
   | { t: 'setPanelCohort'; id: PanelId; cohort: CohortId }
@@ -140,7 +140,7 @@ export type Command =
   | { t: 'brush'; from: PanelId; metric: MetricId; range: [number, number] | null }
   | { t: 'brush2d'; from: PanelId; x: MetricId; y: MetricId; ranges: { x: [number, number]; y: [number, number] } | null }
   // url
-  | { t: 'hydrate'; url: UrlState }
+  | { t: 'hydrate'; url: UrlState; notice?: string }
   // data
   | { t: 'dataArrived'; key: QueryKey; result: unknown; version: string }
   | { t: 'dataFailed'; key: QueryKey; error: string }
@@ -187,9 +187,10 @@ export type CommandType = Command['t'];
 export interface PanelPatch {
   x?: MetricId | 'created_at';
   y?: MetricId | null;
+  series?: readonly Series[];
   split?: GroupField | null;
   metric?: MetricId;
-  chart?: PanelChart;
+  form?: PanelChart;
   group?: GroupField | null;
   options?: Partial<PanelOptions>;
   /** The cohort whose scope this card follows. */
@@ -218,7 +219,9 @@ export function panelPatch(command: Command): { id: PanelId; patch: PanelPatch }
     case 'setPanelSplit':
       return { id: command.id, patch: { split: command.split } };
     case 'setPanelChart':
-      return { id: command.id, patch: { chart: command.chart } };
+      return { id: command.id, patch: { form: command.form } };
+    case 'setPanelForm':
+      return { id: command.id, patch: { form: command.form } };
     case 'setPanelGroup':
       return { id: command.id, patch: { group: command.group } };
     case 'setPanelOptions':

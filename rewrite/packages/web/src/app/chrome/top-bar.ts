@@ -20,6 +20,7 @@ import { toSignal } from '@angular/core/rxjs-interop';
 import { DecimalPipe, NgTemplateOutlet } from '@angular/common';
 import { ReactiveFormsModule } from '@angular/forms';
 import { MatDatepickerModule } from '@angular/material/datepicker';
+import { MatDialog } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
@@ -33,7 +34,6 @@ import { CATALOG_KEY } from '../graph/queries';
 import { significant } from '../view/text';
 import type { FilterFieldView, NumericFieldView } from '../view/chrome-view';
 import { environment, useMockApi } from '../../environments/environment';
-import { CohortBar } from './cohort-bar';
 import { FilterSelect } from './filter-select';
 import { RouterLink } from '@angular/router';
 import { ThemeToggle } from './theme-toggle';
@@ -242,7 +242,6 @@ export function studyMetricSummary(study: {
     MatSelectModule,
     MatTooltipModule,
     LucideAngularModule,
-    CohortBar,
     FilterSelect,
     RouterLink,
     ThemeToggle,
@@ -251,6 +250,7 @@ export function studyMetricSummary(study: {
   templateUrl: './top-bar.html',
 })
 export class TopBar {
+  private readonly dialog = inject(MatDialog);
   protected readonly exportOpen = signal(false);
   protected readonly graph = inject(Graph);
   protected readonly chrome = toSignal(this.graph.chrome$);
@@ -344,7 +344,10 @@ export class TopBar {
    * three were chosen.
    */
   protected saveAsCohort(): void {
-    this.graph.dispatch({ t: 'saveCurrentAsCohort' });
+    void import('./cohort-editor').then(({ CohortEditor, cohortDialogSize }) => {
+      this.dialog.open(CohortEditor, { ...cohortDialogSize(this.phone()), ariaLabel: 'Save as group',
+        data: { mode: 'create', seed: null, convertPanel: null } });
+    });
   }
 
   /** What the active policy refused, shown under the view select. Null off a canonical view. */

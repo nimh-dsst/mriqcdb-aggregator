@@ -103,10 +103,12 @@ export function medianBandChart(
   series: readonly TimeSeries[],
   yLabel: string,
   theme: ChartTheme = LIGHT_THEME,
+  form: 'band' | 'lines' = 'band',
 ): {
   spec: TopLevelSpec;
   datasets: Record<string, readonly unknown[]>;
 } {
+  if (form === 'lines') return timeLinesChart(series, yLabel, theme);
   const rows = timeSummaryRows(series);
   const segments = timeSummarySegmentRows(series);
   const colorScale = {
@@ -224,5 +226,35 @@ export function medianBandChart(
       timeSummary: rows,
       timeSummarySegments: segments,
     },
+  };
+}
+
+/** Three percentile paths per series, with points preserving singleton buckets. */
+export function timeLinesChart(series: readonly TimeSeries[], yLabel: string, theme: ChartTheme = LIGHT_THEME): {
+  spec: TopLevelSpec;
+  datasets: Record<string, readonly unknown[]>;
+} {
+  const rows = series.flatMap(item => item.result.buckets.flatMap(bucket =>
+    (['p05', 'p50', 'p95'] as const).map(percentile => ({
+      seriesId: item.id, seriesName: item.name, bucket: bucket.start,
+      percentile, value: bucket.quantiles[percentile], n: bucket.n, thin: bucket.thin,
+    })),
+  ));
+  return {
+    spec: {
+      $schema: VL_SCHEMA, ...FILLS_CONTAINER, ...baseConfig(theme),
+      data: { name: 'timeLines' },
+      mark: { type: 'line', point: true, strokeWidth: 2 },
+      encoding: {
+        x: { field: 'bucket', type: 'temporal', title: 'Upload time' },
+        y: { field: 'value', type: 'quantitative', title: yLabel, scale: { zero: false } },
+        color: { field: 'seriesId', type: 'nominal', scale: { domain: series.map(item => item.id), range: series.map(item => item.color) } },
+        strokeDash: { field: 'percentile', type: 'nominal', scale: { domain: ['p05', 'p50', 'p95'], range: [[3, 3], [1, 0], [7, 3]] }, title: 'Percentile' },
+        detail: [{ field: 'seriesId' }, { field: 'percentile' }],
+        opacity: { condition: { test: 'datum.thin', value: 0.4 }, value: 1 },
+        tooltip: [{ field: 'seriesName', title: 'Series' }, { field: 'bucket', type: 'temporal' }, { field: 'percentile' }, { field: 'value', type: 'quantitative' }, { field: 'n', title: 'Observations' }],
+      },
+    } as TopLevelSpec,
+    datasets: { timeLines: rows },
   };
 }

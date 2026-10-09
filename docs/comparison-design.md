@@ -333,3 +333,39 @@ comparison, and they are all chosen in one place.**
   (≈130px): trigger shows the form's Lucide icon + name ("Histogram"),
   options show icon + name + one-line hint, forms per shape as before.
 - Row layout: Compare chips `1fr` · chart picker `auto`.
+
+## Implementation notes: Compare chips (2026-10-09)
+
+`graph/series.ts` defines field, values, population, cohort, study and span
+descriptors and the shared validation/reason functions. The Compare input
+offers By field, Chosen values, Against, Earlier span and New group. The same
+validator enforces one grouping, at most two against descriptors alongside a
+grouping, duplicate rejection and six chromatic slots plus neutral Other.
+Field grouping expands to five named groups and an exact pooled Other query.
+Chosen values retain their exact wire values, including the missing token.
+
+Grouping draws the selected parts of the dashboard; the unsplit dashboard is
+still queried for its stat row. This makes Siemens + GE + Whole population
+three plotted series, as required by the scheme acceptance example. Without
+grouping, This dashboard is the first plotted series. This is the resolution
+of the earlier always-plotted-series-0 wording for that acceptance example.
+
+Expanded Compare chips are the sole series legend and show each plotted colour
+and n. Click dims other series; double-click resets; the remove button removes
+the corresponding descriptor. There is no separate legend row or Vega series
+legend. Numeric comparisons have one compact table: Series, n, Median, IQR,
+p05–p95, Δmedian/IQR and approximate KS, relative to the first row. Time and
+category comparisons display their applicable totals or summaries. Tables
+scroll within the card while the chart retains at least 160px.
+
+Save as group opens the editor with current filters, linked brush and an
+automatic name. Add to all cards defaults on and respects each card's cap.
+Saved groups are listed in the editor for rename/delete and in every Against
+menu. The Cohorts bar, per-card scope, Compare selected and options-menu
+Compare with controls have been removed.
+
+Matrix and Clusters render small multiples for multiple series. Local-study
+Table and row-count forms are disabled with an explanation: the existing
+StudyApi supports distribution, groupedSummary, timeSummary, density2d and
+correlation, but no sample or coverage procedure. Changing an existing study
+comparison to one of those forms retains the descriptor and shows a note.

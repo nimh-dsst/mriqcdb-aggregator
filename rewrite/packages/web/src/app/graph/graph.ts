@@ -215,12 +215,16 @@ export class Graph {
       ),
     ).pipe(
       distinctUntilChanged(),
-      filter((param) => param !== this.lastUrlParam),
+      filter((param) => (param ?? '') !== this.lastUrlParam),
       tap(() => {
         this.hydrated = true;
         this.firstSyncAfterHydrate = true;
       }),
-      map((param): Command => ({ t: 'hydrate', url: decodeUrlState(param) ?? defaultDashboard() })),
+      map((param): Command => {
+        const decoded = decodeUrlState(param);
+        return { t: 'hydrate', url: decoded ?? defaultDashboard(),
+          ...(param && !decoded ? { notice: 'This dashboard URL could not be read. Showing the default dashboard.' } : {}) };
+      }),
     );
 
     this.commands$ = merge(
@@ -339,7 +343,7 @@ export class Graph {
     this.lastUrlParam = param;
     void this.router.navigate([], {
       relativeTo: this.route,
-      queryParams: { [URL_PARAM]: param },
+      queryParams: { [URL_PARAM]: param || null },
       queryParamsHandling: 'merge',
       replaceUrl: mode === 'replace',
     });

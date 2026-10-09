@@ -69,6 +69,7 @@ import { mintCohortId, nextCohortColor } from '../graph/cohorts';
 import { unitNoun } from '../view/text';
 import {
   CURRENT_COHORT,
+  MAX_COHORTS,
   type Cohort,
   type CohortId,
   type MetricId,
@@ -247,6 +248,14 @@ export class CohortEditor {
   protected readonly form = buildControlsForm();
 
   protected readonly name = signal('');
+  protected readonly addToAll = signal(true);
+
+  protected renameGroup(id: string, event: Event): void {
+    const name = (event.target as HTMLInputElement).value.trim();
+    if (name) this.graph.dispatch({ t: 'updateCohort', id, patch: { name } });
+  }
+
+  protected deleteGroup(id: string): void { this.graph.dispatch({ t: 'removeCohort', id }); }
   protected readonly color = signal(0);
   protected readonly palette = CATEGORY_PALETTE;
   protected readonly swatch = cohortColor;
@@ -294,11 +303,11 @@ export class CohortEditor {
   protected readonly title = computed(() => {
     switch (this.mode()) {
       case 'edit':
-        return 'Edit cohort';
+        return 'Edit group';
       case 'timespans':
         return 'Compare time spans';
       default:
-        return 'New cohort';
+        return 'Save as group';
     }
   });
 
@@ -571,6 +580,7 @@ export class CohortEditor {
   }
 
   protected readonly canSave = computed(() => {
+    if (this.mode() === 'create' && this.savedCohorts().length >= MAX_COHORTS) return false;
     // A cohort with no name is a legend entry nobody can read.
     if (this.name().trim() === '') return false;
     if (this.mode() !== 'timespans') return true;
@@ -600,7 +610,9 @@ export class CohortEditor {
     this.graph.dispatch({ t: 'addCohort', cohort: { ...this.draft(), id } });
     // The panel and the cohort are two commands, which is why the caller mints
     // the id: the panel has to be able to name the cohort that does not exist yet.
-    if (this.data.convertPanel !== null) {
+    if (this.addToAll()) {
+      this.graph.dispatch({ t: 'addGroupToPanels', id });
+    } else if (this.data.convertPanel !== null) {
       this.graph.dispatch({
         t: 'convertToComparison',
         panelId: this.data.convertPanel,
@@ -644,9 +656,8 @@ export class CohortEditor {
     this.graph.dispatch({ t: 'addCohort', cohort: cohortB });
     this.graph.dispatch({
       t: 'addPanel',
-      kind: 'comparison',
-      metric: span.metric,
-      cohorts: [idA, idB],
+      x: span.metric,
+      series: [{ kind: 'cohort', id: idA }, { kind: 'cohort', id: idB }],
     });
     this.dialog.close(idA);
   }

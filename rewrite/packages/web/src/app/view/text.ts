@@ -1,4 +1,4 @@
-import { shapeOf } from '../graph/panel-shapes';
+import { axisType } from '../graph/panel-shapes';
 /**
  * The words a card says, and the numbers in them.
  *
@@ -22,10 +22,8 @@ import {
   type Granularity,
   type MetricDef,
   type Modality,
-  type PanelKind,
   type ViewDef,
 } from '@mriqc/shared';
-import { PANEL_KINDS, type PanelShape } from '../graph/panel-shapes';
 import { effectiveSelection } from '../graph/queries';
 import type { Panel, PanelChart, State } from '../graph/state';
 
@@ -161,8 +159,9 @@ export function metricPhrase(
 
 /** Everything the meaning line reads, so it can be tested without a `State`. */
 export interface MeaningInput {
-  kind: PanelShape;
-  chart: PanelChart;
+  x?: Panel['x'];
+  kind?: string;
+  form: PanelChart;
   modality: Modality;
   view: ViewDef | undefined;
   metricLabel: string | null;
@@ -170,13 +169,12 @@ export interface MeaningInput {
   metricUnit: string | null;
   groupLabel: string | null;
   granularity: Granularity;
-  /** How many cohorts a comparison panel is comparing. Zero for every other kind. */
+  /** Number of resolved plotted series. */
   cohortCount?: number;
 }
 
 /**
- * One sentence per card, composed from the panel's kind, its metric, its
- * grouping and the view the whole page is on.
+ * One sentence per card, composed from its quantity, form, series and row policy.
  *
  * Pure, and the only place the dashboard says what a figure *is*. Every other
  * always-visible string on a card is a number or a control label; the
@@ -188,17 +186,20 @@ export interface MeaningInput {
  * figure twice -- and cost the phone layout a whole wrapped line.
  */
 export function panelMeaning(input: MeaningInput): string {
-  return PANEL_KINDS[input.kind].meaning({
-    unit: unitNoun(input.view),
-    metric:
-      input.metricLabel === null
-        ? null
-        : metricPhrase(input.metricLabel, input.metricDescription, input.metricUnit),
-    group: input.groupLabel,
-    chart: input.chart,
-    granularity: input.granularity,
-    cohortCount: input.cohortCount ?? 0,
-  });
+  const unit = unitNoun(input.view);
+  const metric = input.metricLabel ? metricPhrase(input.metricLabel, input.metricDescription, input.metricUnit) : 'values';
+  const across = (input.cohortCount ?? 0) > 1 ? `, across ${input.cohortCount} series` : '';
+  if (input.form === 'table') return `The individual ${unit} behind these charts, most recent first.`;
+  if (input.x === 'created_at') {
+    if (input.form === 'band') return `${metric} over upload time: median and middle half${across}.`;
+    if (input.form === 'lines') return `${metric} over upload time: 5th, 50th and 95th percentiles${across}.`;
+    return `${unit[0].toUpperCase() + unit.slice(1)} uploaded per ${input.granularity}${across}.`;
+  }
+  if (input.form === 'bars' || input.form === 'share') return `${input.form === 'share' ? 'Share' : 'Number'} of ${unit} per ${input.groupLabel ?? 'category'}${across}.`;
+  if (input.form === 'ecdf') return `Share of ${unit} at or below each value of ${metric}${across}.`;
+  if (input.form === 'density') return `Smoothed share of ${unit} at each value of ${metric}${across}.`;
+  if (input.form === 'histogram') return `How many ${unit} fall in each range of ${metric}${across}.`;
+  return `Spread of ${metric}${across}.`;
 }
 
 /* ------------------------------------------------------- notes and the clip */
@@ -234,7 +235,7 @@ export const CLIP_CHIP: Record<ClipMode, string> = {
  * should mean: someone changed this.
  */
 export function clipChip(clip: ClipMode, metric: MetricDef | null, panel: Panel): string | null {
-  if (!PANEL_KINDS[shapeOf(panel)].clips) return null;
+  if (axisType(panel.x) !== 'numeric' || panel.form === 'table' || panel.form === 'matrix') return null;
   if (clip === (metric?.clipDefault ?? 'p01p99')) return null;
   return CLIP_CHIP[clip];
 }
@@ -253,5 +254,5 @@ export function clipChip(clip: ClipMode, metric: MetricDef | null, panel: Panel)
  */
 export function countLabel(state: State, panel: Panel): string {
   const noun = viewNoun(state.global.modality, activeView(state));
-  return PANEL_KINDS[shapeOf(panel)].countNoun === 'rows' ? noun : `${noun} with a value`;
+  return axisType(panel.x) === 'numeric' && panel.form !== 'table' ? `${noun} with a value` : noun;
 }

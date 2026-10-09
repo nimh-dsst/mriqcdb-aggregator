@@ -1,52 +1,70 @@
-import { asColumnId, getAuthoredCatalog, isValidField, isValidMetric, metricsFor, fieldsFor, type Modality, type PanelKind, type View } from '@mriqc/shared';
-import { isKnownCohortId, validCohortList } from './cohorts';
-import type { PanelPatch } from './commands';
+import { asColumnId, getAuthoredCatalog, isValidField, isValidMetric, metricsFor, type Modality, type View } from '@mriqc/shared';
 import { evict } from './datasets';
-import { chartsFor, defaultChartFor, shapeOf, validChart } from './panel-shapes';
-import { CURRENT_COHORT, FIRST_PAGE, defaultPanelOptions, type CohortId, type MetricId, type Panel, type PanelId, type PanelOptions, type State } from './state';
+import { panelCohorts } from './queries';
+import type { PanelPatch } from './commands';
+import { axisType, formsFor, validForm, brushable } from './panel-shapes';
+import { normalizeSeries, seriesDisabledReason, seriesKey, type Series } from './series';
+import { FIRST_PAGE, defaultPanelOptions, type ColumnRef, type Panel, type PanelId, type PanelOptions, type State } from './state';
 import { clampBins } from './url-tokens';
+
+export function seriesContext(state: State) {
+  return {
+    fieldCount: (field: string) => state.catalog?.fieldValues?.[field]?.[state.global.modality]?.[state.global.view]?.length ?? 5,
+    studyReady: typeof state.study === 'object' && state.study.status === 'ready',
+    cohortIds: state.cohorts.map(cohort => cohort.id),
+  };
+}
+
+export function canStack(panel: Pick<Panel, 'series'>): boolean {
+  return panel.series.length === 1 && ['field', 'values'].includes(panel.series[0].kind);
+}
 
 export function revertToDistribution(panel: Panel): Panel {
   const { reference: _, ...rest } = panel;
-  return validChart({ ...rest, split: null, cohorts: [CURRENT_COHORT], cursors: FIRST_PAGE });
+  return { ...rest, series: [], cursors: FIRST_PAGE };
 }
 
 export function pruneCohortRefs(panels: readonly Panel[], state: State): readonly Panel[] {
   return panels.map(panel => {
-    const ids = validCohortList(panel.cohorts, state);
-    const cohorts = ids.length ? ids : [CURRENT_COHORT];
-    if (cohorts.length === panel.cohorts.length && cohorts.every((id, i) => id === panel.cohorts[i]) &&
-      (panel.reference === undefined || cohorts.includes(panel.reference))) return panel;
-    const { reference, ...rest } = panel;
-    return validChart({ ...rest, cohorts, ...(reference && cohorts.includes(reference) ? { reference } : {}) });
+    const series = normalizeSeries(panel.series, { ...seriesContext(state), fieldCount: () => 0 });
+    const next = pruneReference(state, { ...panel, series });
+    return JSON.stringify(next) === JSON.stringify(panel) ? panel : next;
   });
+}
+
+function pruneReference(state: State, panel: Panel): Panel {
+  const ids = panelCohorts(state, panel).map(cohort => cohort.id);
+  if (panel.reference && (!ids.includes(panel.reference) || panel.reference === ids[0])) {
+    const { reference: _, ...rest } = panel;
+    return rest;
+  }
+  return panel;
 }
 
 export function pruneSelection(state: State): State {
   const selections = state.selections.filter(selection => {
     const origin = state.panels.find(panel => panel.id === selection.from);
-    return origin && [origin.x, origin.y].includes(selection.metric) &&
-      ['histogram', 'density', 'ecdf', 'density2d', 'scatter', 'hexbin', 'clusters'].includes(origin.chart) &&
-      (origin.y !== null || origin.split === null);
+    return origin && [origin.x, origin.y].includes(selection.metric) && brushable(origin);
   });
   return selections.length === state.selections.length ? state : { ...state, selections };
 }
 
-function firstMetric(modality: Modality): MetricId { return metricsFor(modality)[0]?.id ?? asColumnId('fd_mean'); }
+function firstMetric(modality: Modality) { return metricsFor(modality)[0]?.id ?? asColumnId('fd_mean'); }
+export function validColumn(x: ColumnRef, modality: Modality, view: View): boolean {
+  return x === 'created_at' || isValidMetric(modality, x) ||
+    (axisType(x) === 'categorical' && isValidField(modality, view, x, 'group'));
+}
 
-export function newPanel(state: State, kind: PanelKind = 'distribution', metric?: MetricId, cohorts?: readonly CohortId[]): Panel {
+export function newPanel(state: State, x?: ColumnRef): Panel {
   const { modality, view } = state.global;
-  const chosen = metric && isValidMetric(modality, metric) ? metric : firstMetric(modality);
+  const chosen = x && validColumn(x, modality, view) ? x : firstMetric(modality);
   const taken = new Set(state.panels.map(panel => panel.id));
-  const max = Math.max(0, ...state.panels.map(panel => /^p\d+$/.test(panel.id) && Number.isSafeInteger(Number(panel.id.slice(1))) ? Number(panel.id.slice(1)) : 0));
-  let id = max + 1; while (taken.has(`p${id}`)) id++;
-  const asked = validCohortList(cohorts, state);
-  const panel: Panel = { id: `p${id}`, x: kind === 'coverage' ? 'created_at' : chosen, y: null,
-    split: kind === 'coverage' || kind === 'grouped' ? (fieldsFor(modality, view, 'group').find(f => f.id === 'manufacturer')?.id ?? null) : null,
-    cohorts: kind === 'comparison' ? asked.length >= 2 ? asked : ['current', 'all'] : ['current'],
-    chart: kind === 'sample' ? 'table' : 'histogram',
-    options: defaultPanelOptions(metricsFor(modality).find(m => m.id === chosen)?.clipDefault), cursors: FIRST_PAGE };
-  return { ...panel, chart: kind === 'sample' ? 'table' : defaultChartFor(shapeOf(panel)) };
+  const numbers = state.panels.map(panel => /^p\d+$/.test(panel.id) ? Number(panel.id.slice(1)) : 0)
+    .filter(n => Number.isSafeInteger(n) && n < Number.MAX_SAFE_INTEGER);
+  let n = Math.max(0, ...numbers) + 1;
+  while (taken.has('p' + n)) n++;
+  return { id: 'p' + n, x: chosen, y: null, series: [], form: formsFor(chosen, null)[0],
+    options: defaultPanelOptions(metricsFor(modality).find(metric => metric.id === chosen)?.clipDefault), cursors: FIRST_PAGE };
 }
 
 export function mapPanel(state: State, id: PanelId, f: (panel: Panel) => Panel): State {
@@ -55,20 +73,18 @@ export function mapPanel(state: State, id: PanelId, f: (panel: Panel) => Panel):
   return changed ? { ...state, panels } : state;
 }
 
-function retargetMetric(metric: MetricId, modality: Modality): MetricId {
-  if (isValidMetric(modality, metric)) return metric;
-  const family = getAuthoredCatalog().metrics.find(m => m.id === metric)?.family;
-  return metricsFor(modality).find(m => m.family === family)?.id ?? firstMetric(modality);
-}
-
 export function retargetPanels(panels: readonly Panel[], modality: Modality, view: View): readonly Panel[] {
+  const retarget = (x: ColumnRef) => {
+    if (validColumn(x, modality, view)) return x;
+    const family = getAuthoredCatalog().metrics.find(metric => metric.id === x)?.family;
+    return metricsFor(modality).find(metric => metric.family === family)?.id ?? firstMetric(modality);
+  };
   return panels.map(panel => {
-    const x = panel.x === 'created_at' ? panel.x : retargetMetric(panel.x, modality);
-    const candidateY = panel.y === null ? null : retargetMetric(panel.y, modality);
-    const y = candidateY === x ? null : candidateY;
-    const split = panel.split && isValidField(modality, view, panel.split, 'group') ? panel.split : null;
-    if (x === panel.x && y === panel.y && split === panel.split) return panel;
-    return validChart({ ...panel, x, y, split, cursors: FIRST_PAGE });
+    const x = retarget(panel.x);
+    const targetY = panel.y === null ? null : retarget(panel.y);
+    const y = targetY === x || axisType(x) === 'categorical' ? null : targetY as Panel['y'];
+    const series = panel.series.filter(item => !('field' in item) || isValidField(modality, view, item.field, 'group'));
+    return validForm({ ...panel, x, y, series, cursors: FIRST_PAGE });
   });
 }
 
@@ -84,7 +100,7 @@ export function normalizedOptions(panel: Panel, patch: Partial<PanelOptions>, mo
       ? [Math.min(...range), Math.max(...range)] : 'auto';
   }
   if (!['count', 'share', 'logCount'].includes(options.yMode)) options.yMode = 'count';
-  if (!panel.split || panel.cohorts.length > 1 || !['stacked', 'stacked100'].includes(options.layout)) options.layout = 'overlaid';
+  if (!canStack(panel) || !['stacked', 'stacked100'].includes(options.layout)) options.layout = 'overlaid';
   if (options.coefficient !== undefined) options.coefficient = options.coefficient === 'pearson' ? 'pearson' : 'spearman';
   options.bins = clampBins(options.bins);
   options.splitPresentation = options.splitPresentation === 'facets' ? 'facets' : 'overlay';
@@ -102,48 +118,49 @@ export function normalizedOptions(panel: Panel, patch: Partial<PanelOptions>, mo
   return options;
 }
 
+
 export function patchPanel(state: State, id: PanelId, patch: PanelPatch): State {
   let notice: string | null = null;
   const next = mapPanel(state, id, panel => {
     let current = panel;
     const x = patch.x ?? patch.metric;
-    if (x !== undefined && (x === 'created_at' || isValidMetric(state.global.modality, x))) current = { ...current, x };
-    if (patch.y !== undefined && (patch.y === null || isValidMetric(state.global.modality, patch.y))) current = { ...current, y: patch.y };
-    const split = patch.split !== undefined ? patch.split : patch.group;
-    if (split !== undefined) {
-      if (split !== null && current.cohorts.length > 1) {
-        notice = 'A split cannot be combined with multiple cohorts. Remove the extra cohorts first.';
-      } else {
-        const nextSplit = split && isValidField(state.global.modality, state.global.view, split, 'group') ? split : null;
-        const startsSplit = current.split === null && nextSplit !== null && current.x !== 'created_at' && current.y === null;
-        current = { ...current, split: nextSplit,
-          ...(startsSplit && !patch.chart && ['histogram', 'ecdf'].includes(current.chart) ? { chart: 'density' as const } : {}) };
-      }
+    if (x !== undefined && validColumn(x, state.global.modality, state.global.view)) {
+      current = { ...current, x, ...(axisType(x) === 'categorical' ? { y: null } : {}) };
+      if (x !== panel.x && panel.form === 'matrix') current = { ...current, form: formsFor(x, current.y)[0] };
     }
-    if (patch.cohort !== undefined && isKnownCohortId(state, patch.cohort)) current = { ...current, cohorts: [patch.cohort] };
+    if (patch.y !== undefined && axisType(current.x) !== 'categorical' &&
+        (patch.y === null || isValidMetric(state.global.modality, patch.y))) current = { ...current, y: patch.y };
+    if (current.x === current.y) { notice = 'Choose two different metrics.'; return panel; }
+    const group = patch.split !== undefined ? patch.split : patch.group;
+    const requestedSeries = patch.series ?? (group !== undefined ? [
+      ...current.series.filter(series => !('field' in series)),
+      ...(group ? [{ kind: 'field' as const, field: group }] : []),
+    ] : undefined);
+    if (requestedSeries !== undefined) current = { ...current, series: normalizeSeries(requestedSeries, seriesContext(state)) };
+    if (patch.form) current = { ...current, form: patch.form };
+    if (['band', 'lines'].includes(current.form) && current.x === 'created_at' && current.y === null) current = { ...current, y: firstMetric(state.global.modality) };
     if (patch.options) current = { ...current, options: normalizedOptions(current, patch.options, state.global.modality) };
-    if (patch.chart) current = { ...current, chart: patch.chart };
-    if (current.options.layout !== 'overlaid' && (!current.split || current.cohorts.length > 1)) current = { ...current, options: { ...current.options, layout: 'overlaid' } };
-    if (current.options.layout !== 'overlaid' && current.chart === 'density') {
-      current = { ...current, chart: 'histogram' };
-    }
-    if (patch.reference && current.cohorts.includes(patch.reference)) {
-      current = { ...current, reference: patch.reference === current.cohorts[0] ? undefined : patch.reference };
-    }
-    if (current.x === current.y) {
-      notice = 'Choose two different metrics.';
-      return panel;
-    }
-    if (current.x !== 'created_at' && current.y !== null && current.split !== null) {
-      current = { ...current, split: null };
-      notice = 'The categorical split was removed. Compare cohorts to overlay two-metric distributions.';
-    }
-    if (current.options.clusterSplit && current.chart !== 'clusters') current = { ...current, options: { ...current.options, clusterSplit: false } };
-    current = validChart(current);
-    if (current.chart === 'clusters') current = { ...current, options: { ...current.options,
+    if (!canStack(current) && current.options.layout !== 'overlaid') current = { ...current, options: { ...current.options, layout: 'overlaid' } };
+    if (current.options.layout !== 'overlaid' && current.form === 'density') current = { ...current, form: 'histogram' };
+    current = validForm(current);
+    if (current.form === 'clusters') current = { ...current, options: { ...current.options,
       k: current.options.k ?? 3, seed: current.options.seed ?? 42, sampleSize: current.options.sampleSize ?? 20000 } };
+    if (patch.reference && panelCohorts(state, current).some(cohort => cohort.id === patch.reference)) current = { ...current, reference: patch.reference };
+    current = pruneReference(state, current);
     return JSON.stringify(current) === JSON.stringify(panel) ? panel : { ...current, cursors: FIRST_PAGE };
   });
-  if (next === state) return notice ? { ...state, notice } : state;
-  return evict(pruneSelection({ ...next, notice }));
+  return next === state ? notice ? { ...state, notice } : state : evict(pruneSelection({ ...next, notice }));
+}
+
+export function addSeries(state: State, id: PanelId, series: Series): State {
+  const panel = state.panels.find(panel => panel.id === id);
+  if (!panel) return state;
+  if ('field' in series && !isValidField(state.global.modality, state.global.view, series.field, 'group')) return state;
+  const reason = seriesDisabledReason(panel.series, series, seriesContext(state));
+  return reason ? { ...state, notice: reason } : patchPanel(state, id, { series: [...panel.series, series] });
+}
+
+export function removeSeries(state: State, id: PanelId, key: string): State {
+  const panel = state.panels.find(panel => panel.id === id);
+  return panel ? patchPanel(state, id, { series: panel.series.filter(series => seriesKey(series) !== key) }) : state;
 }

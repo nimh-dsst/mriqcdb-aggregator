@@ -77,7 +77,7 @@ import {
 /** Everything a chart builder reads, resolved from state by the panel view. */
 export interface ChartInput {
   /** The chart the panel is set to, already constrained to its kind's list. */
-  chart: PanelChart;
+  form: PanelChart;
   axis: MetricAxis;
   clip: ClipMode;
   /** The interval this panel drew, which seeds the spec's brush parameter. */
@@ -274,7 +274,7 @@ function boxDomain(
 export function distributionChart(input: ChartInput): ChartOutput {
   if (input.groupField !== null) {
     const result = (input.result ?? null) as GroupedSummaryResult | null;
-    if (input.chart === 'box') {
+    if (input.form === 'box') {
       const rows = result
         ? sortBoxRows(
             foldBoxRows(boxRows(result, input.groupField), MAX_CATEGORIES),
@@ -303,10 +303,10 @@ export function distributionChart(input: ChartInput): ChartOutput {
       };
     }
     const cohortBacked = input.cohorts.length > 0;
-    if (input.options.splitPresentation === 'facets' || input.chart === 'facetedHistogram' || input.chart === 'facetedEcdf') {
+    if (input.options.splitPresentation === 'facets') {
       return cohortBacked
-        ? cohortFacets(input, input.chart === 'ecdf' || input.chart === 'facetedEcdf')
-        : facets(input, input.chart === 'ecdf' || input.chart === 'facetedEcdf');
+        ? cohortFacets(input, input.form === 'ecdf')
+        : facets(input, input.form === 'ecdf');
     }
     const overlay = cohortBacked
       ? { cohorts: input.cohorts, results: input.cohortResults }
@@ -320,7 +320,7 @@ export function distributionChart(input: ChartInput): ChartOutput {
       const stacked = stackedHistogram(input.axis, overlay.cohorts, overlay.results, input.options.layout === 'stacked100');
       return { spec: stacked.spec, datasets: { [COHORTS_DATA]: stacked.rows }, brushable: false, n };
     }
-    if (input.chart === 'ecdf') {
+    if (input.form === 'ecdf') {
       return {
         spec: overlaidEcdfSpec(input.axis, overlay.cohorts, input.brush),
         datasets: { [COHORTS_DATA]: cohortEcdfRows(overlay.results, input.clip) },
@@ -328,7 +328,7 @@ export function distributionChart(input: ChartInput): ChartOutput {
         n,
       };
     }
-    if (input.chart === 'histogram') {
+    if (input.form === 'histogram') {
       return {
         spec: overlaidHistogramSpec(input.axis, overlay.cohorts, input.brush),
         datasets: { [COHORTS_DATA]: cohortBinRows(overlay.results) },
@@ -364,7 +364,7 @@ export function distributionChart(input: ChartInput): ChartOutput {
       ]
     : [];
   const spec =
-    input.chart === 'box'
+    input.form === 'box'
       ? boxSpec(
           input.axis,
           'Distribution',
@@ -374,31 +374,31 @@ export function distributionChart(input: ChartInput): ChartOutput {
           boxRowsForPopulation.map((row) => row.group),
           false,
         )
-      : input.chart === 'ecdf'
+      : input.form === 'ecdf'
         ? ecdfSpec(input.axis, input.brush)
-        : input.chart === 'density'
+        : input.form === 'density'
           ? densitySpec(input.axis, input.brush)
           : histogramSpec(input.axis, input.brush, input.options.bins, spike !== null);
   const rows = !result
     ? []
-    : input.chart === 'box'
+    : input.form === 'box'
       ? boxRowsForPopulation
-      : input.chart === 'ecdf'
+      : input.form === 'ecdf'
         ? ecdfRows(result, input.clip)
-        : input.chart === 'density'
+        : input.form === 'density'
           ? densityRows(result)
           : spike === null
             ? distributionBins(result)
             : degenerateHistogramRows(result, spike);
   return {
     spec,
-    datasets: { [input.chart === 'box' ? GROUPS_DATA : POPULATION_DATA]:
-      input.chart === 'histogram' && input.options.yMode === 'share' && result ? rows.map(row => {
+    datasets: { [input.form === 'box' ? GROUPS_DATA : POPULATION_DATA]:
+      input.form === 'histogram' && input.options.yMode === 'share' && result ? rows.map(row => {
         const bin = row as { count: number };
         const total = result.histogram.counts.reduce((sum, count) => sum + count, 0);
         return { ...row, share: total ? bin.count / total : 0 };
       }) : rows },
-    brushable: input.chart !== 'box',
+    brushable: input.form !== 'box',
     n: result?.n ?? null,
     degenerateNote:
       spike === null
@@ -409,8 +409,6 @@ export function distributionChart(input: ChartInput): ChartOutput {
 
 /** One metric per group: a box row each, or the faceted small multiples. */
 export function groupedChart(input: ChartInput): ChartOutput {
-  if (input.chart === 'facetedHistogram') return facets(input, false);
-  if (input.chart === 'facetedEcdf') return facets(input, true);
   const result = (input.result ?? null) as GroupedSummaryResult | null;
   const rows = result
     ? sortBoxRows(
@@ -443,7 +441,7 @@ export function groupedChart(input: ChartInput): ChartOutput {
 /** Uploads per time bucket, stacked or as an area. */
 export function coverageChart(input: ChartInput): ChartOutput {
   const result = (input.result ?? null) as CoverageResult | null;
-  const chart = input.chart === 'area' ? 'area' : input.chart === 'line' ? 'line' : 'stackedBar';
+  const chart = input.form === 'area' ? 'area' : input.form === 'line' ? 'line' : 'bars';
   const rows = result
     ? coverageModeRows(
         foldOther(coverageRows(result, input.groupField), MAX_CATEGORIES),
@@ -482,7 +480,7 @@ export function sampleChart(): ChartOutput {
  */
 export function comparisonChart(input: ChartInput): ChartOutput {
   const { axis, cohorts, cohortResults: results, brush } = input;
-  if (input.chart === 'box') {
+  if (input.form === 'box') {
     const rows = cohortBoxRows(results).sort(
       (a, b) =>
         (input.options.boxSort === 'n' ? b.n - a.n : b.p50 - a.p50) ||
@@ -504,7 +502,7 @@ export function comparisonChart(input: ChartInput): ChartOutput {
       n: null,
     };
   }
-  if (input.chart === 'ecdf') {
+  if (input.form === 'ecdf') {
     return {
       spec: overlaidEcdfSpec(axis, cohorts, brush),
       datasets: { [COHORTS_DATA]: cohortEcdfRows(results, input.clip) },
@@ -512,7 +510,7 @@ export function comparisonChart(input: ChartInput): ChartOutput {
       n: null,
     };
   }
-  if (input.chart === 'histogram') {
+  if (input.form === 'histogram') {
     return {
       spec: overlaidHistogramSpec(axis, cohorts, brush),
       datasets: { [COHORTS_DATA]: cohortBinRows(results) },

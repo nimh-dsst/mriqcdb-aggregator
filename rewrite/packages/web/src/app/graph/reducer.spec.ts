@@ -1,4 +1,3 @@
-import { shapeOf } from './panel-shapes';
 import { asColumnId, isValidMetric, queryKey, type Filter } from '@mriqc/shared';
 import type { Command } from './commands';
 import { CATALOG_KEY, needed, referencedKeys } from './queries';
@@ -22,9 +21,9 @@ function panel(overrides: Partial<Panel> = {}): Panel {
     id: 'p1',
     y: null,
     x: asColumnId('fd_mean'),
-    chart: 'histogram',
-    split: null,
-    cohorts: ['current'],
+    form: 'histogram',
+    series: [],
+
     options: defaultPanelOptions(),
     cursors: FIRST_PAGE,
     ...overrides,
@@ -96,8 +95,8 @@ describe('reduce', () => {
     it('retargets every panel metric the new modality does not have, and nulls a bad group', () => {
       const state = fixture({
         panels: [
-          panel({ id: 'p1', x: asColumnId('fd_mean'), split: asColumnId('task_id') }),
-          panel({ id: 'p2', x: asColumnId('efc'), split: asColumnId('manufacturer') }),
+          panel({ id: 'p1', x: asColumnId('fd_mean'), series: [{ kind: 'field' as const, field: asColumnId('task_id') }] }),
+          panel({ id: 'p2', x: asColumnId('efc'), series: [{ kind: 'field' as const, field: asColumnId('manufacturer') }] }),
         ],
       });
       const next = reduce(state, { t: 'setModality', modality: 'T1w' });
@@ -105,10 +104,10 @@ describe('reduce', () => {
       // first T1w metric rather than being left with nothing to show.
       expect(next.panels[0].x).toBe('qi_1');
       // task_id is bold-only, and a group has no equivalent fallback.
-      expect(next.panels[0].split).toBeNull();
+      expect((next.panels[0].series.find(item => item.kind === 'field')?.field ?? null)).toBeNull();
       // efc and manufacturer exist for T1w, so this panel keeps both.
       expect(next.panels[1].x).toBe('efc');
-      expect(next.panels[1].split).toBe('manufacturer');
+      expect((next.panels[1].series.find(item => item.kind === 'field')?.field ?? null)).toBe('manufacturer');
     });
 
     it('prefers a metric of the same family when the new modality has one', () => {
@@ -121,7 +120,7 @@ describe('reduce', () => {
 
     it('leaves a metricless panel kind alone', () => {
       const state = fixture({
-        panels: [panel({ y: null, x: 'created_at', split: asColumnId('manufacturer') })],
+        panels: [panel({ y: null, x: 'created_at', series: [{ kind: 'field' as const, field: asColumnId('manufacturer') }] })],
       });
       expect(reduce(state, { t: 'setModality', modality: 'T1w' }).panels[0].x).toBe('created_at');
     });
@@ -230,7 +229,7 @@ describe('reduce', () => {
       const grouped = run(
         fixture({ panels: [panel({ id: 'p1' }), panel({ id: 'p2' })] }),
         { t: 'brush', from: 'p1', metric: asColumnId('fd_mean'), range: [0, 1] },
-        { t: 'setPanelGroup', id: 'p1', group: asColumnId('manufacturer') },
+        { t: 'setPanelForm', id: 'p1', form: 'box' },
       );
       expect(grouped.selections).toEqual([]);
     });
@@ -347,14 +346,14 @@ describe('reduce', () => {
       const url = defaultDashboard();
       const comparison = panel({
         y: null,
-        chart: 'overlaidHistogram',
-        cohorts: ['current', 'study'],
+        form: 'histogram',
+        series: [{ kind: 'study' as const }],
       });
       const next = reduce(fixture(), {
         t: 'hydrate',
         url: { ...url, panels: [comparison] },
       });
-      expect(shapeOf(next.panels[0]!)).toBe('distribution');
+      expect(next.panels[0]!.series).toEqual([]);
       expect(next.notice).toBe('This view compared against a study that is not in the link.');
     });
   });
@@ -390,7 +389,7 @@ describe('reduce', () => {
       const datasets: Record<string, DatasetEntry> = { [referenced]: ready('v1', 'keep me') };
       for (let i = 0; i < 40; i++) datasets[`stale-${i}`] = ready('v1', i);
       const state = fixture({ datasets });
-      const next = reduce(state, { t: 'addPanel', kind: 'coverage' });
+      const next = reduce(state, { t: 'addPanel', x: 'created_at' });
       expect(next.datasets[referenced]).toBeDefined();
       expect(Object.keys(next.datasets)).toHaveLength(EVICTION_KEEP + 1);
     });
@@ -420,33 +419,33 @@ describe('reduce', () => {
   describe('panels', () => {
     it('mints an id that cannot clash with one already present', () => {
       const state = fixture({ panels: [panel({ id: 'p3' })] });
-      expect(reduce(state, { t: 'addPanel', kind: 'coverage' }).panels[1].id).toBe('p4');
+      expect(reduce(state, { t: 'addPanel', x: 'created_at' }).panels[1].id).toBe('p4');
     });
 
-    it('gives a coverage panel a group and no metric', () => {
-      const added = reduce(fixture(), { t: 'addPanel', kind: 'coverage' }).panels[1];
+    it('gives a time panel no comparison and the counts form', () => {
+      const added = reduce(fixture(), { t: 'addPanel', x: 'created_at' }).panels[1];
       expect(added.x).toBe('created_at');
-      expect(added.split).toBe('manufacturer');
-      expect(added.chart).toBe('stackedBar');
+      expect(added.series).toEqual([]);
+      expect(added.form).toBe('bars');
     });
 
     it('refuses a chart the panel kind does not allow', () => {
-      const next = reduce(fixture(), { t: 'setPanelChart', id: 'p1', chart: 'stackedBar' });
-      expect(next.panels[0].chart).toBe('histogram');
+      const next = reduce(fixture(), { t: 'setPanelChart', id: 'p1', form: 'bars' });
+      expect(next.panels[0].form).toBe('histogram');
     });
 
-    it('opens a new split as overlaid density while preserving an explicit non-default chart', () => {
+    it('keeps the selected form when a grouping is added', () => {
       const split = reduce(fixture(), {
         t: 'setPanelGroup',
         id: 'p1',
         group: asColumnId('manufacturer'),
       });
-      expect(split.panels[0].chart).toBe('density');
-      const ecdf = fixture({ panels: [panel({ chart: 'ecdf' })] });
+      expect(split.panels[0].form).toBe('histogram');
+      const ecdf = fixture({ panels: [panel({ form: 'ecdf' })] });
       expect(
         reduce(ecdf, { t: 'setPanelGroup', id: 'p1', group: asColumnId('manufacturer') }).panels[0]
-          .chart,
-      ).toBe('density');
+          .form,
+      ).toBe('ecdf');
     });
 
     it('refuses a metric the modality does not have', () => {
@@ -467,8 +466,8 @@ describe('reduce', () => {
 
     it('keeps minting fresh ids next to an absurd numeric id from a link', () => {
       const state = fixture({ panels: [panel({ id: `p${Number.MAX_SAFE_INTEGER}0` })] });
-      const once = reduce(state, { t: 'addPanel', kind: 'coverage' });
-      const twice = reduce(once, { t: 'addPanel', kind: 'coverage' });
+      const once = reduce(state, { t: 'addPanel', x: 'created_at' });
+      const twice = reduce(once, { t: 'addPanel', x: 'created_at' });
       const ids = twice.panels.map((p) => p.id);
       expect(new Set(ids).size).toBe(ids.length);
     });
@@ -512,8 +511,8 @@ describe('reduce', () => {
     it('purges local query results when a study is replaced and collapses comparisons when cleared', () => {
       const comparison = panel({
         y: null,
-        chart: 'overlaidHistogram',
-        cohorts: ['current', 'study'],
+        form: 'histogram',
+        series: [{ kind: 'study' as const }],
       });
       const state = fixture({
         study: {
@@ -534,12 +533,12 @@ describe('reduce', () => {
       const replacing = reduce(state, { t: 'studyChosen', file: { name: 'new.csv' } as File });
       expect(replacing.datasets['study/distribution?metric=fd_mean']).toBeUndefined();
       expect(replacing.datasets['population/distribution?metric=fd_mean']).toBeDefined();
-      expect(shapeOf(replacing.panels[0]!)).toBe('comparison');
+      expect(replacing.panels[0]!.series.length).toBeGreaterThan(0);
 
       const cleared = reduce(state, { t: 'clearStudy' });
       expect(cleared.study).toBe('none');
-      expect(shapeOf(cleared.panels[0]!)).toBe('distribution');
-      expect(cleared.panels[0].cohorts).toEqual(['current']);
+      expect(cleared.panels[0]!.series).toEqual([]);
+      expect(cleared.panels[0].series).toEqual([]);
     });
 
     it('tracks export progress and clears on finish', () => {
@@ -564,15 +563,15 @@ describe('reduce', () => {
       { t: 'setView', view: 'raw' },
       { t: 'setFilters', filters: [manufacturerFilter] },
       { t: 'setFilters', filters: [] },
-      { t: 'addPanel', kind: 'distribution' },
-      { t: 'addPanel', kind: 'grouped' },
-      { t: 'addPanel', kind: 'coverage' },
-      { t: 'addPanel', kind: 'sample' },
-      { t: 'addPanel', kind: 'comparison' },
+      { t: 'addPanel',  },
+      { t: 'addPanel', series: [{kind:'field',field:asColumnId('manufacturer')}] },
+      { t: 'addPanel', x: 'created_at' },
+      { t: 'addPanel', form: 'table' },
+      { t: 'addPanel', series: [{kind:'population'}] },
       { t: 'removePanel', id: 'p1' },
       { t: 'removePanel', id: 'p2' },
       { t: 'movePanel', id: 'p2', x: 0, y: 0 },
-      { t: 'setPanelChart', id: 'p1', chart: 'ecdf' },
+      { t: 'setPanelChart', id: 'p1', form: 'ecdf' },
       { t: 'setPanelGroup', id: 'p2', group: asColumnId('manufacturer') },
       { t: 'setPanelGroup', id: 'p2', group: null },
       { t: 'setPanelOptions', id: 'p1', options: { bins: 80 } },
@@ -643,12 +642,8 @@ describe('reduce', () => {
         expect(new Set(cohortIds).size).toBe(cohortIds.length);
         const known = new Set(['current', 'all', ...cohortIds]);
         for (const p of state.panels) {
-          if (shapeOf(p!) === 'comparison') {
-            expect(p.cohorts?.length ?? 0).toBeGreaterThanOrEqual(2);
-            for (const id of p.cohorts ?? []) expect(known.has(id)).toBe(true);
-          } else {
-            expect(p.cohorts).toHaveLength(1);
-            expect(known.has(p.cohorts[0])).toBe(true);
+          for (const item of p.series) {
+            if (item.kind === 'cohort') expect(known.has(item.id)).toBe(true);
           }
         }
       }
@@ -757,18 +752,19 @@ describe('cohort commands', () => {
     it('turns a distribution panel into `current` plus the chosen cohort', () => {
       const state = reduce(fixture(), { t: 'convertToComparison', panelId: 'p1', with: 'all' });
       const [converted] = state.panels;
-      expect(shapeOf(converted!)).toBe('comparison');
-      expect(converted.cohorts).toEqual(['current', 'all']);
+      expect(converted!.series.length).toBeGreaterThan(0);
+      expect(converted.series).toEqual([{kind:'population'}]);
       // Both kinds expose the same list, so the selected chart survives.
-      expect(converted.chart).toBe('histogram');
+      expect(converted.form).toBe('histogram');
       // The metric and the options the card already had are the comparison's.
       expect(converted.x).toBe('fd_mean');
     });
 
-    it('drops a split, because the cohorts are the split now', () => {
-      const grouped = fixture({ panels: [panel({ split: asColumnId('manufacturer') })] });
+    it('keeps a grouping and reports the cap when an against series will not fit', () => {
+      const grouped = fixture({ panels: [panel({ series: [{ kind: 'field' as const, field: asColumnId('manufacturer') }] })] });
       const state = reduce(grouped, { t: 'convertToComparison', panelId: 'p1', with: 'all' });
-      expect(state.panels[0].split).toBeNull();
+      expect(state.panels[0].series).toEqual(grouped.panels[0].series);
+      expect(state.notice).toContain('Six');
     });
 
     it('appends to a panel that is already a comparison, and never twice', () => {
@@ -778,29 +774,27 @@ describe('cohort commands', () => {
         { t: 'convertToComparison', panelId: 'p1', with: 'all' },
         { t: 'convertToComparison', panelId: 'p1', with: 'c1' },
       );
-      expect(withCohort.panels[0].cohorts).toEqual(['current', 'all', 'c1']);
+      expect(withCohort.panels[0].series).toEqual([{kind:'population'}, {kind:'cohort',id:'c1'}]);
       const again = reduce(withCohort, { t: 'convertToComparison', panelId: 'p1', with: 'c1' });
-      expect(again).toBe(withCohort);
+      expect(again.panels).toBe(withCohort.panels);
+      expect(again.notice).toContain('already');
     });
 
     it('refuses a cohort that does not exist, and `current` against itself', () => {
       const state = fixture();
-      expect(reduce(state, { t: 'convertToComparison', panelId: 'p1', with: 'nope' })).toBe(state);
+      expect(reduce(state, { t: 'convertToComparison', panelId: 'p1', with: 'nope' }).panels).toBe(state.panels);
       // A comparison of this dashboard with this dashboard is one cohort.
       expect(reduce(state, { t: 'convertToComparison', panelId: 'p1', with: 'current' })).toBe(
         state,
       );
     });
 
-    it('refuses cohort conversion on raw tables and upload counts', () => {
-      const noMetric = fixture({ panels: [panel({ chart: 'table' })] });
-      expect(reduce(noMetric, { t: 'convertToComparison', panelId: 'p1', with: 'all' })).toBe(
-        noMetric,
-      );
-      const coverage = fixture({ panels: [panel({ y: null, x: 'created_at' })] });
-      expect(reduce(coverage, { t: 'convertToComparison', panelId: 'p1', with: 'all' })).toBe(
-        coverage,
-      );
+    it('adds series to tables and time without changing an allowed form', () => {
+      for (const p of [panel({form:'table'}),panel({x:'created_at',form:'line'})]) {
+        const next=reduce(fixture({panels:[p]}),{t:'addPanelSeries',id:p.id,series:{kind:'population'}});
+        expect(next.panels[0].form).toBe(p.form);
+        expect(next.panels[0].series).toEqual([{kind:'population'}]);
+      }
     });
   });
 
@@ -814,8 +808,8 @@ describe('cohort commands', () => {
         { t: 'removeCohort', id: 'c1' },
       );
       expect(state.cohorts).toEqual([]);
-      expect(shapeOf(state.panels[0]!)).toBe('comparison');
-      expect(state.panels[0].cohorts).toEqual(['current', 'all']);
+      expect(state.panels[0]!.series.length).toBeGreaterThan(0);
+      expect(state.panels[0].series).toEqual([{kind:'population'}]);
     });
 
     it('reverts a panel left with fewer than two cohorts to a distribution', () => {
@@ -824,31 +818,31 @@ describe('cohort commands', () => {
         { t: 'addCohort', cohort: cohort('c1', 'Philips') },
         { t: 'convertToComparison', panelId: 'p1', with: 'c1' },
       );
-      expect(state.panels[0].cohorts).toEqual(['current', 'c1']);
+      expect(state.panels[0].series).toEqual([{kind:'cohort',id:'c1'}]);
       const reverted = reduce(state, { t: 'removeCohort', id: 'c1' });
       const [p] = reverted.panels;
       // A comparison of one cohort *is* a distribution, so the card keeps its
       // metric and its options rather than becoming an empty panel.
-      expect(shapeOf(p!)).toBe('distribution');
+      expect(p!.series).toEqual([]);
       // `histogram` is in both kinds' chart lists, so the chart the comparison was
       // on carries straight back.
-      expect(p.chart).toBe('histogram');
+      expect(p.form).toBe('histogram');
       expect(p.x).toBe('fd_mean');
-      expect(p.cohorts).toEqual(['current']);
+      expect(p.series).toEqual([]);
       expect(p.reference).toBeUndefined();
     });
 
-    it('normalizes a legacy comparison chart when reverting', () => {
+    it('keeps ECDF after the last saved group is removed', () => {
       const compared = run(
         fixture(),
         { t: 'addCohort', cohort: cohort('c1', 'Philips') },
         { t: 'convertToComparison', panelId: 'p1', with: 'c1' },
       );
       const state = reduce(
-        { ...compared, panels: [{ ...compared.panels[0], chart: 'overlaidEcdf' }] },
+        { ...compared, panels: [{ ...compared.panels[0], form: 'ecdf' }] },
         { t: 'removeCohort', id: 'c1' },
       );
-      expect(state.panels[0].chart).toBe('ecdf');
+      expect(state.panels[0].form).toBe('ecdf');
     });
 
     it('keeps a chart both kinds have', () => {
@@ -856,10 +850,10 @@ describe('cohort commands', () => {
         fixture(),
         { t: 'addCohort', cohort: cohort('c1', 'Philips') },
         { t: 'convertToComparison', panelId: 'p1', with: 'c1' },
-        { t: 'setPanelChart', id: 'p1', chart: 'density' },
+        { t: 'setPanelChart', id: 'p1', form: 'density' },
         { t: 'removeCohort', id: 'c1' },
       );
-      expect(state.panels[0].chart).toBe('density');
+      expect(state.panels[0].form).toBe('density');
     });
   });
 
@@ -876,7 +870,7 @@ describe('cohort commands', () => {
       const state = brushed();
       expect(state.selections).toMatchObject([{ from: 'p1', range: [0.1, 0.4] }]);
       expect(
-        reduce(state, { t: 'setPanelChart', id: 'p1', chart: 'overlaidEcdf' }).selections,
+        reduce(state, { t: 'setPanelChart', id: 'p1', form: 'ecdf' }).selections,
       ).not.toEqual([]);
     });
 
@@ -884,8 +878,8 @@ describe('cohort commands', () => {
       // A box is a summary per cohort row, not a distribution over the value
       // axis: there is no interval on it to drag, so a brush left in force
       // would filter the whole dashboard from a card that does not show it.
-      const boxed = reduce(brushed(), { t: 'setPanelChart', id: 'p1', chart: 'box' });
-      expect(boxed.panels[0].chart).toBe('box');
+      const boxed = reduce(brushed(), { t: 'setPanelChart', id: 'p1', form: 'box' });
+      expect(boxed.panels[0].form).toBe('box');
       expect(boxed.selections).toEqual([]);
     });
   });
@@ -933,7 +927,7 @@ describe('cohort commands', () => {
         panelId: 'p1',
         cohort: 'c1',
       });
-      expect(state.panels[0].cohorts).toEqual(['current', 'all']);
+      expect(state.panels[0].series).toEqual([{kind:'population'}]);
       // The ✕ on a panel chip is a change to the panel, not to the dashboard.
       expect(state.cohorts.map((c) => c.id)).toEqual(['c1']);
     });
@@ -944,16 +938,16 @@ describe('cohort commands', () => {
         panelId: 'p1',
         cohort: 'current',
       });
-      expect(state.panels[0].cohorts).toEqual(['all', 'c1']);
+      expect(state.panels[0].series).toEqual([{kind:'population'}, {kind:'cohort',id:'c1'}]);
       expect(reduce(state, { t: 'removeCohort', id: 'current' })).toBe(state);
     });
 
     it('reverts the panel when the last removal drops it below two', () => {
       const two = reduce(threeCohorts(), { t: 'removePanelCohort', panelId: 'p1', cohort: 'c1' });
       const one = reduce(two, { t: 'removePanelCohort', panelId: 'p1', cohort: 'all' });
-      expect(shapeOf(one.panels[0]!)).toBe('distribution');
+      expect(one.panels[0]!.series).toEqual([]);
       expect(one.panels[0].x).toBe('fd_mean');
-      expect(one.panels[0].cohorts).toEqual(['current']);
+      expect(one.panels[0].series).toEqual([]);
     });
 
     it('drops a reference that is no longer on the panel', () => {
@@ -974,9 +968,9 @@ describe('cohort commands', () => {
     it('"Back to single distribution" reverts in one command', () => {
       const state = reduce(threeCohorts(), { t: 'revertPanelToSingle', id: 'p1' });
       const [p] = state.panels;
-      expect(shapeOf(p!)).toBe('distribution');
+      expect(p!.series).toEqual([]);
       expect(p.x).toBe('fd_mean');
-      expect(p.cohorts).toEqual(['current']);
+      expect(p.series).toEqual([]);
       // The cohorts themselves survive: reverting a panel deletes nothing.
       expect(state.cohorts.map((c) => c.id)).toEqual(['c1']);
       expect(reduce(state, { t: 'revertPanelToSingle', id: 'p1' })).toBe(state);
@@ -990,44 +984,19 @@ describe('cohort commands', () => {
     function split(): State {
       return fixture({
         global: { modality: 'bold', view: 'k4plus', filters: [] },
-        panels: [panel({ split: asColumnId('manufacturer') })],
+        panels: [panel({ series: [{ kind: 'field' as const, field: asColumnId('manufacturer') }] })],
       });
     }
 
-    it('converts a split panel into a comparison of exactly the chosen groups', () => {
-      // One command, not one per group: a panel that passed through "compare
-      // with the first group" would be comparing something nobody ticked.
-      const state = reduce(split(), {
-        t: 'convertToComparison',
-        panelId: 'p1',
-        with: [siemens, ge],
-      });
-      const [p] = state.panels;
-      expect(shapeOf(p!)).toBe('comparison');
-      expect(p.cohorts).toEqual([siemens, ge]);
-      // `current` is not added: the groups *are* the comparison.
-      expect(p.cohorts).not.toContain('current');
-      // The split is gone, because the cohorts are the split now.
-      expect(p.split).toBeNull();
-      expect(p.x).toBe('fd_mean');
-      // And nothing was stored: a group cohort is derived from its id.
-      expect(state.cohorts).toEqual([]);
+    it('replaces a field descriptor with precisely the chosen values', () => {
+      const next=reduce(split(),{t:'patchPanel',id:'p1',patch:{series:[{kind:'values',field:asColumnId('manufacturer'),values:['Siemens','GE']}]}});
+      expect(next.panels[0].series).toEqual([{kind:'values',field:'manufacturer',values:['Siemens','GE']}]);
+      expect(next.cohorts).toEqual([]);
     });
-
-    it('refuses a group of a column this view cannot filter on', () => {
-      const bogus = `g\u0000not_a_column\u0000x`;
-      // The unknown id is dropped, which leaves one cohort asked for -- and one
-      // cohort means "`current` plus this", so the panel still converts but the
-      // bogus group is nowhere in it.
-      const state = reduce(split(), {
-        t: 'convertToComparison',
-        panelId: 'p1',
-        with: [bogus, ge],
-      });
-      expect(state.panels[0].cohorts).toEqual(['current', ge]);
-      // And a list of nothing but unknown ids is no command at all.
-      const none = split();
-      expect(reduce(none, { t: 'convertToComparison', panelId: 'p1', with: [bogus] })).toBe(none);
+    it('refuses chosen values for a field absent from the current view', () => {
+      const before=fixture();
+      const next=reduce(before,{t:'addPanelSeries',id:'p1',series:{kind:'values',field:asColumnId('not_a_column'),values:['x']}});
+      expect(next).toBe(before);
     });
 
     it('never stores a group cohort, because its id is its definition', () => {

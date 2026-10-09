@@ -89,7 +89,8 @@ export const appConfig: ApplicationConfig = {
     importProvidersFrom(WEB_ICONS),
     provideRouter(
       APP_ROUTES,
-      withInMemoryScrolling({ anchorScrolling: 'enabled', scrollPositionRestoration: 'enabled' }),
+      // Query-only graph navigation must leave the viewport where the user is working.
+      withInMemoryScrolling({ anchorScrolling: 'enabled', scrollPositionRestoration: 'disabled' }),
       withEnabledBlockingInitialNavigation(),
     ),
     MockApi,

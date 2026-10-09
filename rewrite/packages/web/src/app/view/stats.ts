@@ -1,6 +1,6 @@
-import { shapeOf } from '../graph/panel-shapes';
+import { axisType } from '../graph/panel-shapes';
 /**
- * The figures under a chart: one stat row for a distribution panel, and the
+ * The figures under a form: one stat row for a distribution panel, and the
  * whole comparison table for a comparison panel.
  *
  * Formatting only. The arithmetic is in `graph/comparison-stats.ts`; this file
@@ -8,7 +8,7 @@ import { shapeOf } from '../graph/panel-shapes';
  * which explanation in the tooltip.
  */
 
-import { type DistributionResult, type QueryKey, type ViewDef } from '@mriqc/shared';
+import { type DistributionResult, type QueryKey } from '@mriqc/shared';
 import { cohortColor, type CohortResult } from '../panels/specs';
 import {
   allPairsKs,
@@ -19,13 +19,12 @@ import {
   type CohortDifference,
   type KsPair,
 } from '../graph/comparison-stats';
-import { PANEL_KINDS } from '../graph/panel-shapes';
 import { resultOf } from '../graph/queries';
 import { MIN_COMPARISON_COHORTS, type Cohort, type CohortId, type Panel, type State } from '../graph/state';
 import { activeView, metricDef, significant, statUnitLabel, unitNoun } from './text';
 
 /**
- * One figure under a panel's chart: a short label, an already-formatted value,
+ * One figure under a panel's form: a short label, an already-formatted value,
  * and the one line that says what the label means.
  *
  * `title` is the whole explanation of a stat row: eight uppercase abbreviations
@@ -44,16 +43,12 @@ export interface CohortStatRow {
   name: string;
   /** The cohort's palette hex, which the row's text wears. */
   color: string;
-  /** `n`, mean, SD, p05, median, p95 -- already formatted, in header order. */
+  /** n, median, IQR, p05–p95, median shift / IQR, KS; in header order. */
   cells: readonly string[];
 }
 
 /**
- * The statistics under a comparison chart: one row per cohort, then a
- * differences block against one of them.
- *
- * Which cohort is the baseline is a question about the reader's study and not
- * about the data, so the reference is theirs to choose and defaults to the first.
+ * One compact row per series, including differences against series zero.
  */
 export interface ComparisonStats {
   /** Column headers, the first for the cohort name. */
@@ -100,14 +95,6 @@ export interface KsCell {
   worst: boolean;
 }
 
-/** The six columns a cohort row fills, after the name. */
-function cohortStatHeaders(view: ViewDef | undefined): readonly string[] {
-  // The unit column is named the way every other count on the page is named --
-  // `SCANS` on a policy view, `UPLOADS` on the raw log -- rather than hard-coded
-  // to one of them (`docs/ui-style.md`, "Copy").
-  return ['Cohort', statUnitLabel(view), 'MEAN', 'SD', '5TH PCT', 'MEDIAN', '95TH PCT'];
-}
-
 /** The headers of the differences block, in the order a reader reads them. */
 export const DIFFERENCE_HEADERS: readonly string[] = [
   'vs',
@@ -144,14 +131,15 @@ export function comparisonStats(
   cohorts: readonly Cohort[],
   results: readonly CohortResult[],
 ): ComparisonStats | null {
-  if (!PANEL_KINDS[shapeOf(panel)].supportsCohorts) return null;
   if (cohorts.length < MIN_COMPARISON_COHORTS) return null;
   const unit = metricDef(state, panel.x)?.unit;
   const amount = (value: number | null | undefined) =>
     unit ? `${significant(value)} ${unit}` : significant(value);
+  const differences = differenceBlock(cohorts, results, 0, amount);
   const rows = cohorts.map((cohort, i): CohortStatRow => {
     const base = results[i]?.base ?? null;
     const numbers = base === null ? null : cohortNumbers(base);
+    const difference = differences?.rows.find(row => row.id === cohort.id);
     return {
       id: cohort.id,
       name: cohort.name,
@@ -161,19 +149,18 @@ export function comparisonStats(
           ? ['--', '--', '--', '--', '--', '--']
           : [
               numbers.n.toLocaleString('en-US'),
-              amount(numbers.mean),
-              amount(numbers.sd),
-              amount(numbers.p05),
               amount(numbers.p50),
-              amount(numbers.p95),
+              `${amount(base?.quantiles?.p25)}–${amount(base?.quantiles?.p75)}`,
+              `${amount(numbers.p05)}–${amount(numbers.p95)}`,
+              difference?.cells[1].value ?? '--',
+              difference?.cells[3].value ?? '--',
             ],
     };
   });
-  const reference = referenceIndex(panel, cohorts);
   return {
-    headers: cohortStatHeaders(activeView(state)),
+    headers: ['Series', 'n', 'Median', 'IQR', 'p05–p95', 'Δmedian/IQR', 'KS'],
     rows,
-    differences: differenceBlock(cohorts, results, reference, amount),
+    differences: null,
     pairs: ksCells(cohorts, results),
   };
 }
@@ -298,19 +285,15 @@ export function outsideRangeNotes(
  * The stat row under the chart, from the same `DistributionResult` the chart is
  * drawing. No request of its own: every figure is already on the client.
  *
- * Only the one kind the table marks `stats`, and only ungrouped: a grouped
- * result has one summary per group and no single row to show, and a comparison
- * panel has `comparisonStats` instead -- one row per cohort is a table, not a
- * row, and the eight figures of the single-cohort row would have to be printed
- * k times side by side.
+ * Quantiles of the numeric x quantity in the dashboard's own rows. Series and
+ * drawing form do not change this row; their differences have a separate table.
  */
 export function panelStats(
   state: State,
   panel: Panel,
   keys: readonly QueryKey[],
 ): readonly PanelStat[] | null {
-  if (panel.split !== null) return null;
-  if (!PANEL_KINDS[shapeOf(panel)].stats) return null;
+  if (axisType(panel.x) !== 'numeric' || panel.form === 'matrix') return null;
   const result = resultOf<DistributionResult>(state, keys[0]);
   if (!result) return null;
   const unit = metricDef(state, panel.x)?.unit;

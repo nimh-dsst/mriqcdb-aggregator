@@ -1,174 +1,78 @@
-import { timeGroups } from './time-groups';
-import { exportCountQuery } from '../chrome/export-view';
-import { getAuthoredCatalog, type TimeSummaryQuery, type TimeSummaryResult } from '@mriqc/shared';
+import { getAuthoredCatalog, asColumnId, fieldsFor, metricsFor, queryKey, fieldValueLabel, isNoneValue, NONE_FILTER_VALUE,
+  type ClipMode, type ColumnId, type DistributionResult, type Density2dResult, type Filter, type QueryKey, type Selection,
+  type TimeSummaryQuery, type TimeSummaryResult } from '@mriqc/shared';
 import type { Query } from '../api/api';
-import { shapeOf } from './panel-shapes';
-/**
- * Query planning: which procedures the panels on screen need, with which
- * parameters, and which of those the datasets map does not already answer.
- *
- * `needed` is the effects contract (`docs/dashboard-graph.md`, "Outputs"): the
- * runner diffs successive emissions, starts a fetch for a key that enters the
- * set and cancels one whose key left. Nothing here renders anything; the view
- * layer reads the same keys back out of state.
- *
- * Which queries a kind asks for is a lookup in `PANEL_KINDS`, so adding a kind
- * is a row in that table and not a case in this file.
- */
-
-import {
-  NONE_FILTER_VALUE,
-  fieldValueLabel,
-  fieldsFor,
-  isNoneValue,
-  queryKey,
-  type ClipMode,
-  type ColumnId,
-  type DistributionResult,
-  type Density2dResult,
-  type Filter,
-  QueryKey,
-  type Selection,
-} from '@mriqc/shared';
-import {
-  MAX_OVERLAY_GROUPS,
-  asDistributionResult,
-  clipBounds,
-  groupColorIndex,
-} from '../panels/specs';
+import { exportCountQuery } from '../chrome/export-view';
+import { asDistributionResult, clipBounds } from '../panels/specs';
 import { cohortById, currentCohort } from './cohorts';
-import { PANEL_KINDS, type PlanContext, type ProcName } from './panel-shapes';
-import {
-  CURRENT_COHORT,
-  DENSITY_BINS,
-  MIN_COMPARISON_COHORTS,
-  type Cohort,
-  type Panel,
-  type State,
-} from './state';
-import { groupCohortId } from './state';
+import { axisType, panelForms } from './panel-shapes';
+import { seriesKey, seriesLabel, type Series } from './series';
+import { CURRENT_COHORT, DENSITY_BINS, groupCohortId, type Cohort, type Panel, type State } from './state';
+import { correlationMetrics } from './correlation-options';
+import { timeGroups } from './time-groups';
 
-/** The one key that is needed before anything else can be. */
 export const CATALOG_KEY: QueryKey = queryKey({ source: 'population', proc: 'catalog' });
-
-/**
- * The selections this panel actually applies. The originating panel never
- * filters itself, so its brush stays visible while every other opted-in panel
- * narrows (`dashboard-graph.md`, "Brushing").
- */
 export function effectiveSelection(state: State, panel: Panel): readonly Selection[] {
-  return panel.options.useSelection ? state.selections.filter(selections => selections.from !== panel.id)
-    .map(({ metric, range }) => ({ metric, range })) : [];
+  return panel.options.useSelection ? state.selections.filter(selection => selection.from !== panel.id).map(({ metric, range }) => ({ metric, range })) : [];
 }
-
-/**
- * True when an uploaded study is loaded and can answer a `study` query.
- *
- * Nothing reads it yet. A comparison is between cohorts now, and a study will be
- * one more of them (`source: 'study'`, `comparison-design.md`, "Study upload"),
- * so what this will gate is whether a `study` cohort is offered at all.
- */
-export function studyReady(state: State): boolean {
-  return typeof state.study === 'object' && state.study.status === 'ready';
+export function studyReady(state: State): boolean { return typeof state.study === 'object' && state.study.status === 'ready'; }
+export function studyFormReason(panel: Panel): string | null {
+  if (panel.form === 'table') return 'Local studies do not provide raw-record queries for Table.';
+  if (axisType(panel.x) === 'categorical' || (axisType(panel.x) === 'time' && panel.y === null)) {
+    return 'Local studies do not provide the row-count query required by this form.';
+  }
+  return null;
 }
+export function panelCohort(state: State, panel: Panel): Cohort {
+  return { ...currentCohort(state), selections: effectiveSelection(state, panel) };
+}
+export type ResolvedSeries = Cohort & { descriptorKey?: string };
+export function groupingSeries(panel: Panel) { return panel.series.find(series => series.kind === 'field' || series.kind === 'values'); }
 
-/**
- * The cohorts one comparison panel draws, in panel order, with the dashboard's
- * brush applied where it belongs.
- *
- * `current` is the only cohort the brush touches, and only as
- * `effectiveSelection` allows: the panel that drew the brush is not filtered by
- * it, and a panel with "Follow the brushed range" off is not filtered by it
- * either. A user cohort carries its own metric range and nothing else -- a
- * cohort is a fixed reference by construction, which is exactly what makes
- * "this brushed subset against that cohort" a meaningful comparison rather than
- * two differently-brushed halves.
- */
-export function panelCohorts(state: State, panel: Panel): readonly Cohort[] {
-  const ids = panel.cohorts ?? [];
-  const brush = effectiveSelection(state, panel);
-  const out: Cohort[] = [];
-  for (const id of ids) {
+/** One expansion for every form. A grouping partitions the dashboard curve; its aggregate still supplies stats. */
+export function panelCohorts(state: State, panel: Panel): readonly ResolvedSeries[] {
+  const base = panelCohort(state, panel);
+  const grouped = groupingSeries(panel);
+  const out: ResolvedSeries[] = grouped ? [] : [base];
+  for (const descriptor of panel.series) {
+    const descriptorKey = seriesKey(descriptor);
+    if (descriptor.kind === 'field' || descriptor.kind === 'values') {
+      const entries = state.catalog?.fieldValues?.[descriptor.field]?.[state.global.modality]?.[state.global.view] ?? [];
+      const wire = (value: string | number | boolean | null) => isNoneValue(value) ? NONE_FILTER_VALUE : value!;
+      const ranked = [...entries].sort((a, b) => b.n - a.n || String(a.value).localeCompare(String(b.value)));
+      const selected = descriptor.kind === 'values' ? descriptor.values.map(value =>
+        entries.find(entry => String(wire(entry.value)) === value) ?? { value, n: 0 }) : ranked.slice(0, 5);
+      for (const entry of selected) {
+        const value = wire(entry.value);
+        out.push({ ...base, id: groupCohortId(descriptor.field, String(value)),
+          name: fieldValueLabel(String(descriptor.field), entry.value), color: out.length,
+          filters: [...base.filters, { field: descriptor.field, op: 'in', values: [value] }], descriptorKey });
+      }
+      if (descriptor.kind === 'field' && ranked.length > 5) {
+        const values = ranked.slice(5).map(entry => wire(entry.value));
+        out.push({ ...base, id: groupCohortId(descriptor.field, 'other:' + JSON.stringify(values)), name: 'Other', color: 6,
+          filters: [...base.filters, { field: descriptor.field, op: 'in', values }], descriptorKey });
+      }
+      continue;
+    }
+    if (descriptor.kind === 'span') {
+      out.push({ ...base, id: descriptorKey, name: seriesLabel(descriptor), color: out.length, descriptorKey,
+        filters: [...base.filters.filter(filter => filter.field !== 'created_at'),
+          { field: asColumnId('created_at'), op: 'between', lo: descriptor.from, hi: descriptor.to }] });
+      continue;
+    }
+    const id = descriptor.kind === 'population' ? 'all' : descriptor.kind === 'study' ? 'study' : descriptor.id;
     const cohort = cohortById(state, id);
-    if (cohort === null) continue;
-    out.push(id === CURRENT_COHORT ? { ...cohort, selections: brush } : cohort);
+    if (cohort) out.push({ ...cohort, color: out.length, descriptorKey });
   }
   return out;
 }
-
-/**
- * The single scope a non-comparison card follows.  It deliberately reuses the
- * cohort resolver used by comparisons: a saved card scope therefore has the
- * same view, filters and optional metric range as when it appears as one curve
- * in a comparison, rather than acquiring a second query path with subtly
- * different semantics.
- */
-export function panelCohort(state: State, panel: Panel): Cohort {
-  return panel.cohorts[0] === undefined
-    ? currentCohort(state)
-    : (cohortById(state, panel.cohorts[0]) ?? currentCohort(state));
-}
-
-/**
- * The series a split distribution draws: the five largest catalog groups and
- * one real tail cohort whose `in` predicate contains every remaining value.
- * Querying that predicate is what makes Other's `n` the count of the remaining
- * groups rather than an estimate assembled from fixed-bin summaries. A list at
- * the catalog's 200-value cap may be truncated, so it deliberately falls back
- * to groupedSummary instead of drawing an incomplete Other.
- */
 export function splitDistributionCohorts(state: State, panel: Panel): readonly Cohort[] {
-  if (panel.split === null || panel.x === null || panel.chart === 'box') return [];
-  const base = panelCohort(state, panel);
-  // Uploaded studies expose metrics for comparison, not population catalog
-  // group values. Box plots use groupedSummary directly and validate a real
-  // uploaded group column in the study runner.
-  if (base.source === 'study') return [];
-  const entries =
-    state.catalog?.fieldValues?.[String(panel.split)]?.[state.global.modality]?.[base.view] ?? [];
-  if (entries.length >= 200) return [];
-  const ranked = entries
-    .map((entry, index) => ({ entry, index }))
-    .sort((a, b) => b.entry.n - a.entry.n || a.index - b.index)
-    .map(({ entry }) => entry);
-  const selections =
-    (panel.cohorts[0] ?? CURRENT_COHORT) === CURRENT_COHORT
-      ? effectiveSelection(state, panel)
-      : base.selections;
-  const wireValue = (value: string | number | boolean | null): string | number | boolean => {
-    if (isNoneValue(value)) return NONE_FILTER_VALUE;
-    return value as string | number | boolean;
-  };
-  const make = (
-    values: readonly (string | number | boolean)[],
-    name: string,
-    idValue: string,
-  ): Cohort => ({
-    id: groupCohortId(panel.split as ColumnId, idValue),
-    name,
-    color: groupColorIndex(name),
-    source: base.source,
-    view: base.view,
-    filters: [...base.filters, { field: panel.split as ColumnId, op: 'in', values }],
-    selections,
-  });
-  const named = ranked.slice(0, MAX_OVERLAY_GROUPS).map((entry) => {
-    const value = wireValue(entry.value);
-    const name = fieldValueLabel(String(panel.split), entry.value);
-    return make([value], name === 'other' ? 'Other' : name, String(value));
-  });
-  const tail = ranked.slice(MAX_OVERLAY_GROUPS).map((entry) => wireValue(entry.value));
-  return tail.length === 0
-    ? named
-    : [...named, make(tail, 'Other', `other:${JSON.stringify(tail)}`)];
+  return groupingSeries(panel) ? panelCohorts(state, panel).filter(cohort => cohort.descriptorKey === seriesKey(groupingSeries(panel)!)) : [];
 }
-
-/** The columns a sample panel asks for: every exportable field of the view. */
 export function sampleColumns(state: State, view = state.global.view): readonly ColumnId[] {
-  return fieldsFor(state.global.modality, view, 'export').map((f) => f.id);
+  return fieldsFor(state.global.modality, view, 'export').map(field => field.id);
 }
-
-/** ISO date only, so card-local coverage filters use the same values as the picker. */
 function dateOnly(date: Date): string {
   return date.toISOString().slice(0, 10);
 }
@@ -198,40 +102,14 @@ export function coverageFilters(
     : [...rest, { field: 'created_at' as ColumnId, op: 'between', lo: range[0], hi: range[1] }];
 }
 
-/** One cohort's distribution query, with or without the panel's shared range. */
-function cohortQuery(
-  state: State,
-  panel: Panel,
-  cohort: Cohort,
-  range?: readonly [number, number],
-): Query {
-  const query: Query = {
-    source: cohort.source,
-    proc: 'distribution',
-    metric: panel.x as ColumnId,
-    // A smoothed curve is computed from a fine histogram, so it asks for one:
-    // the kernel's job is to remove the binning, and it can only do that if the
-    // bins are finer than the structure being smoothed. 200 is the server's cap
-    // and the resolution the "approximate at 200 bins" note refers to.
-    bins: panel.chart === 'density' ? DENSITY_BINS : panel.options.bins,
-    clip: panel.options.clip,
-    modality: state.global.modality,
-    view: cohort.view,
-    filters: cohort.filters,
-    selections: cohort.selections,
-  };
-  return range === undefined ? query : { ...query, range: [range[0], range[1]] };
-}
 
-/**
- * What one cohort contributes to the shared range: an interval, or `'empty'`
- * when its result is here and names no interval at all.
- *
- * The distinction matters because the two cases want opposite treatment --
- * `null` (not yet known) must postpone the range, `'empty'` must be skipped --
- * and collapsing them into one `null` is what blanked a whole panel's bars
- * whenever any cohort matched nothing.
- */
+export function cohortQuery(state: State, panel: Panel, cohort: Cohort, range?: readonly [number, number]): Extract<Query, { proc: 'distribution' }> {
+  if (!panel.series.length && panel.options.xRange !== 'auto') range ??= panel.options.xRange;
+  return { source: cohort.source, proc: 'distribution', metric: panel.x as ColumnId,
+    bins: panel.form === 'density' ? DENSITY_BINS : panel.options.bins, clip: panel.options.clip,
+    modality: state.global.modality, view: cohort.view, filters: cohort.filters, selections: cohort.selections,
+    ...(range ? { range: [range[0], range[1]] } : {}) };
+}
 export type CohortExtent = readonly [number, number] | 'empty';
 
 /**
@@ -277,49 +155,24 @@ export function sharedRange(
   return Number.isFinite(lo) && Number.isFinite(hi) && hi > lo ? [lo, hi] : null;
 }
 
-/** The shared range of one comparison panel, or null while step one is incomplete. */
-export function panelSharedRange(
-  state: State,
-  panel: Panel,
-  cohorts: readonly Cohort[],
-): readonly [number, number] | null {
+
+export function panelSharedRange(state: State, panel: Panel, cohorts: readonly Cohort[]): readonly [number, number] | null {
   if (panel.options.xRange !== 'auto') return panel.options.xRange;
-  if (panel.split && panel.options.layout !== 'overlaid') {
-    // A stack partitions this panel's population, so use the unsplit clip
-    // rather than the wider union of each manufacturer's tail quantiles.
+  if (groupingSeries(panel) && panel.options.layout !== 'overlaid') {
     const result = distributionResult(state, queryKey(cohortQuery(state, panel, panelCohort(state, panel))));
     return result?.histogram ? [result.histogram.lo, result.histogram.hi] : null;
   }
-  const clip = panel.options.clip;
-  const ranges = cohorts.map((cohort) => {
+  return sharedRange(cohorts.map(cohort => {
     const result = distributionResult(state, queryKey(cohortQuery(state, panel, cohort)));
-    return result === null ? null : cohortRange(result, clip);
-  });
-  return sharedRange(ranges);
-}
-
-/**
- * Each cohort paired with both of its results: its own distribution and, once
- * the shared range is known and the fetch has landed, the one over that range.
- *
- * The two-step fetch, read back. The keys are rebuilt rather than sliced off
- * `panelKeys`, so this cannot silently pair a cohort with another cohort's
- * result when the panel's cohort list changes under a stale memo.
- */
-export function cohortResults(state: State, panel: Panel, cohorts: readonly Cohort[]) {
-  const range = panelSharedRange(state, panel, cohorts);
-  return cohorts.map((cohort) => ({
-    id: cohort.id,
-    name: cohort.name,
-    base: distributionResult(state, queryKey(cohortQuery(state, panel, cohort))),
-    ranged:
-      range === null
-        ? null
-        : distributionResult(state, queryKey(cohortQuery(state, panel, cohort, range))),
+    return result ? cohortRange(result, panel.options.clip) : null;
   }));
 }
-
-/** A ready entry's result, or null while the key has no ready entry. */
+export function cohortResults(state: State, panel: Panel, cohorts: readonly Cohort[]) {
+  const range = panelSharedRange(state, panel, cohorts);
+  return cohorts.map(cohort => ({ id: cohort.id, name: cohort.name,
+    base: distributionResult(state, queryKey(cohortQuery(state, panel, cohort))),
+    ranged: range ? distributionResult(state, queryKey(cohortQuery(state, panel, cohort, range))) : null }));
+}
 export function resultOf<T>(state: State, key: QueryKey | undefined): T | null {
   if (key === undefined) return null;
   const entry = state.datasets[key];
@@ -334,159 +187,93 @@ export function distributionResult(
   return asDistributionResult(resultOf<unknown>(state, key));
 }
 
-/**
- * One query of this procedure for this panel, or null when a parameter it needs
- * is not set yet -- which is how an unconfigured panel fetches nothing.
- *
- * The one switch in the planner, and it is over *procedures* rather than panel
- * kinds: each procedure has its own parameter set, and the table says which
- * procedure a kind asks for.
- */
-function queryFor(state: State, panel: Panel, proc: ProcName): Query | null {
-  const cohort = panelCohort(state, panel);
-  const scoped = {
-    modality: state.global.modality,
-    view: cohort.view,
-    filters: cohort.filters,
-    // The live dashboard scope follows a brush exactly as it did before;
-    // saved/all/group cohorts keep the range that is part of their definition.
-    selections:
-      (panel.cohorts[0] ?? CURRENT_COHORT) === CURRENT_COHORT
-        ? effectiveSelection(state, panel)
-        : cohort.selections,
-  };
+
+export function scopedQuery(state: State, panel: Panel, cohort: Cohort, proc: Query['proc']): Query | null {
+  const scoped = { source: cohort.source, modality: state.global.modality, view: cohort.view, filters: cohort.filters, selections: cohort.selections };
   switch (proc) {
-    case 'distribution':
-      if (!panel.x || panel.x === 'created_at') return null;
-      return {
-        source: cohort.source,
-        proc,
-        metric: panel.x,
-        bins: panel.options.bins,
-        clip: panel.options.clip,
-        ...(panel.options.xRange === 'auto' ? {} : { range: [...panel.options.xRange] as [number, number] }),
-        ...scoped,
-      };
-    case 'groupedSummary':
-      if (!panel.x || panel.x === 'created_at' || !panel.split) return null;
-      return { source: cohort.source, proc, metric: panel.x, group: panel.split, ...scoped };
-    case 'timeSummary':
-      if (!panel.y) return null;
-      return { source: cohort.source, proc, metric: panel.y, granularity: panel.options.granularity,
-        ...(panel.split ? { group: panel.split } : {}), ...scoped,
-        filters: coverageFilters(cohort.filters, panel) };
-    case 'coverage':
-      if (!panel.split || cohort.source === 'study') return null;
-      return {
-        source: 'population',
-        proc,
-        group: panel.split,
-        granularity: panel.options.granularity,
-        ...scoped,
-        filters: coverageFilters(cohort.filters, panel),
-      };
-    case 'sample':
+    case 'distribution': return cohortQuery(state, panel, cohort, panel.options.xRange === 'auto' ? undefined : panel.options.xRange);
+    case 'groupedSummary': return { ...scoped, proc, metric: asColumnId('size_x'), group: panel.x as ColumnId };
+    case 'coverage': {
       if (cohort.source === 'study') return null;
-      return {
-        source: 'population',
-        proc,
-        columns: sampleColumns(state, cohort.view),
-        cursor: null,
-        ...scoped,
-      };
-    case 'catalog':
-      return { source: 'population', proc };
-    case 'density2d':
-      if (!panel.x || panel.x === 'created_at' || !panel.y) return null;
-      return { source: cohort.source, proc, ...scoped, x: panel.x, y: panel.y,
-        bins: 120, clip: panel.options.clip, sampleSize: panel.options.sampleSize ?? 2000,
-        seed: panel.options.seed ?? 42 };
+      const group = axisType(panel.x) === 'categorical' ? panel.x as ColumnId :
+        fieldsFor(state.global.modality, cohort.view, 'group').find(field => field.kind === 'categorical')?.id;
+      return group ? { ...scoped, source: 'population', proc, group, granularity: panel.options.granularity,
+        filters: coverageFilters(cohort.filters, panel) } : null;
+    }
+    case 'timeSummary': return panel.y ? { ...scoped, proc, metric: panel.y, granularity: panel.options.granularity,
+      filters: coverageFilters(cohort.filters, panel) } : null;
+    case 'sample': return cohort.source === 'population' ? { ...scoped, source: 'population', proc, columns: sampleColumns(state, cohort.view), cursor: null } : null;
+    case 'density2d': return panel.y ? { ...scoped, proc, x: panel.x as ColumnId, y: panel.y, bins: 120, clip: panel.options.clip,
+      sampleSize: panel.form === 'clusters' ? panel.options.sampleSize ?? 20000 : 2000, seed: panel.options.seed ?? 42 } : null;
     case 'correlation': {
-      if (!panel.x) return null;
       let metrics = correlationMetrics(panel, state.global.modality);
-      if (cohort.source === 'study' && !panel.options.metrics && typeof state.study === 'object' && state.study.status === 'ready') {
+      if (cohort.source === 'study' && typeof state.study === 'object' && state.study.status === 'ready' && panel.options.family !== 'custom') {
         const available = state.study.metrics;
         metrics = metrics.filter(metric => available.includes(metric));
       }
-      return metrics.length < 2 ? null : {
-        source: cohort.source, proc, ...scoped, metrics: metrics.slice(0, 24), method: 'both',
-      };
+      return metrics.length > 1 ? { ...scoped, proc, metrics: metrics.slice(0, 24), method: 'both' } : null;
     }
+    case 'catalog': return { source: 'population', proc };
   }
 }
 
-/** The plan helpers, bound to one state and one panel. */
-function planContext(state: State, panel: Panel): PlanContext {
-  const steps = (cohorts: readonly Cohort[], minimum: number): readonly Query[] => {
-    if (!panel.x || cohorts.length < minimum) return [];
-    const base = cohorts.map((cohort) => cohortQuery(state, panel, cohort));
-    const range = panelSharedRange(state, panel, cohorts);
-    return range === null
-      ? base
-      : [...base, ...cohorts.map((cohort) => cohortQuery(state, panel, cohort, range))];
-  };
-  return {
-    panel,
-    query: (proc) => queryFor(state, panel, proc),
-    pages: () => {
-      const base = queryFor(state, panel, 'sample');
-      if (base === null || base.proc !== 'sample') return [];
-      return panel.cursors.map((cursor) => ({ ...base, cursor }));
-    },
-    cohortSteps: () => {
-      const cohorts = panelCohorts(state, panel);
-      return steps(cohorts, MIN_COMPARISON_COHORTS);
-    },
-    splitSteps: () => {
-      const cohorts = splitDistributionCohorts(state, panel);
-      if (cohorts.length > 0) {
-        const queries = steps(cohorts, 1);
-        return panel.options.layout !== 'overlaid' && panel.options.xRange === 'auto'
-          ? [...queries, cohortQuery(state, panel, panelCohort(state, panel))]
-          : queries;
-      }
-      // Numeric/date grouping has no categorical value catalog from which to
-      // mint exact filter cohorts. Preserve its grouped-summary path; the
-      // cohort route above is the categorical split this plan is for.
-      const query = queryFor(state, panel, 'groupedSummary');
-      return query === null ? [] : [query];
-    },
-  };
-}
-
-/**
- * Every query one panel needs. Empty when the panel is not configured yet (no
- * metric, no group), which is how an unconfigured panel avoids fetching.
- */
 export function panelQueries(state: State, panel: Panel): readonly Query[] {
-  if (panel.chart === 'medianBand') {
-    const base = panelCohorts(state, panel).flatMap(cohort => {
-      const query = queryFor(state, { ...panel, cohorts: [cohort.id] }, 'timeSummary');
-      return query?.proc === 'timeSummary' ? [query] : [];
-    });
-    if (!panel.split || !base[0]) return base;
-    const result = resultOf<TimeSummaryResult>(state, queryKey(base[0]));
-    const tail = result ? timeTailQuery(base[0], result) : null;
-    return tail ? [...base, tail] : base;
+  if (!panelForms(panel).includes(panel.form)) return [];
+  const cohorts = panelCohorts(state, panel);
+  const query = (cohort: Cohort, proc: Query['proc']) => scopedQuery(state, panel, cohort, proc);
+  if (panel.form === 'table') {
+    return [
+      ...samplePages(state, panel).map(page => page.query),
+      ...cohorts.map(cohort => cohortQuery(state, panel, cohort)),
+      ...(groupingSeries(panel) ? [cohortQuery(state, panel, panelCohort(state, panel))] : []),
+    ];
   }
-  if (panel.chart === 'correlation') {
-    return panelCohorts(state, panel).flatMap(cohort => {
-      const query = queryFor(state, { ...panel, cohorts: [cohort.id] }, 'correlation');
-      return query ? [query] : [];
-    });
+  if (panel.form === 'matrix') return cohorts.flatMap(cohort => { const q = query(cohort, 'correlation'); return q ? [q] : []; });
+  if (axisType(panel.x) === 'numeric' && panel.y) return [
+    ...densityQueries(state, panel), cohortQuery(state, panel, panelCohort(state, panel)),
+  ];
+  if (axisType(panel.x) === 'time' || axisType(panel.x) === 'categorical') {
+    const proc = axisType(panel.x) === 'categorical' ? 'groupedSummary' : panel.y !== null ? 'timeSummary' : 'coverage';
+    const results = cohorts.flatMap(cohort => { const q = query(cohort, proc); return q ? [q] : []; });
+    // groupedSummary counts finite metric values. Coverage supplies exact row counts, including missing metrics.
+    if (axisType(panel.x) === 'categorical') results.push(...cohorts.flatMap(cohort => { const q = query(cohort, 'coverage'); return q ? [q] : []; }));
+    if (groupingSeries(panel)) {
+      const aggregate = query(panelCohort(state, panel), proc);
+      if (aggregate) results.push(aggregate);
+      if (axisType(panel.x) === 'categorical') {
+        const count = query(panelCohort(state, panel), 'coverage');
+        if (count) results.push(count);
+      }
+    }
+    return results;
   }
-  if (shapeOf(panel) === 'bivariate') return densityQueries(state, panel);
-  const def = PANEL_KINDS[shapeOf(panel)];
-  const ctx = planContext(state, panel);
-  if (def.plan !== undefined) return def.plan(ctx);
-  const query = ctx.query(def.procedures[0]);
-  return query === null ? [] : [query];
+  if (!panel.series.length) return [cohortQuery(state, panel, panelCohort(state, panel))];
+  const base = cohorts.map(cohort => cohortQuery(state, panel, cohort));
+  const range = panelSharedRange(state, panel, cohorts);
+  const queries: Query[] = range ? [...base, ...cohorts.map(cohort => cohortQuery(state, panel, cohort, range))] : [...base];
+  if (groupingSeries(panel)) queries.push(cohortQuery(state, panel, panelCohort(state, panel)));
+  return queries;
+}
+
+/** Each pagination round carries an independent cursor for every displayed series. */
+export function samplePages(state: State, panel: Panel) {
+  const cohorts = panelCohorts(state, panel);
+  return panel.cursors.flatMap(cursor => cohorts.flatMap(cohort => {
+    let next = cursor;
+    if (panel.series.length && cursor !== null) {
+      try { next = (JSON.parse(cursor) as Record<string, string | null>)[cohort.id] ?? null; }
+      catch { return []; }
+      if (next === null) return [];
+    }
+    const query = scopedQuery(state, panel, cohort, 'sample');
+    return query?.proc === 'sample' ? [{ cohort, query: { ...query, cursor: next } }] : [];
+  }));
 }
 
 export function densityQueries(state: State, panel: Panel): readonly Extract<Query, { proc: 'density2d' }>[] {
   const base = panelCohorts(state, panel).flatMap(cohort => {
-    const query = queryFor(state, { ...panel, cohorts: [cohort.id] }, 'density2d');
-    return query?.proc === 'density2d' ? [{ ...query, sampleSize: panel.chart === 'clusters' ? panel.options.sampleSize ?? 20000 : 2000 }] : [];
+    const query = scopedQuery(state, panel, cohort, 'density2d');
+    return query?.proc === 'density2d' ? [query] : [];
   });
   if (base.length < 2 && panel.options.xRange === 'auto' && panel.options.yRange === 'auto') return base;
   const results = base.map(query => resultOf<Density2dResult>(state, queryKey(query)));
@@ -499,14 +286,18 @@ export function densityQueries(state: State, panel: Panel): readonly Extract<Que
   ];
   const range = { x: panel.options.xRange === 'auto' ? bounds('x') : [...panel.options.xRange] as [number, number],
     y: panel.options.yRange === 'auto' ? bounds('y') : [...panel.options.yRange] as [number, number] };
-  if (range.x[1] <= range.x[0] || range.y[1] <= range.y[0]) return base;
-  return [...base, ...base.map(query => ({ ...query, range }))];
+  return range.x[1] <= range.x[0] || range.y[1] <= range.y[0] ? base : [...base, ...base.map(query => ({ ...query, range }))];
+}
+export function clusterKey(state: State, panel: Panel, index = 0): string | null {
+  if (panel.form !== 'clusters') return null;
+  const query = densityQueries(state, panel)[index];
+  return query ? `clusters/${queryKey(query)}/k=${panel.options.k ?? 3}/seed=${panel.options.seed ?? 42}` : null;
 }
 
-export function clusterKey(state: State, panel: Panel): string | null {
-  if (panel.chart !== 'clusters') return null;
-  const query = densityQueries(state, panel)[0];
-  return query ? `clusters/${queryKey(query)}/k=${panel.options.k ?? 3}/seed=${panel.options.seed ?? 42}` : null;
+export function clusterKeys(state: State, panel: Panel): readonly string[] {
+  return panel.form === 'clusters' ? panelCohorts(state, panel).flatMap((_, index) => {
+    const key = clusterKey(state, panel, index); return key ? [key] : [];
+  }) : [];
 }
 
 /** The keys one panel reads, in the order `panelQueries` produced them. */
@@ -520,7 +311,7 @@ export function referencedKeys(state: State): Set<QueryKey> {
   if (state.exportDialogOpen) keys.add(queryKey(exportCountQuery(state)));
   for (const panel of state.panels) {
     for (const key of panelKeys(state, panel)) keys.add(key);
-    const local = clusterKey(state, panel); if (local) keys.add(local);
+    for (const local of clusterKeys(state, panel)) keys.add(local);
   }
   return keys;
 }
@@ -568,7 +359,7 @@ export function needed(state: State): Set<QueryKey> {
   return new Set(neededQueries(state).keys());
 }
 
-/** An exact quantile query for the categorical tail, rather than pooled medians. */
+
 export function timeTailQuery(query: TimeSummaryQuery, result: TimeSummaryResult): TimeSummaryQuery | null {
   if (!query.group || getAuthoredCatalog().fields.find(field => field.id === query.group)?.kind !== 'categorical') return null;
   const groups = timeGroups(result);
@@ -578,4 +369,3 @@ export function timeTailQuery(query: TimeSummaryQuery, result: TimeSummaryResult
   const { group, ...rest } = query;
   return { ...rest, filters: [...query.filters, { field: group, op: 'in', values }] };
 }
-import { correlationMetrics } from './correlation-options';

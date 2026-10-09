@@ -1,6 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { provideZonelessChangeDetection } from '@angular/core';
-import { provideRouter } from '@angular/router';
+import { provideRouter, Router } from '@angular/router';
 import { asColumnId } from '@mriqc/shared';
 import { API } from '../api/api';
 import { MockApi } from '../api/mock-api';
@@ -27,18 +27,18 @@ const shared: UrlState = {
       id: 'p1',
       y: null,
       x: asColumnId('fd_mean'),
-      chart: 'histogram',
-      split: null,
-      cohorts: ['current'],
+      form: 'histogram',
+      series: [],
+
       options: defaultPanelOptions(),
     },
     {
       id: 'p2',
       y: null,
       x: asColumnId('aor'),
-      chart: 'ecdf',
-      split: null,
-      cohorts: ['current'],
+      form: 'ecdf',
+      series: [],
+
       options: defaultPanelOptions(),
     },
   ],
@@ -108,6 +108,7 @@ describe('Graph', () => {
       const { states } = boot('/');
       await wait(50);
       expect(states[0].panels).toHaveLength(5);
+      expect(sParam()).toBeNull();
       expect(states[0].panels.map((p) => p.x)).toEqual([
         'fd_mean',
         'tsnr',
@@ -128,7 +129,9 @@ describe('Graph', () => {
       // state at all, and the loop is still alive afterwards -- a decode that
       // threw would have ended the dashboard here.
       expect(states.at(-1)?.panels).toHaveLength(5);
-      graph.dispatch({ t: 'addPanel', kind: 'distribution' });
+      expect(states.at(-1)?.notice).toContain('URL could not be read');
+      expect(TestBed.inject(Router).url).toBe('/');
+      graph.dispatch({ t: 'addPanel',  });
       expect(states.at(-1)?.panels).toHaveLength(6);
     });
   });

@@ -48,7 +48,7 @@ const CHARTS: readonly (readonly [
   ['facetedEcdf', facetedEcdfSpec(axis, 'Manufacturer'), ['groups']],
   [
     'coverage stackedBar',
-    coverageSpec('stackedBar', 'Manufacturer', 'month', 'Scans'),
+    coverageSpec('bars', 'Manufacturer', 'month', 'Scans'),
     ['coverage'],
   ],
   ['coverage area', coverageSpec('area', 'Manufacturer', 'year', 'Scans'), ['coverage']],
@@ -94,7 +94,7 @@ describe('chart specs', () => {
     const plain = [
       boxSpec(axis, 'g'),
       facetedHistogramSpec(axis, 'g'),
-      coverageSpec('stackedBar', 'g', 'month', 'Scans'),
+      coverageSpec('bars', 'g', 'month', 'Scans'),
       // A box is a summary per row, not a distribution over the value axis, so
       // there is no interval on it to drag.
       cohortBoxSpec(axis, cohorts),
@@ -126,7 +126,7 @@ describe('chart specs', () => {
     }
 
     it('floors a bucket start in UTC, so a March upload is not drawn under February', () => {
-      const unit = timeUnitTransform(coverageSpec('stackedBar', 'Manufacturer', 'month', 'Scans'));
+      const unit = timeUnitTransform(coverageSpec('bars', 'Manufacturer', 'month', 'Scans'));
       expect(unit.units).toEqual(['year', 'month']);
       expect(unit.timezone).toBe('utc');
       // Floored the way the compiled transform floors it, year and month read
@@ -171,7 +171,7 @@ describe('chart specs', () => {
       '"title":"Uploads"',
     );
     expect(
-      JSON.stringify(coverageSpec('stackedBar', 'Manufacturer', 'month', 'Uploads')),
+      JSON.stringify(coverageSpec('bars', 'Manufacturer', 'month', 'Uploads')),
     ).toContain('"title":"Uploads"');
     for (const spec of [
       histogramSpec(axis),

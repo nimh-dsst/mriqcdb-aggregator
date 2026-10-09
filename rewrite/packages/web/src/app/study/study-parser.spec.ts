@@ -1,4 +1,4 @@
-import { strToU8, zipSync } from 'fflate';
+import { createZip } from './study-zip.fixtures';
 import {
   flattenStudyJson,
   normalizeStudy,
@@ -67,12 +67,20 @@ describe('study parsing', () => {
   });
 
   it('loads sorted per-scan JSON paths from zip and derives a missing bids_name', async () => {
-    const zip = zipSync({
-      'scans/z.json': strToU8(JSON.stringify({ cjv: 0.8, provenance: { version: '24' } })),
-      'scans/a.json': strToU8(JSON.stringify({ bids_name: 'named', cjv: 0.4 })),
-      'notes.txt': strToU8('ignored'),
-    });
-    const parsed = await parseStudyFile(new File([zip], 'study.zip'));
+    const zip = createZip([
+      {
+        compressionMethod: 8,
+        contents: JSON.stringify({ cjv: 0.8, provenance: { version: '24' } }),
+        dataDescriptor: true,
+        path: 'scans/z.json',
+      },
+      {
+        contents: JSON.stringify({ bids_name: 'named', cjv: 0.4 }),
+        path: 'scans/a.json',
+      },
+      { contents: 'ignored', path: 'notes.txt' },
+    ]);
+    const parsed = await parseStudyFile(new File([new Uint8Array(zip)], 'study.zip'));
 
     expect(parsed.rows.map((row) => row['bids_name'])).toEqual(['named', 'z']);
     expect(parsed.rows.map((row) => row['cjv'])).toEqual([0.4, 0.8]);

@@ -15,47 +15,45 @@ const dist = (counts: number[]): DistributionResult => ({ n: counts.reduce((a,b)
 
 describe('axes, layout and size state', () => {
   it('automatically switches density to histogram without a global notice', () => {
-    const p = {...panel(), split:asColumnId('manufacturer'), chart:'density' as const};
+    const p = {...panel(), series: [{ kind: 'field' as const, field: asColumnId('manufacturer') }], form:'density' as const};
     const result = reduce(state(p), {t:'setPanelOptions',id:p.id,options:{xScale:'symlog',xRange:[10,-2],layout:'stacked100'}});
     expect(result.panels[0].options).toMatchObject({xScale:'symlog',xRange:[-2,10],layout:'stacked100'});
-    expect(result.panels[0].chart).toBe('histogram');
+    expect(result.panels[0].form).toBe('histogram');
     expect(result.notice).toBeNull();
   });
   it('rejects stacking overlapping cohorts and nonfinite ranges', () => {
-    const p = {...panel(),cohorts:['current','all']};
+    const p = {...panel(),series:[{kind:'population' as const}]};
     const result=reduce(state(p),{t:'setPanelOptions',id:p.id,options:{layout:'stacked',xRange:[0,Infinity]}});
     expect(result.panels[0].options).toMatchObject({layout:'overlaid',xRange:'auto'});
   });
   it.each(['stacked', 'stacked100'] as const)('uses the unsplit clipped histogram extent for %s', (layout) => {
-    const p = { ...panel(), split: asColumnId('manufacturer'), chart: 'histogram' as const,
+    const p = { ...panel(), series: [{ kind: 'field' as const, field: asColumnId('manufacturer') }], form: 'histogram' as const,
       options: { ...defaultPanelOptions(), layout } };
     const s = state(p);
-    const unsplit = { ...p, split: null };
+    const unsplit = { ...p, series: [] };
     const query = panelQueries(s, unsplit)[0];
     s.datasets = { [queryKey(query)]: { status: 'ready', version: 'v1', result: dist([2, 3]) } };
     expect(panelSharedRange(s, p, [])).toEqual([1, 3]);
     expect(panelSharedRange(s, { ...p, options: { ...p.options, xRange: [1.5, 2.5] } }, [])).toEqual([1.5, 2.5]);
   });
-  it('round-trips every option with exact typed range precision', () => {
-    const p={...panel(),split:asColumnId('manufacturer'),options:{...defaultPanelOptions(),xScale:'log' as const,xRange:[0.01234567,10] as const,yScale:'symlog' as const,yRange:[-5,5] as const,yMode:'share' as const,layout:'stacked100' as const}};
+  it('round-trips options with three significant digits for shared ranges', () => {
+    const p={...panel(),series: [{ kind: 'field' as const, field: asColumnId('manufacturer') }],options:{...defaultPanelOptions(),xScale:'log' as const,xRange:[0.01234567,10] as const,yScale:'symlog' as const,yRange:[-5,5] as const,yMode:'share' as const,layout:'stacked100' as const}};
     const url={...defaultDashboard(),panels:[p]};
-    expect(decodeUrlState(encodeUrlState(url))?.panels[0].options).toEqual(p.options);
+    expect(decodeUrlState(encodeUrlState(url))?.panels[0].options).toEqual({...p.options, xRange: [0.0123, 10]});
   });
-  it('omits defaults and migrates the old compact logScale flag', () => {
+  it('omits defaults and round-trips the stream scale flag', () => {
     const original=defaultDashboard();
     const record=writeUrlRecord(original);
-    expect(record).not.toMatch(/(?:^|:)[XYRSLHW]/);
-    // Exercise a legacy flag by replacing the modern scale token in an otherwise valid record.
+    expect(record).toBe('');
     const modern=writeUrlRecord({...original,panels:[{...panel(),options:{...defaultPanelOptions(),xScale:'log'}}]});
-    const old=modern.replace('Xg','o1');
-    expect(readUrlRecord(old)?.panels[0].options.xScale).toBe('log');
+    expect(readUrlRecord(modern)?.panels[0].options.xScale).toBe('log');
   });
   it('sends a custom single-series range to distribution', () => {
     const p=panel(); p.options.xRange=[0.05,0.5];
     expect(panelQueries(state(p),p)[0]).toMatchObject({range:[0.05,0.5]});
   });
   it('uses one exact custom range for every cohort in the two-step plan', () => {
-    const p={...panel(),cohorts:['current','all']}; p.options.xRange=[0.1,0.8];
+    const p={...panel(),series:[{kind:'population' as const}]}; p.options.xRange=[0.1,0.8];
     const queries=panelQueries(state(p),p);
     expect(queries).toHaveLength(4);
     expect(queries.slice(2).every(q=>'range' in q && JSON.stringify(q.range)==='[0.1,0.8]')).toBe(true);

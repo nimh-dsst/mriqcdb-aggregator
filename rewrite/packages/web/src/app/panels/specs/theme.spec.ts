@@ -23,7 +23,7 @@ describe('chart themes', () => {
   });
   it('uses the dark surface for stack separators and dark palette variants for cohorts', () => {
     const coverage = coverageSpec(
-      'stackedBar',
+      'bars',
       'Manufacturer',
       'month',
       'Scans',

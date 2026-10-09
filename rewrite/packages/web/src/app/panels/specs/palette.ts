@@ -207,7 +207,7 @@ export function baseConfig(theme: ChartTheme = LIGHT_THEME) { return {
       domainColor: theme.rule,
       gridColor: theme.rule,
       gridWidth: 1,
-      gridDash: [],
+      gridDash: [] as number[],
       labelPadding: 4,
       titlePadding: 6,
       // Thin the tick labels rather than running them together: the coverage

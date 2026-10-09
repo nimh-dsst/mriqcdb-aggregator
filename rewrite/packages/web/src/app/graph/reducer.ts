@@ -1,4 +1,4 @@
-import { shapeOf } from './panel-shapes';
+import { brushable } from './panel-shapes';
 import { deriveLayout, moveLayout, resizeLayout, reconcileLayout, panelsWithPreferredRows } from './layout';
 /**
  * The reducer: `(state, command) => state`, pure, and the only writer of state.
@@ -16,9 +16,7 @@ import {
   asColumnId,
   canonicalViewFor,
   viewsFor,
-  type ChartType,
   type Filter,
-  type PanelKind,
 } from '@mriqc/shared';
 import { cohortAutoName, uniqueCohortName } from './cohort-name';
 import {
@@ -32,9 +30,12 @@ import {
 import { sameFilters, validFilters } from './filters';
 import { cohortChange, panelPatch, type Command } from './commands';
 import { evict, touch } from './datasets';
-import { CHARTS_BY_KIND, PANEL_KINDS, chartForKind, validChart } from './panel-shapes';
+import { validForm } from './panel-shapes';
+import { seriesKey, type Series } from './series';
 import {
   mapPanel,
+  addSeries,
+  removeSeries,
   newPanel,
   patchPanel,
   pruneCohortRefs,
@@ -67,15 +68,7 @@ function withoutStudyDatasets(state: State): State {
 }
 
 function referencesStudy(url: UrlState): boolean {
-  return (
-    url.cohorts.some((cohort) => cohort.source === 'study' || cohort.id === STUDY_COHORT) ||
-    url.panels.some(
-      (panel) =>
-        panel.cohorts[0] === STUDY_COHORT ||
-        panel.reference === STUDY_COHORT ||
-        panel.cohorts?.includes(STUDY_COHORT) === true,
-    )
-  );
+  return url.panels.some(panel => panel.series.some(series => series.kind === 'study'));
 }
 
 /* ----------------------------------------------------------- default layout */
@@ -96,9 +89,8 @@ export function defaultDashboard(): UrlState {
     id: `p${i + 1}`,
     x: asColumnId(metric),
     y: null,
-    chart: 'histogram' as ChartType,
-    split: null,
-    cohorts: [CURRENT_COHORT],
+    form: 'histogram' as const,
+    series: [],
     options: { ...options },
   }));
   return {
@@ -113,9 +105,8 @@ export function defaultDashboard(): UrlState {
         id: `p${metrics.length + 1}`,
         x: 'created_at',
         y: null,
-        chart: 'stackedBar' as ChartType,
-        split: asColumnId('manufacturer'),
-        cohorts: [CURRENT_COHORT],
+        form: 'bars' as const,
+        series: [],
         options: { ...options },
       },
     ],
@@ -189,7 +180,13 @@ export function reduce(state: State, command: Command): State {
     /* ---------------------------------------------------------------- panels */
 
     case 'addPanel': {
-      const panels = [...state.panels, newPanel(state, command.kind, command.metric, command.cohorts)];
+      const made = newPanel(state, command.x);
+      const configured = patchPanel({ ...state, panels: [...state.panels, made] }, made.id, {
+        ...(command.y !== undefined ? { y: command.y } : {}),
+        ...(command.form ? { form: command.form } : {}),
+        ...(command.series ? { series: command.series } : {}),
+      });
+      const panels = configured.panels;
       return evict({
         ...state,
         panels,
@@ -246,6 +243,7 @@ export function reduce(state: State, command: Command): State {
     case 'setPanelAxis':
     case 'setPanelSplit':
     case 'setPanelChart':
+    case 'setPanelForm':
     case 'setPanelGroup':
     case 'setPanelOptions':
     case 'setPanelCohort':
@@ -256,32 +254,24 @@ export function reduce(state: State, command: Command): State {
       return change === null ? state : patchPanel(state, change.id, change.patch);
     }
 
+    case 'addPanelSeries': return addSeries(state, command.id, command.series);
+    case 'removePanelSeries': return removeSeries(state, command.id, command.key);
+    case 'addGroupToPanels': {
+      let next = state;
+      for (const panel of state.panels) {
+        if (!command.panelIds || command.panelIds.includes(panel.id)) next = addSeries(next, panel.id, { kind: 'cohort', id: command.id });
+      }
+      return next;
+    }
     case 'removePanelCohort': {
-      const next = mapPanel(state, command.panelId, (panel) => {
-        if (!PANEL_KINDS[shapeOf(panel)].supportsCohorts) return panel;
-        const ids = (panel.cohorts ?? []).filter((id) => id !== command.cohort);
-        if (ids.length === (panel.cohorts ?? []).length) return panel;
-        // Below two it is a distribution again -- the same rule `removeCohort`
-        // applies, reached here one chip at a time.
-        if (ids.length < MIN_COMPARISON_COHORTS) {
-          const { reference: _, ...rest } = panel;
-          return validChart({ ...rest, cohorts: ids.length ? ids : [CURRENT_COHORT], cursors: FIRST_PAGE });
-        }
-        const updated: Panel = { ...panel, cohorts: ids, cursors: FIRST_PAGE };
-        if (updated.reference !== undefined && !ids.includes(updated.reference)) {
-          delete updated.reference;
-        }
-        return updated;
-      });
-      return next === state ? state : evict(pruneSelection(next));
+      const panel = state.panels.find(panel => panel.id === command.panelId);
+      const item = panel?.series.find(series =>
+        series.kind === 'cohort' ? series.id === command.cohort :
+        series.kind === 'population' ? command.cohort === 'all' :
+        series.kind === 'study' && command.cohort === 'study');
+      return item ? removeSeries(state, command.panelId, seriesKey(item)) : state;
     }
-
-    case 'revertPanelToSingle': {
-      const next = mapPanel(state, command.id, (panel) =>
-        PANEL_KINDS[shapeOf(panel)].supportsCohorts ? revertToDistribution(panel) : panel,
-      );
-      return next === state ? state : evict(pruneSelection(next));
-    }
+    case 'revertPanelToSingle': return patchPanel(state, command.id, { series: [] });
 
     case 'requestPage':
       // Paging extends the chain; the table shows every page it has loaded, so
@@ -339,48 +329,13 @@ export function reduce(state: State, command: Command): State {
     }
 
     case 'convertToComparison': {
-      const asked = (Array.isArray(command.with) ? command.with : [command.with]).filter(
-        (id): id is CohortId => isKnownCohortId(state, id),
-      );
-      if (asked.length === 0) return state;
-      const next = mapPanel(state, command.panelId, (panel) => {
-        // A comparison needs a metric: it is one metric across cohorts, and a
-        // card with no metric has nothing to compare.
-        if (panel.x === 'created_at' && panel.y === null) return panel;
-        const def = PANEL_KINDS[shapeOf(panel)];
-        if (def.supportsCohorts) {
-          const ids = validCohortList(panel.cohorts, state);
-          const added = asked.filter((id) => !ids.includes(id));
-          if (added.length === 0) return panel;
-          return { ...panel, split: null, cohorts: [...ids, ...added], cursors: FIRST_PAGE };
-        }
-        // Only a kind whose split groups are cohorts can become a comparison of
-        // them; a timeline and a table have no metric to compare on.
-        if (!def.supportsSplit) return panel;
-        // Two or more cohorts named outright are the comparison -- that is the
-        // "Compare selected (n)" path off a split panel, which must not have an
-        // intermediate state comparing something the reader did not tick.
-        // One cohort means "`current` plus this", and comparing this dashboard
-        // with itself is refused rather than deduped into a single cohort.
-        const ids =
-          asked.length >= MIN_COMPARISON_COHORTS
-            ? asked
-            : asked[0] === CURRENT_COHORT
-              ? []
-              : [CURRENT_COHORT, asked[0]];
-        if (ids.length < MIN_COMPARISON_COHORTS) return panel;
-        return validChart({
-          ...panel,
-          // A split and a comparison are two different questions about the
-          // same metric; the cohorts are the split now.
-          split: null,
-          cohorts: ids,
-          cursors: FIRST_PAGE,
-        });
-      });
-      if (next === state) return state;
-      const hadSplit = state.panels.find(panel => panel.id === command.panelId)?.split;
-      return evict(pruneSelection({ ...next, notice: hadSplit ? 'The split was removed to compare cohorts.' : next.notice }));
+      let next = state;
+      for (const id of Array.isArray(command.with) ? command.with : [command.with]) {
+        if (id === 'current') continue;
+        const series: Series = id === 'all' ? { kind: 'population' } : id === 'study' ? { kind: 'study' } : { kind: 'cohort', id };
+        next = addSeries(next, command.panelId, series);
+      }
+      return next;
     }
 
     /* ------------------------------------------------------ linked selection */
@@ -397,7 +352,7 @@ export function reduce(state: State, command: Command): State {
         const selections = state.selections.filter(selection => !metrics.includes(selection.metric));
         return selections.length === state.selections.length ? state : evict({ ...state, selections });
       }
-      if (!origin || !PANEL_KINDS[shapeOf(origin)].brushable(origin) ||
+      if (!origin || !brushable(origin) ||
           origin.x !== metrics[0] || (command.t === 'brush2d' && origin.y !== metrics[1]) ||
           ranges.some(range => !range.every(Number.isFinite))) return state;
       const replacements = metrics.map((metric, i) => ({ from: command.from, metric,
@@ -424,7 +379,7 @@ export function reduce(state: State, command: Command): State {
         selections: url.selections,
         layout: url.layout ?? null,
         maximizedPanel: url.maximizedPanel ?? null,
-        notice: omittedStudy ? STUDY_LINK_NOTICE : null,
+        notice: command.notice ?? (omittedStudy ? STUDY_LINK_NOTICE : null),
       });
     }
 

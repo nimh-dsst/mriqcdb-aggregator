@@ -1,4 +1,3 @@
-import { shapeOf } from './panel-shapes';
 import {
   asColumnId,
   fieldsFor,
@@ -64,9 +63,9 @@ function panel(overrides: Partial<Panel> = {}): Panel {
     id: 'p1',
     y: null,
     x: asColumnId('fd_mean'),
-    chart: 'histogram',
-    split: null,
-    cohorts: ['current'],
+    form: 'histogram',
+    series: [],
+
     options: defaultPanelOptions(),
     cursors: FIRST_PAGE,
     ...overrides,
@@ -135,8 +134,8 @@ describe('study cohort', () => {
     expect(studyCohort(fixture())).toBeNull();
     const comparison = panel({
       y: null,
-      chart: 'overlaidHistogram',
-      cohorts: ['current', STUDY_COHORT],
+      form: 'histogram',
+      series: [{ kind: 'study' as const }],
     });
     const state = fixture({ study: readyStudy, panels: [comparison] });
     expect(cohortsOf(state).map((entry) => entry.id)).toContain(STUDY_COHORT);
@@ -162,7 +161,7 @@ describe('needed', () => {
   });
 
   it('asks for nothing when a correlation set has fewer than two metrics', () => {
-    expect(needed(fixture({ panels: [panel({ chart: 'correlation', options: { ...defaultPanelOptions(), family: 'custom', metrics: [] } })] }))).toEqual(new Set());
+    expect(needed(fixture({ panels: [panel({ form: 'matrix', options: { ...defaultPanelOptions(), family: 'custom', metrics: [] } })] }))).toEqual(new Set());
   });
 
   it('stops asking once an entry exists at the current version', () => {
@@ -198,8 +197,8 @@ describe('needed', () => {
     // instant before it does.
     const comparison = panel({
       y: null,
-      chart: 'overlaidHistogram',
-      cohorts: ['current'],
+      form: 'histogram',
+      series: [],
     });
     const state = fixture({ panels: [comparison] });
     expect(panelQueries(state, comparison).map(query => query.proc)).toEqual(['distribution']);
@@ -209,8 +208,8 @@ describe('needed', () => {
   it('asks for one distribution per cohort, with no range, in step one', () => {
     const comparison = panel({
       y: null,
-      chart: 'overlaidHistogram',
-      cohorts: ['current', 'all'],
+      form: 'histogram',
+      series: [{ kind: 'population' as const }],
     });
     const state = fixture({
       panels: [comparison],
@@ -236,8 +235,8 @@ describe('needed', () => {
     // comparing the same cohort share an entry.
     const comparison = panel({
       y: null,
-      chart: 'overlaidHistogram',
-      cohorts: ['current', 'all'],
+      form: 'histogram',
+      series: [{ kind: 'population' as const }],
     });
     const state = fixture({ panels: [comparison] });
     expect(panelQueries(state, comparison)).toHaveLength(2);
@@ -247,13 +246,13 @@ describe('needed', () => {
 
 describe('panelQueries', () => {
   it.each(['stacked', 'stacked100'] as const)('plans the parent clip query before rebinning a %s split', (layout) => {
-    const split = panel({ split: asColumnId('manufacturer'), options: { ...defaultPanelOptions(), layout } });
+    const split = panel({ series: [{ kind: 'field' as const, field: asColumnId('manufacturer') }], options: { ...defaultPanelOptions(), layout } });
     const state = fixture({ panels: [split], catalog: { ...catalog,
       fieldValues: { manufacturer: { bold: { raw: [{ value: 'A', n: 20 }, { value: 'B', n: 10 }] } } },
     } as unknown as CompletedCatalog });
     const queries = panelQueries(state, split);
     expect(queries).toHaveLength(3);
-    expect(queries.at(-1)).toEqual(panelQueries(state, { ...split, split: null })[0]);
+    expect(queries.at(-1)).toEqual(panelQueries(state, { ...split, series: [] })[0]);
     const answeredState = answered(state, (_key, index) => index === 2
       ? dist({ lo: 1.5, hi: 8.5 }) : dist({ lo: 0, hi: 10 }));
     const ranged = panelQueries(answeredState, split).filter(query => 'range' in query);
@@ -261,17 +260,17 @@ describe('panelQueries', () => {
     expect(ranged.every(query => 'range' in query && JSON.stringify(query.range) === '[1.5,8.5]')).toBe(true);
   });
 
-  it('keeps groupedSummary for split box charts', () => {
-    const grouped = panel({ split: asColumnId('manufacturer'), chart: 'box' });
-    expect(panelQueries(fixture({ panels: [grouped] }), grouped)[0].proc).toBe('groupedSummary');
+  it('uses cohort distributions for split box charts', () => {
+    const grouped = panel({ series: [{ kind: 'field' as const, field: asColumnId('manufacturer') }], form: 'box' });
+    expect(panelQueries(fixture({ panels: [grouped] }), grouped)[0].proc).toBe('distribution');
   });
 
-  it('plans split densities as top-six plus Other cohort distributions', () => {
+  it('plans split densities as top-five plus Other cohort distributions', () => {
     const values = ['A', 'B', 'C', 'D', 'E', 'F', 'G'].map((value, index) => ({
       value,
       n: 70 - index * 10,
     }));
-    const split = panel({ split: asColumnId('manufacturer'), chart: 'density' });
+    const split = panel({ series: [{ kind: 'field' as const, field: asColumnId('manufacturer') }], form: 'density' });
     const state = fixture({
       panels: [split],
       catalog: {
@@ -280,11 +279,11 @@ describe('panelQueries', () => {
       } as unknown as CompletedCatalog,
     });
     const cohorts = splitDistributionCohorts(state, split);
-    expect(cohorts.map((cohort) => cohort.name)).toEqual(['A', 'B', 'C', 'D', 'E', 'F', 'Other']);
+    expect(cohorts.map((cohort) => cohort.name)).toEqual(['A', 'B', 'C', 'D', 'E', 'Other']);
     expect(cohorts.at(-1)?.filters.at(-1)).toEqual({
       field: 'manufacturer',
       op: 'in',
-      values: ['G'],
+      values: ['F', 'G'],
     });
     const queries = panelQueries(state, split);
     expect(queries).toHaveLength(7);
@@ -300,7 +299,7 @@ describe('panelQueries', () => {
       value,
       n: 70 - index * 10,
     }));
-    const split = panel({ split: asColumnId('manufacturer'), chart: 'density' });
+    const split = panel({ series: [{ kind: 'field' as const, field: asColumnId('manufacturer') }], form: 'density' });
     const state = fixture({
       panels: [split],
       catalog: {
@@ -312,9 +311,9 @@ describe('panelQueries', () => {
       dist({ p01: index + 1, p99: index + 10, min: 0, max: 640 }),
     );
     const queries = panelQueries(stepOne, split);
-    expect(queries).toHaveLength(14);
-    expect(queries.slice(7).map((query) => ('range' in query ? query.range : null))).toEqual(
-      Array.from({ length: 7 }, () => [1, 16]),
+    expect(queries).toHaveLength(13);
+    expect(queries.slice(6,12).map((query) => ('range' in query ? query.range : null))).toEqual(
+      Array.from({ length: 6 }, () => [1, 15]),
     );
   });
 
@@ -323,7 +322,7 @@ describe('panelQueries', () => {
       value,
       n: 70 - index * 10,
     }));
-    const split = panel({ split: asColumnId('manufacturer'), chart: 'density' });
+    const split = panel({ series: [{ kind: 'field' as const, field: asColumnId('manufacturer') }], form: 'density' });
     const state = fixture({
       panels: [split],
       catalog: {
@@ -331,30 +330,30 @@ describe('panelQueries', () => {
         fieldValues: { manufacturer: { bold: { raw: values } } },
       } as unknown as CompletedCatalog,
     });
-    const counts = [50, 40, 30, 20, 10, 5, 2];
+    const counts = [50, 40, 30, 20, 10, 7, 157];
     const stepOne = answered(state, (_key, index) => dist({ n: counts[index] }));
-    const complete = answered(stepOne, (_key, index) => dist({ n: counts[index % 7] }));
+    const complete = answered(stepOne, (_key, index) => dist({ n: index === 12 ? 157 : counts[index % 6] }));
     const view = panelView(complete, 'p1');
     const labels = new Set(
       (view?.datasets['cohorts'] ?? []).map((row) => (row as { label: string }).label),
     );
-    expect([...labels]).toEqual(['A', 'B', 'C', 'D', 'E', 'F', 'Other']);
+    expect([...labels]).toEqual(['A', 'B', 'C', 'D', 'E', 'Other']);
     expect(view?.n).toBe(157);
   });
 
-  it('uses a card-bound saved cohort instead of the top bar', () => {
+  it('keeps the dashboard first and gives a saved-group series its saved rows', () => {
     const saved = cohort('c1', 'Saved', {
       view: 'k4plus',
       filters: [{ field: asColumnId('manufacturer'), op: 'in', values: ['SIEMENS'] }],
       selections: [{ metric: asColumnId('fd_mean'), range: [0.1, 0.4] }],
     });
-    const bound = panel({ cohorts: ['c1'] });
+    const bound = panel({ series: [{ kind: 'cohort' as const, id: 'c1' }] });
     const state = fixture({
       panels: [bound],
       cohorts: [saved],
       global: { modality: 'bold', view: 'raw', filters: [] },
     });
-    expect(panelQueries(state, bound)[0]).toMatchObject({
+    expect(panelQueries(state, bound)[1]).toMatchObject({
       view: 'k4plus',
       filters: saved.filters,
       selections: saved.selections,
@@ -362,11 +361,11 @@ describe('panelQueries', () => {
   });
 
   it('applies card-local coverage windows without losing other cohort filters', () => {
-    const coverage = panel({ cohorts: ['current'], 
+    const coverage = panel({
       y: null,
       x: 'created_at',
-      chart: 'area',
-      split: asColumnId('manufacturer'),
+      form: 'area',
+      series: [{ kind: 'field' as const, field: asColumnId('manufacturer') }],
       options: { ...defaultPanelOptions(), coverageWindow: '5y' },
     });
     const manufacturer = {
@@ -394,17 +393,18 @@ describe('panelQueries', () => {
   });
 
   it('keeps the earlier pages of a sample panel on screen', () => {
-    const sample = panel({ y: null, chart: 'table', x: asColumnId('fd_mean') });
+    const sample = panel({ y: null, form: 'table', x: asColumnId('fd_mean') });
     const first = fixture({ panels: [sample] });
     const paged = reduce(first, { t: 'requestPage', id: 'p1', cursor: 'page-2' });
     const keys = panelKeys(paged, paged.panels[0]);
-    expect(keys).toHaveLength(2);
+    expect(keys).toHaveLength(3);
     const withRows = {
       ...paged,
       datasets: {
         ...paged.datasets,
         [keys[0]]: ready('v1', { rows: [{ id: 'a' }], nextCursor: 'page-2' }),
         [keys[1]]: ready('v1', { rows: [{ id: 'b' }], nextCursor: null }),
+        [keys[2]]: ready('v1', dist()),
       },
     };
     const table = panelView(withRows, 'p1')?.table;
@@ -413,10 +413,33 @@ describe('panelQueries', () => {
   });
 
   it('gives the sample panel every exportable column', () => {
-    const sample = panel({ y: null, chart: 'table', x: asColumnId('fd_mean') });
+    const sample = panel({ y: null, form: 'table', x: asColumnId('fd_mean') });
     const query = panelQueries(fixture({ panels: [sample] }), sample)[0];
     expect(query.proc).toBe('sample');
     expect(query).toMatchObject({ cursor: null });
+  });
+
+  it('paginates Table series independently and labels their rows', () => {
+    const table = panel({ form: 'table', series: [{ kind: 'values', field: asColumnId('manufacturer'), values: ['A', 'B'] }] });
+    let state = fixture({ panels: [table] });
+    const samples = panelQueries(state, table).filter(query => query.proc === 'sample');
+    expect(samples).toHaveLength(2);
+    state = { ...state, datasets: {
+      ...state.datasets,
+      [queryKey(samples[0])]: ready('v1', { rows: [{ id: 'a' }], nextCursor: 'a-next' }),
+      [queryKey(samples[1])]: ready('v1', { rows: [{ id: 'b' }], nextCursor: null }),
+    } };
+    const view = panelView(state, table.id)!;
+    expect(view.table?.headers[0]).toBe('Series');
+    expect(view.table?.rows.map(row => row['__series'])).toEqual(['A', 'B']);
+    const paged = reduce(state, { t: 'requestPage', id: table.id, cursor: view.table!.nextCursor });
+    const pages = panelQueries(paged, paged.panels[0]).filter(query => query.proc === 'sample');
+    expect(pages.map(query => query.cursor)).toEqual([null, null, 'a-next']);
+    const complete = { ...paged, datasets: { ...paged.datasets,
+      [queryKey(pages[2])]: ready('v1', { rows: [{ id: 'a2' }], nextCursor: null }),
+    } };
+    expect(panelView(complete, table.id)?.table?.rows.map(row => row['id'])).toEqual(['a', 'b', 'a2']);
+    expect(panelView(complete, table.id)?.table?.nextCursor).toBeNull();
   });
 });
 
@@ -445,7 +468,7 @@ describe('panelView', () => {
   });
 
   it('is empty, not loading, for an incomplete correlation set', () => {
-    expect(panelView(fixture({ panels: [panel({ chart: 'correlation', options: { ...defaultPanelOptions(), family: 'custom', metrics: [] } })] }), 'p1')?.status.kind).toBe(
+    expect(panelView(fixture({ panels: [panel({ form: 'matrix', options: { ...defaultPanelOptions(), family: 'custom', metrics: [] } })] }), 'p1')?.status.kind).toBe(
       'empty',
     );
   });
@@ -481,7 +504,7 @@ describe('panelView', () => {
     const bars = panelView(fixture({ datasets }), 'p1');
     expect(bars?.datasets['population'][0]).toEqual({ lo: 0, hi: 0.25, count: 10 });
     resetPanelViewMemo();
-    const steps = panelView(fixture({ datasets, panels: [panel({ chart: 'ecdf' })] }), 'p1');
+    const steps = panelView(fixture({ datasets, panels: [panel({ form: 'ecdf' })] }), 'p1');
     expect(steps?.datasets['population'][0]).toMatchObject({ p: expect.any(Number) });
   });
 
@@ -514,7 +537,7 @@ describe('panelView', () => {
       histogram: { lo: 0.25, hi: 0.75, width: 0.25, counts: [1, 2] },
       quantiles: { p01: 0.05, p05: 0.25, p25: 0.3, p50: 0.5, p75: 0.7, p95: 0.75, p99: 0.95 },
     };
-    const clipped = panel({ chart: 'ecdf', options: { ...defaultPanelOptions(), clip: 'p05p95' } });
+    const clipped = panel({ form: 'ecdf', options: { ...defaultPanelOptions(), clip: 'p05p95' } });
     const key = panelKeys(fixture(), clipped)[0];
     const view = panelView(
       fixture({ panels: [clipped], datasets: { [key]: ready('v1', wide) } }),
@@ -536,19 +559,19 @@ describe('panelView', () => {
 
   it('changes specKey when the chart type changes', () => {
     const bars = panelView(fixture(), 'p1')?.specKey;
-    const steps = panelView(fixture({ panels: [panel({ chart: 'ecdf' })] }), 'p1')?.specKey;
+    const steps = panelView(fixture({ panels: [panel({ form: 'ecdf' })] }), 'p1')?.specKey;
     expect(steps).not.toBe(bars);
   });
 
   it('changes specKey when a split switches between overlay and facets', () => {
-    const grouped = panel({ split: asColumnId('manufacturer'), chart: 'density' });
+    const grouped = panel({ series: [{ kind: 'field' as const, field: asColumnId('manufacturer') }], form: 'density' });
     const overlay = panelView(fixture({ panels: [grouped] }), 'p1')?.specKey;
     const facets = panelView(
       fixture({
         panels: [
           panel({
-            split: asColumnId('manufacturer'),
-            chart: 'density',
+            series: [{ kind: 'field' as const, field: asColumnId('manufacturer') }],
+            form: 'density',
             options: { ...defaultPanelOptions(), splitPresentation: 'facets' },
           }),
         ],
@@ -559,14 +582,14 @@ describe('panelView', () => {
   });
 
   it('changes specKey when box ordering changes', () => {
-    const boxes = panel({ split: asColumnId('manufacturer'), chart: 'box' });
+    const boxes = panel({ series: [{ kind: 'field' as const, field: asColumnId('manufacturer') }], form: 'box' });
     const median = panelView(fixture({ panels: [boxes] }), 'p1')?.specKey;
     const count = panelView(
       fixture({
         panels: [
           panel({
-            split: asColumnId('manufacturer'),
-            chart: 'box',
+            series: [{ kind: 'field' as const, field: asColumnId('manufacturer') }],
+            form: 'box',
             options: { ...defaultPanelOptions(), boxSort: 'n' },
           }),
         ],
@@ -580,18 +603,18 @@ describe('panelView', () => {
     const coverage = panel({
       y: null,
       x: 'created_at',
-      chart: 'stackedBar',
-      split: asColumnId('manufacturer'),
+      form: 'bars',
+      series: [{ kind: 'field' as const, field: asColumnId('manufacturer') }],
     });
     const counts = panelView(fixture({ panels: [coverage] }), 'p1')?.specKey;
     const share = panelView(
       fixture({
         panels: [
-          panel({ cohorts: ['current'], 
+          panel({
             y: null,
             x: 'created_at',
-            chart: 'stackedBar',
-            split: asColumnId('manufacturer'),
+            form: 'bars',
+            series: [{ kind: 'field' as const, field: asColumnId('manufacturer') }],
             options: { ...defaultPanelOptions(), share: true },
           }),
         ],
@@ -656,7 +679,7 @@ describe('panel stats', () => {
   it('has no stats until the result arrives, and none for a grouped panel', () => {
     expect(panelView(fixture(), 'p1')?.stats).toBeNull();
     resetPanelViewMemo();
-    const grouped = panel({ split: asColumnId('manufacturer') });
+    const grouped = panel({ series: [{ kind: 'field' as const, field: asColumnId('manufacturer') }] });
     expect(panelView(fixture({ panels: [grouped] }), 'p1')?.stats).toBeNull();
   });
 
@@ -677,9 +700,9 @@ describe('panel stats', () => {
     resetPanelViewMemo();
     const coverage = panel({
       y: null,
-      chart: 'stackedBar',
+      form: 'bars',
       x: 'created_at',
-      split: asColumnId('manufacturer'),
+      series: [{ kind: 'field' as const, field: asColumnId('manufacturer') }],
     });
     expect(panelView(fixture({ panels: [coverage] }), 'p1')?.countLabel).toBe('BOLD uploads');
     resetPanelViewMemo();
@@ -694,17 +717,18 @@ describe('urlState', () => {
   it('round-trips through url.ts', () => {
     const state = reduce(fixture(), { t: 'hydrate', url: defaultDashboard() });
     const url = urlState(state);
-    expect(decodeUrlState(encodeUrlState(url))).toEqual(url);
+    expect(encodeUrlState(url)).toBe('');
+    expect(decodeUrlState(encodeUrlState(url)) ?? defaultDashboard()).toEqual(url);
   });
 
   it('excludes cursors, so paging does not rewrite the URL', () => {
     const paged = reduce(
-      fixture({ panels: [panel({ y: null, chart: 'table', x: asColumnId('fd_mean') })] }),
+      fixture({ panels: [panel({ y: null, form: 'table', x: asColumnId('fd_mean') })] }),
       { t: 'requestPage', id: 'p1', cursor: 'page-2' },
     );
     expect(encodeUrlState(urlState(paged))).toBe(
       encodeUrlState(
-        urlState(fixture({ panels: [panel({ y: null, chart: 'table', x: asColumnId('fd_mean') })] })),
+        urlState(fixture({ panels: [panel({ y: null, form: 'table', x: asColumnId('fd_mean') })] })),
       ),
     );
   });
@@ -823,8 +847,8 @@ describe('the default dashboard', () => {
   it('opens five panels: four distributions and one coverage', () => {
     const state = reduce(initialState, { t: 'hydrate', url: defaultDashboard() });
     expect(state.panels).toHaveLength(5);
-    expect(state.panels.filter((p) => shapeOf(p!) === 'distribution')).toHaveLength(4);
-    expect(shapeOf(state.panels.at(-1)!)).toBe('coverage');
+    expect(state.panels.filter((p) => p.x !== 'created_at')).toHaveLength(4);
+    expect(state.panels.at(-1)!.x).toBe('created_at');
     expect(state.panels.map((p) => p.x)).toEqual([
       'fd_mean',
       'tsnr',
@@ -941,7 +965,7 @@ describe('clipChip', () => {
   });
 
   it('says nothing on a panel whose rows the clip does not narrow', () => {
-    const coverage = panel({ y: null, x: 'created_at', split: asColumnId('manufacturer') });
+    const coverage = panel({ y: null, x: 'created_at', series: [{ kind: 'field' as const, field: asColumnId('manufacturer') }] });
     expect(clipChip('none', null, coverage)).toBeNull();
   });
 });
@@ -1005,7 +1029,7 @@ describe('metricPhrase', () => {
 describe('panelMeaning', () => {
   const base = {
     kind: 'distribution' as const,
-    chart: 'histogram' as const,
+    form: 'histogram' as const,
     modality: 'bold' as Modality,
     view: viewsFor('bold').find((v) => v.id === 'k4plus'),
     metricLabel: 'Mean framewise displacement',
@@ -1028,7 +1052,7 @@ describe('panelMeaning', () => {
   });
 
   it('says what an ECDF reads off', () => {
-    expect(panelMeaning({ ...base, chart: 'ecdf' })).toContain(
+    expect(panelMeaning({ ...base, form: 'ecdf' })).toContain(
       'Share of scans at or below each value of Mean framewise displacement',
     );
   });
@@ -1037,33 +1061,32 @@ describe('panelMeaning', () => {
     const grouped = {
       ...base,
       y: null,
-      chart: 'box' as const,
-      groupLabel: 'Manufacturer',
+      form: 'box' as const,
+      groupLabel: 'Manufacturer', cohortCount: 2,
     };
     expect(panelMeaning(grouped)).toBe(
-      'Spread of Mean framewise displacement (head motion between volumes, mm) ' +
-        'for each Manufacturer.',
+      'Spread of Mean framewise displacement (head motion between volumes, mm), across 2 series.',
     );
   });
 
   it("says what a coverage chart plots, in the view's own noun", () => {
     const coverage = {
       ...base,
-      kind: 'coverage' as const,
-      chart: 'stackedBar' as const,
+      x: 'created_at' as const,
+      form: 'bars' as const,
       metricLabel: null,
       metricDescription: null,
       metricUnit: null,
       groupLabel: 'Manufacturer',
     };
-    expect(panelMeaning(coverage)).toBe('Scans uploaded per month, by Manufacturer.');
+    expect(panelMeaning(coverage)).toBe('Scans uploaded per month.');
     expect(panelMeaning({ ...coverage, view: raw })).toBe(
-      'Uploads uploaded per month, by Manufacturer.',
+      'Uploads uploaded per month.',
     );
   });
 
   it('says what the sample table holds', () => {
-    const sample = { ...base, kind: 'sample' as const, chart: 'table' as const };
+    const sample = { ...base, kind: 'sample' as const, form: 'table' as const };
     expect(panelMeaning(sample)).toBe(
       'The individual scans behind these charts, most recent first.',
     );
@@ -1079,20 +1102,19 @@ describe('panelMeaning', () => {
     const comparison = {
       ...base,
       kind: 'comparison' as const,
-      chart: 'overlaidHistogram' as const,
+      form: 'histogram' as const,
       cohortCount: 2,
     };
     expect(panelMeaning(comparison)).toBe(
-      'How Mean framewise displacement (head motion between volumes, mm) compares across ' +
-        '2 cohorts.',
+      'How many scans fall in each range of Mean framewise displacement (head motion between volumes, mm), across 2 series.',
     );
-    expect(panelMeaning({ ...comparison, cohortCount: 3 })).toContain('across 3 cohorts');
+    expect(panelMeaning({ ...comparison, cohortCount: 3 })).toContain('across 3 series');
     // The two states that are not a comparison yet say what is missing rather
     // than stating a comparison of one.
     expect(panelMeaning({ ...comparison, metricLabel: null })).toBe(
-      'Pick a metric to compare these cohorts on.',
+      'How many scans fall in each range of values, across 2 series.',
     );
-    expect(panelMeaning({ ...comparison, cohortCount: 1 })).toContain('Add a second cohort');
+    expect(panelMeaning({ ...comparison, cohortCount: 1 })).not.toContain('across');
   });
 
   it("names the unit in the view's own noun, and no number anywhere", () => {
@@ -1136,7 +1158,7 @@ describe('panelNotes', () => {
   it('leaves the clip to its own chip, so an untouched card carries no note', () => {
     const state = fixture();
     expect(panelNotes(state, state.panels[0])).toEqual([]);
-    const coverage = panel({ y: null, x: 'created_at', split: asColumnId('manufacturer') });
+    const coverage = panel({ y: null, x: 'created_at', series: [{ kind: 'field' as const, field: asColumnId('manufacturer') }] });
     expect(panelNotes(fixture({ panels: [coverage] }), coverage)).toEqual([]);
   });
 
@@ -1157,18 +1179,18 @@ describe('panelView help and totals', () => {
   });
 
   it('has no help for a panel with no metric', () => {
-    const coverage = panel({ y: null, x: 'created_at', split: asColumnId('manufacturer') });
+    const coverage = panel({ y: null, x: 'created_at', series: [{ kind: 'field' as const, field: asColumnId('manufacturer') }] });
     expect(panelView(fixture({ panels: [coverage] }), 'p1')?.metricHelp).toBeNull();
   });
 
   it('gives a sample panel a "showing N of M" subtitle off the coverage total', () => {
-    const sample = panel({ id: 'p1', y: null, x: asColumnId('fd_mean'), chart: 'table' });
+    const sample = panel({ id: 'p1', y: null, x: asColumnId('fd_mean'), form: 'table' });
     const coverage = panel({
       id: 'p2',
       y: null,
       x: 'created_at',
-      chart: 'stackedBar',
-      split: asColumnId('manufacturer'),
+      form: 'bars',
+      series: [{ kind: 'field' as const, field: asColumnId('manufacturer') }],
     });
     const base = fixture({ panels: [sample, coverage] });
     const sampleKey = panelKeys(base, sample)[0];
@@ -1184,7 +1206,7 @@ describe('panelView help and totals', () => {
   });
 
   it('falls back to the rows it has when nothing on the board knows the total', () => {
-    const sample = panel({ id: 'p1', y: null, x: asColumnId('fd_mean'), chart: 'table' });
+    const sample = panel({ id: 'p1', y: null, x: asColumnId('fd_mean'), form: 'table' });
     const base = fixture({ panels: [sample] });
     const key = panelKeys(base, sample)[0];
     const state = fixture({
@@ -1286,7 +1308,7 @@ function cohort(id: string, name: string, overrides: Partial<Cohort> = {}): Coho
 
 /** A two-cohort comparison panel over `fd_mean`. */
 function comparisonPanel(cohorts: readonly string[] = ['current', 'all']): Panel {
-  return panel({ y: null, chart: 'overlaidHistogram', cohorts });
+  return panel({ y: null, form: 'histogram', series: cohorts.filter(id => id !== 'current').map(id => id === 'all' ? { kind: 'population' as const } : id === 'study' ? { kind: 'study' as const } : { kind: 'cohort' as const, id }) });
 }
 
 /** A state whose datasets answer every key the panel asks for, with `make`. */
@@ -1530,7 +1552,7 @@ describe('the two-step fetch', () => {
     );
     // The step histogram, so the assertion is about bins rather than about a
     // smoothed curve; density is the kind's default chart.
-    const view = panelView({ ...both, panels: [{ ...both.panels[0], chart: 'histogram' }] }, 'p1');
+    const view = panelView({ ...both, panels: [{ ...both.panels[0], form: 'histogram' }] }, 'p1');
     expect(view?.partial).toBe(false);
     const rows = view?.datasets['cohorts'] as readonly { share: number; cohort: string }[];
     // Two cohorts x (two bins + the closing point that draws the last bin full
@@ -1570,7 +1592,15 @@ describe('comparisonStats', () => {
 
   it('is one row per cohort, in its own colour, with the metric unit', () => {
     const stats = table(two, [dist({ n: 1234 }), dist({ n: 56 })]);
-    expect(stats?.headers[0]).toBe('Cohort');
+    expect(stats?.headers).toEqual([
+      'Series',
+      'n',
+      'Median',
+      'IQR',
+      'p05–p95',
+      'Δmedian/IQR',
+      'KS',
+    ]);
     expect(stats?.rows.map((row) => row.name)).toEqual(['Siemens', 'Philips']);
     expect(stats?.rows.map((row) => row.color)).toEqual(['#56b4e9', '#d55e00']);
     // `fd_mean` carries `unit: 'mm'`, so every amount in the row does.
@@ -1578,10 +1608,8 @@ describe('comparisonStats', () => {
     expect(stats?.rows[0].cells[1]).toBe('5 mm');
   });
 
-  it('names the count column in the view\u2019s own noun, not always "SCANS"', () => {
-    // The raw log counts uploads, and the rest of the page says so; a hard-coded
-    // SCANS here would make one table disagree with every other figure.
-    expect(table(two, [dist(), dist()])?.headers[1]).toBe('UPLOADS');
+  it('uses the compact n header for series counts', () => {
+    expect(table(two, [dist(), dist()])?.headers[1]).toBe('n');
   });
 
   it('shows dashes for a cohort whose result has not arrived', () => {
@@ -1591,44 +1619,37 @@ describe('comparisonStats', () => {
 
   it('anchors the differences on the first cohort by default', () => {
     const stats = table(two, [dist({ p50: 5 }), dist({ p50: 7 })]);
-    expect(stats?.differences?.reference).toBe('c1');
-    expect(stats?.differences?.referenceName).toBe('Siemens');
-    // One row: the cohort that is not the reference.
-    expect(stats?.differences?.rows.map((row) => row.id)).toEqual(['c2']);
+    expect(stats?.differences).toBeNull();
+    expect(stats?.rows.map((row) => row.id)).toEqual(['c1', 'c2']);
+    expect(stats?.rows[0].cells.slice(4)).toEqual(['--', '--']);
+    expect(stats?.rows[1].cells[4]).toBe('+50%');
   });
 
-  it('anchors on the panel\u2019s chosen reference instead, when it has one', () => {
+  it('keeps the first row as the compact table reference', () => {
     const stats = table(two, [dist({ p50: 5 }), dist({ p50: 7 })], undefined, {
       reference: 'c2',
     });
-    expect(stats?.differences?.reference).toBe('c2');
-    expect(stats?.differences?.rows.map((row) => row.id)).toEqual(['c1']);
-    // And the sign flips with the anchor, because the shift is "this minus it".
-    const cell = (label: string) =>
-      stats?.differences?.rows[0].cells.find((c) => c.label === label)?.value;
-    expect(cell('MEDIAN SHIFT')).toBe('\u22122 mm');
+    expect(stats?.differences).toBeNull();
+    expect(stats?.rows.map((row) => row.id)).toEqual(['c1', 'c2']);
+    expect(stats?.rows.map(row => row.cells[4])).toEqual(['--', '+50%']);
   });
 
-  it('keeps one differences row per non-reference cohort past two', () => {
+  it('keeps differences in each series row past two', () => {
     const three = [...two, { ...cohort('c3', 'GE'), color: 4 }];
     const stats = table(three, [dist({ p50: 5 }), dist({ p50: 7 }), dist({ p50: 9 })]);
     expect(stats?.rows).toHaveLength(3);
-    // Not null at three cohorts: every one of them against the same reference
-    // is still a number apiece, which is what the block is.
-    expect(stats?.differences?.rows.map((row) => row.name)).toEqual(['Philips', 'GE']);
+    expect(stats?.rows.map(row => row.cells[4])).toEqual(['--', '+50%', '+100%']);
   });
 
   it('signs the shifts and scales the median shift by the reference\u2019s IQR', () => {
     // Reference median 5, IQR 6 - 2 = 4.  Other median 7. Shift +2 mm, which is
     // +50% of the reference's IQR. Both means are 5, so the mean shift is 0.
     const stats = table(two, [dist({ p50: 5 }), dist({ p50: 7 })]);
-    const cell = (label: string) =>
-      stats?.differences?.rows[0].cells.find((c) => c.label === label)?.value;
-    expect(cell('MEDIAN SHIFT')).toBe('+2 mm');
-    expect(cell('AS SHARE OF IQR')).toBe('+50%');
-    expect(cell('MEAN SHIFT')).toBe('+0 mm');
+    expect(stats?.rows.map(row => row.cells[1])).toEqual(['5 mm', '7 mm']);
+    expect(stats?.rows[1].cells.slice(2, 5)).toEqual(['2 mm–6 mm', '1 mm–9 mm', '+50%']);
+    expect(table(two, [dist({ p50: 7 }), dist({ p50: 5 })])?.rows[1].cells[4]).toBe('−50%');
     // The KS cell waits for the shared-range histograms.
-    expect(cell('KS DISTANCE')).toBe('--');
+    expect(stats?.rows[1].cells[5]).toBe('--');
   });
 
   it('marks the KS figure as approximate in the value, not only in a tooltip', () => {
@@ -1637,11 +1658,11 @@ describe('comparisonStats', () => {
       [dist(), dist()],
       [dist({ counts: [2, 2], n: 4 }), dist({ counts: [1, 3], n: 4 })],
     );
-    const ks = stats?.differences?.rows[0].cells.find((c) => c.label === 'KS DISTANCE');
+    const ks = stats?.rows[1].cells[5];
     // Curves 0, 0.5, 1 against 0, 0.25, 1: the largest gap is 0.25. A bare
     // "0.25" would read as exact, and the supremum can fall inside a bin.
-    expect(ks?.value).toBe('\u2248 0.25');
-    expect(ks?.title).toContain('at histogram resolution');
+    expect(ks).toBe('\u2248 0.25');
+    expect(stats?.rows[0].cells[5]).toBe('--');
   });
 
   it('offers every pair, with the largest marked, for the all-pairs table', () => {
@@ -1669,7 +1690,7 @@ describe('split groups as cohorts', () => {
   const split = (overrides = {}) =>
     fixture({
       global: { modality: 'bold', view: 'k4plus', filters: [] },
-      panels: [panel({ split: asColumnId('manufacturer'), ...overrides })],
+      panels: [panel({ series: [{ kind: 'field' as const, field: asColumnId('manufacturer') }], ...overrides })],
       catalog: {
         ...catalog,
         fieldValues: {
@@ -1688,14 +1709,14 @@ describe('split groups as cohorts', () => {
   it('offers one cohort per group of the split field, in the catalog colour order', () => {
     resetPanelViewMemo();
     const view = panelView(split(), 'p1');
-    expect(view?.splitCohorts.map((entry) => entry.cohort.name)).toEqual([
-      'Manufacturer: Siemens',
-      'Manufacturer: GE',
+    expect(view?.cohorts?.map(entry=>entry.name)).toEqual([
+      'Siemens',
+      'GE',
     ]);
     // The hue each group had on the chart it was selected from.
-    expect(view?.splitCohorts.map((entry) => entry.color)).toEqual(['#009e73', '#0072b2']);
+    expect(view?.cohorts?.map(entry=>entry.color)).toEqual(['#0072b2', '#009e73']);
     // Derived from the id, so there is nothing to edit and nothing to delete.
-    expect(view?.splitCohorts.every((entry) => !entry.editable)).toBe(true);
+    expect(view?.cohorts?.every(entry=>!entry.editable)).toBe(true);
   });
 
   it('compiles a group cohort to this dashboard plus one value', () => {
@@ -1710,8 +1731,8 @@ describe('split groups as cohorts', () => {
     const state = split();
     const light = panelView(state, 'p1');
     const dark = panelView(state, 'p1', DARK_THEME);
-    expect(dark?.splitCohorts.map((entry) => entry.color)).toEqual([
-      DARK_THEME.categories[1], DARK_THEME.categories[0],
+    expect(dark?.cohorts?.map(entry=>entry.color)).toEqual([
+      DARK_THEME.categories[0], DARK_THEME.categories[1],
     ]);
     expect(dark?.specKey).not.toBe(light?.specKey);
   });
@@ -1722,7 +1743,7 @@ describe('split groups as cohorts', () => {
     // has no metric, so 'Compare selected' there is a control that can do
     // nothing: the reducer refuses it, silently.
     const coverage = panelView(
-      split({ y: null, x: 'created_at', chart: 'stackedBar' }),
+      split({ y: null, x: 'created_at', form: 'bars' }),
       'p1',
     );
     expect(coverage?.splitCohorts).toEqual([]);
@@ -1735,5 +1756,5 @@ describe('split groups as cohorts', () => {
 /** The first split cohort id of a state, for the assertions above. */
 function view0(state: State): string {
   resetPanelViewMemo();
-  return panelView(state, 'p1')?.splitCohorts[0]?.cohort.id ?? '';
+  return panelView(state, 'p1')?.cohorts?.[0]?.id ?? '';
 }

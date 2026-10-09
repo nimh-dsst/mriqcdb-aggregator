@@ -309,15 +309,14 @@
                 type="button"
                 class="btn btn-amber"
                 (click)="saveAsCohort()"
-                [disabled]="cohortsFull()"
                 data-testid="cohort-save-current"
                 [matTooltip]="
                   cohortsFull()
-                    ? 'The dashboard holds as many cohorts as it can; remove one first.'
-                    : 'Save this dashboard\u2019s view, filters and brush as a cohort'
+                    ? 'Manage saved groups; remove one before creating another.'
+                    : 'Save this dashboard\u2019s filters and brush as a group'
                 "
               >
-                Save as cohort
+                Save as group…
               </button>
 
               <!-- Beside the other filter controls, not 1200px away in the
@@ -418,7 +417,6 @@
          selection, so it belongs below the controls that produce one rather
          than beside them. Outside the form on purpose -- each cohort has its
          own view and filters, and the form above drives the dashboard. -->
-    <app-cohort-bar />
   </div>
 
   <!-- The active brush, rendered in one place and outlet twice: in the filter

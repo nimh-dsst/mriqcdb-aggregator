@@ -1,4 +1,4 @@
-import { strFromU8, unzipSync } from 'fflate';
+import { unzipStudyArchive } from './study-zip';
 import {
   asColumnId,
   getAuthoredCatalog,
@@ -154,8 +154,8 @@ function basename(path: string): string {
   return path.slice(slash + 1).replace(/\.json$/i, '');
 }
 
-function zippedStudy(bytes: Uint8Array): RawStudy {
-  const archive = unzipSync(bytes);
+async function zippedStudy(bytes: Uint8Array): Promise<RawStudy> {
+  const archive = await unzipStudyArchive(bytes);
   const paths = Object.keys(archive)
     .filter((path) => path.toLowerCase().endsWith('.json') && !path.startsWith('__MACOSX/'))
     .sort();
@@ -164,7 +164,7 @@ function zippedStudy(bytes: Uint8Array): RawStudy {
   const flattened: Readonly<Record<string, StudyScalar>>[] = paths.map((path) => {
     let parsed: unknown;
     try {
-      parsed = JSON.parse(strFromU8(archive[path] as Uint8Array));
+      parsed = JSON.parse(new TextDecoder().decode(archive[path] as Uint8Array));
     } catch {
       throw new Error(`Could not parse ${path} as JSON`);
     }
@@ -239,7 +239,7 @@ export function normalizeStudy(raw: RawStudy): ParsedStudy {
 export async function parseStudyFile(file: File): Promise<ParsedStudy> {
   const bytes = new Uint8Array(await file.arrayBuffer());
   const raw = file.name.toLowerCase().endsWith('.zip')
-    ? zippedStudy(bytes)
+    ? await zippedStudy(bytes)
     : delimitedStudy(file.name, bytes);
   if (raw.rows.length === 0) throw new Error('The study contains no scan rows');
   return normalizeStudy(raw);

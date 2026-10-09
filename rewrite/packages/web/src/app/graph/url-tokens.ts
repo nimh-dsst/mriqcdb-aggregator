@@ -1,260 +1,324 @@
-/**
- * The wire alphabet: the versioned token tables every catalog-drawn identifier
- * is written as, and the scalar codecs both the current and the legacy decoder
- * share.
- *
- * A token is this identifier's **position in the authored catalog**, written in
- * one or two characters. That makes a link short -- `fd_mean` is one character
- * instead of seven -- and it makes the catalog's authored order part of the wire
- * format: insert a metric in the middle of the list and every older link would
- * name the metric after it. {@link TOKEN_VERSION} is the guard. It is the first
- * character of the payload, and a payload written under any other version is
- * refused outright (the dashboard opens on its default), because a link that
- * decodes to the *wrong* metric is worse than one that does not decode.
- *
- * The preset dictionary also contains catalog identifiers. Any change to its
- * bytes, including appending catalog entries, requires a version bump.
- */
-
-import {
-  MODALITIES,
-  VIEWS,
-  getAuthoredCatalog,
-  type Modality,
-  type View,
-} from '@mriqc/shared';
+/** Scalar codecs for the schema-positional, six-bit URL stream. */
+import { MODALITIES, VIEWS, getAuthoredCatalog } from '@mriqc/shared';
+import { formsFor } from './panel-shapes';
 import { MAX_BINS, MIN_BINS, defaultPanelOptions } from './state';
 
-/**
- * The payload's first character. Bump it when the authored catalog's order
- * changes, when a token table gains an entry anywhere but the end, or when the
- * grammar below changes, or whenever URL_DICTIONARY changes.
- */
-export const TOKEN_VERSION = '2';
-export const RAW_TOKEN_VERSION = '3';
+export const URL_VERSION = '1';
+export const ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_';
+export const MAX_PARAM_LENGTH = 4096;
+export const MAX_PANELS = 50;
+export const MAX_FILTER_VALUES = 500;
+export const MAX_ID_LENGTH = 32;
+export const MAX_COHORT_FILTERS = 50;
+export const MAX_COHORT_NAME = 80;
+export const MAX_COHORT_ID_LENGTH = 160;
 
-/**
- * The 64 characters a token is written in: URL-safe, so the deflated payload is
- * the only thing that needs base64.
- */
-const ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_';
+/** Writes bits directly into URL characters; no byte/base64 layer. */
+export class BitWriter {
+  private readonly chars: string[] = [];
+  private pending = 0;
+  private used = 0;
+  write(bits: number, value: number): void {
+    if (
+      !Number.isInteger(bits) ||
+      bits < 0 ||
+      bits > 53 ||
+      !Number.isSafeInteger(value) ||
+      value < 0 ||
+      value >= 2 ** bits
+    )
+      throw new Error('Invalid bit value');
+    for (let bit = bits - 1; bit >= 0; bit--) {
+      this.pending = this.pending * 2 + (Math.floor(value / 2 ** bit) % 2);
+      if (++this.used === 6) {
+        this.chars.push(ALPHABET[this.pending]);
+        this.pending = 0;
+        this.used = 0;
+      }
+    }
+  }
+  finish(): string {
+    return [
+      ...this.chars,
+      ...(this.used ? [ALPHABET[this.pending * 2 ** (6 - this.used)]] : []),
+    ].join('');
+  }
+}
 
-/** An identifier list, as codes both ways. */
+/** Strict alphabet, bounds and padding checks make truncation fail closed. */
+export class BitReader {
+  private position = 0;
+  constructor(private readonly text: string) {
+    if (text.length > MAX_PARAM_LENGTH || !/^[A-Za-z0-9_-]*$/.test(text))
+      throw new Error('Invalid stream');
+  }
+  read(bits: number): number {
+    if (
+      !Number.isInteger(bits) ||
+      bits < 0 ||
+      bits > 53 ||
+      this.position + bits > this.text.length * 6
+    )
+      throw new Error('Truncated stream');
+    let value = 0;
+    for (let i = 0; i < bits; i++, this.position++) {
+      const digit = ALPHABET.indexOf(this.text[Math.floor(this.position / 6)]);
+      value = value * 2 + ((digit >> (5 - (this.position % 6))) & 1);
+    }
+    return value;
+  }
+  finish(): void {
+    const remaining = this.text.length * 6 - this.position;
+    if (remaining >= 6 || this.read(remaining) !== 0) throw new Error('Trailing stream data');
+  }
+}
+
+export interface Codec<T = unknown> {
+  write(writer: BitWriter, value: T): void;
+  read(reader: BitReader): T;
+}
+
+export const unsigned: Codec<number> = {
+  write(writer, value) {
+    if (!Number.isInteger(value) || value < 0 || value > 4158)
+      throw new Error('Integer outside stream range');
+    writer.write(6, Math.min(value, 63));
+    if (value >= 63) writer.write(12, value - 63);
+  },
+  read(reader) {
+    const value = reader.read(6);
+    return value === 63 ? 63 + reader.read(12) : value;
+  },
+};
+
+export function fixed(bits: number): Codec<number> {
+  return {
+    write: (writer, value) => writer.write(bits, value),
+    read: (reader) => reader.read(bits),
+  };
+}
+
+export function enumeration<T>(values: readonly T[], bits = 6): Codec<T> {
+  return {
+    write(writer, value) {
+      const index = values.indexOf(value);
+      if (index < 0) throw new Error('Unknown enum value');
+      writer.write(bits, index);
+    },
+    read(reader) {
+      const index = reader.read(bits);
+      if (index >= values.length) throw new Error('Unknown enum index');
+      return values[index];
+    },
+  };
+}
+
 export interface TokenTable {
   readonly code: ReadonlyMap<string, string>;
   readonly id: ReadonlyMap<string, string>;
+  readonly values: readonly string[];
 }
 
-/**
- * A table over one list, in its authored order. One character up to 64 entries,
- * two past it -- unambiguous because a token is always a whole field value.
- */
+/** Prefix-free catalog indices: 0..62 take one character, the rest take two. */
 export function tokenTable(ids: readonly string[]): TokenTable {
-  const code = new Map<string, string>();
-  const id = new Map<string, string>();
-  ids.forEach((value, index) => {
-    const token =
-      index < 64
-        ? ALPHABET[index]
-        : `${ALPHABET[Math.floor(index / 64)]}${ALPHABET[index % 64]}`;
-    if (code.has(value)) return;
-    code.set(value, token);
-    id.set(token, value);
-  });
-  return { code, id };
+  const values = [...new Set(ids)];
+  if (values.length > 127) throw new Error('Catalog exceeds two-character token space');
+  const code = new Map(
+    values.map((id, index) => [
+      id,
+      index < 63 ? ALPHABET[index] : ALPHABET[63] + ALPHABET[index - 63],
+    ]),
+  );
+  return { code, id: new Map([...code].map(([id, token]) => [token, id])), values };
+}
+
+export function tokenCodec(table: TokenTable): Codec<string> {
+  return {
+    write(writer, value) {
+      const index = table.values.indexOf(value);
+      if (index < 0) throw new Error('Unknown catalog id');
+      writer.write(6, Math.min(index, 63));
+      if (index >= 63) writer.write(6, index - 63);
+    },
+    read(reader) {
+      const first = reader.read(6);
+      const index = first === 63 ? 63 + reader.read(6) : first;
+      if (index >= table.values.length) throw new Error('Unknown catalog token');
+      return table.values[index];
+    },
+  };
 }
 
 const authored = getAuthoredCatalog();
-
-/** Every metric the catalog defines, in authored order. */
 export const METRIC_TOKENS = tokenTable(authored.metrics.map((metric) => String(metric.id)));
-/** Every field, which is where filter columns, split fields and group fields come from. */
 export const FIELD_TOKENS = tokenTable(authored.fields.map((field) => String(field.id)));
-export const VIEW_TOKENS = tokenTable(VIEWS as readonly string[]);
-export const MODALITY_TOKENS = tokenTable(MODALITIES as readonly string[]);
-/** Panel kinds, charts, clips, granularities and filter ops: small closed lists. */
-export const KIND_TOKENS = tokenTable(['distribution', 'grouped', 'coverage', 'sample', 'comparison']);
+export const COLUMN_TOKENS = tokenTable([
+  ...authored.metrics.map((metric) => String(metric.id)),
+  ...authored.fields.map((field) => String(field.id)),
+]);
+export const MODALITY_TOKENS = tokenTable(MODALITIES);
+export const VIEW_TOKENS = tokenTable(VIEWS);
 export const CHART_TOKENS = tokenTable([
-  'histogram',
-  'ecdf',
-  'density',
-  'box',
-  'facetedHistogram',
-  'facetedEcdf',
-  'stackedBar',
-  'area',
-  'table',
-  'overlaidHistogram',
-  'overlaidEcdf',
-  'density2d', 'scatter', 'hexbin', 'correlation', 'clusters', 'line', 'medianBand',
+  ...formsFor(METRIC_TOKENS.values[0] as import('./state').MetricId, null),
+  ...formsFor('created_at', null),
+  ...formsFor('created_at', METRIC_TOKENS.values[0] as import('./state').MetricId),
+  ...formsFor(METRIC_TOKENS.values[0] as import('./state').MetricId, METRIC_TOKENS.values[1] as import('./state').MetricId),
+  ...formsFor(authored.fields.find(field => field.kind === 'categorical')!.id, null),
+  ...formsFor([], null),
 ]);
 export const CLIP_TOKENS = tokenTable(['p01p99', 'p05p95', 'none']);
 export const GRANULARITY_TOKENS = tokenTable(['day', 'week', 'month', 'year']);
 export const OP_TOKENS = tokenTable(['in', 'between', 'isNull', 'notNull']);
 export const SOURCE_TOKENS = tokenTable(['population', 'study']);
+export const toToken = (table: TokenTable, value: string | null | undefined): string =>
+  table.code.get(value ?? '') ?? '';
+export const fromToken = (table: TokenTable, value: string): string | null =>
+  table.id.get(value) ?? null;
 
-/** Versioned authored values only: live catalog counts must never change link decoding. */
-export const URL_DICTIONARY = new TextEncoder().encode([
-  ALPHABET, 'mvfcpSsGZikmgybolXRYMLunPCDAr',
-  ...[METRIC_TOKENS, FIELD_TOKENS, VIEW_TOKENS, MODALITY_TOKENS, KIND_TOKENS, CHART_TOKENS,
-    CLIP_TOKENS, GRANULARITY_TOKENS, OP_TOKENS, SOURCE_TOKENS].flatMap(table => [...table.code].flat()),
-  ...authored.fields.flatMap(field => {
-    const values = (field as unknown as { values?: readonly unknown[] }).values;
-    return values ? values.map(String).sort() : [];
-  }),
-  'Siemens', 'GE', 'Philips', 'Bruker', 'Canon', 'Hitachi', 'Toshiba', 'United Imaging',
-  'Fujifilm', 'Mediso', 'Agilent', 'Hyperfine', 'Synthesized', 'Medics', 'Unknown',
-  'afni', 'fsl', 'unknown', 'current', 'all', 'Whole population',
-  'family', 'metrics', 'clusterOrder', 'sampleSize', 'seed', 'coefficient', 'spearman', 'pearson',
-].join('|'));
+/** Pinned vocabularies; never use server counts/order as a wire alphabet. */
+const CATEGORIES: Readonly<Record<string, readonly (string | number | boolean)[]>> = {
+  manufacturer: [
+    'Siemens',
+    'GE',
+    'Philips',
+    'Bruker',
+    'Canon',
+    'Hitachi',
+    'Toshiba',
+    'United Imaging',
+    'Fujifilm',
+    'Mediso',
+    'Agilent',
+    'Hyperfine',
+    'Synthesized',
+    'Medics',
+    'Unknown',
+  ],
+  magnetic_field_strength: [1.5, 3, 7],
+  ...Object.fromEntries(
+    authored.fields.flatMap((field) => {
+      const values = (field as unknown as { values?: readonly (string | number | boolean)[] })
+        .values;
+      return values ? [[field.id, values]] : [];
+    }),
+  ),
+};
+export const categoryValues = (field: string): readonly (string | number | boolean)[] =>
+  CATEGORIES[field] ?? [];
 
-/**
- * This identifier's token, or `''` when no table knows it.
- *
- * `''` is "absent", so a link cannot carry a metric or a column the catalog
- * does not have -- which is the same place validation would have left it, one
- * step earlier.
- */
-export function toToken(table: TokenTable, value: string | null | undefined): string {
-  if (value === null || value === undefined) return '';
-  return table.code.get(value) ?? '';
+/** Alphanumerics and space take six bits; other UTF-8 bytes are escaped. */
+export function textCodec(limit = MAX_PARAM_LENGTH): Codec<string> {
+  return {
+    write(writer, value) {
+      if (!isWellFormed(value) || value.length > limit) throw new Error('Invalid text');
+      const bytes = new TextEncoder().encode(value);
+      unsigned.write(writer, bytes.length);
+      for (const byte of bytes) {
+        const index = ALPHABET.indexOf(String.fromCharCode(byte));
+        if (index >= 0 && index < 62) writer.write(6, index);
+        else if (byte === 32) writer.write(6, 62);
+        else {
+          writer.write(6, 63);
+          writer.write(8, byte);
+        }
+      }
+    },
+    read(reader) {
+      const length = unsigned.read(reader);
+      if (length > limit * 4) throw new Error('Text limit exceeded');
+      const bytes = new Uint8Array(length);
+      for (let i = 0; i < length; i++) {
+        const index = reader.read(6);
+        bytes[i] = index === 63 ? reader.read(8) : index === 62 ? 32 : ALPHABET.charCodeAt(index);
+      }
+      const value = new TextDecoder('utf-8', { fatal: true }).decode(bytes);
+      if (value.length > limit || !isWellFormed(value)) throw new Error('Invalid text');
+      return value;
+    },
+  };
 }
 
-/** The identifier a token names, or null -- which every reader treats as "absent". */
-export function fromToken(table: TokenTable, text: string): string | null {
-  return table.id.get(text) ?? null;
-}
+/** Exact decimal spellings: a length followed by packed decimal digits. */
+export const exactNumber: Codec<number> = {
+  write(writer, value) {
+    if (!Number.isFinite(value)) throw new Error('Nonfinite number');
+    const text = Object.is(value, -0) ? '-0' : String(value);
+    writer.write(6, text.length);
+    for (const char of text) writer.write(4, '0123456789.-e+'.indexOf(char));
+  },
+  read(reader) {
+    const length = reader.read(6);
+    if (length < 1 || length > 25) throw new Error('Invalid decimal length');
+    const chars: string[] = [];
+    for (let i = 0; i < length; i++) {
+      const char = '0123456789.-e+'[reader.read(4)];
+      if (char === undefined) throw new Error('Invalid decimal digit');
+      chars.push(char);
+    }
+    const text = chars.join('');
+    if (!/^-?(?:0|[1-9]\d*)(?:\.\d+)?(?:e[+-]?\d+)?$/.test(text))
+      throw new Error('Invalid decimal');
+    const value = Number(text);
+    if (!Number.isFinite(value)) throw new Error('Nonfinite decimal');
+    return value;
+  },
+};
 
-/** The modality a token names, or null. */
-export function modalityFromToken(text: string): Modality | null {
-  return fromToken(MODALITY_TOKENS, text) as Modality | null;
-}
+/** Sign, three significant digits and exponent: three or four URL characters. */
+export const roundedNumber: Codec<number> = {
+  write(writer, value) {
+    if (!Number.isFinite(value)) throw new Error('Nonfinite range');
+    const [coefficient, exponentText] = Math.abs(value).toExponential(2).split('e');
+    const exponent = Number(exponentText);
+    // Rounding MAX_VALUE upward would turn a finite range into Infinity.
+    const mantissa = Math.min(Math.round(Number(coefficient) * 100), exponent === 308 ? 179 : 999);
+    const wide = exponent < -31 || exponent > 32;
+    writer.write(1, value < 0 ? 1 : 0);
+    writer.write(10, mantissa);
+    writer.write(1, wide ? 1 : 0);
+    writer.write(wide ? 12 : 6, exponent + (wide ? 324 : 31));
+  },
+  read(reader) {
+    const negative = reader.read(1) !== 0;
+    const mantissa = reader.read(10);
+    const wide = reader.read(1) !== 0;
+    const exponent = reader.read(wide ? 12 : 6) - (wide ? 324 : 31);
+    if (mantissa > 999 || (mantissa > 0 && mantissa < 100) || exponent < -324 || exponent > 308)
+      throw new Error('Invalid range number');
+    const value = Number([negative ? '-' : '', mantissa, 'e', exponent - 2].join(''));
+    if (!Number.isFinite(value)) throw new Error('Range overflow');
+    return value;
+  },
+};
 
-/** The view a token names, or null. */
-export function viewFromToken(text: string): View | null {
-  return fromToken(VIEW_TOKENS, text) as View | null;
-}
+const EPOCH = Date.UTC(2000, 0, 1);
+export const dateCodec: Codec<string> = {
+  write(writer, value) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) throw new Error('Invalid date');
+    const time = Date.parse(value);
+    if (!Number.isFinite(time) || new Date(time).toISOString().slice(0, 10) !== value)
+      throw new Error('Invalid date');
+    writer.write(18, (time - EPOCH) / 86400000 + 131072);
+  },
+  read(reader) {
+    return new Date(EPOCH + (reader.read(18) - 131072) * 86400000).toISOString().slice(0, 10);
+  },
+};
 
-/* --------------------------------------------------------------- free text */
-
-/**
- * The separators, one per nesting level. They are structure, so any text that
- * could contain one is escaped rather than quoted -- the payload is deflated
- * afterwards, so the few escapes cost nothing.
- */
-export const SEP = [';', ',', ':', '|', '~', '!'] as const;
-
-const ESCAPED = /[%;,:|~!#?]/g;
-const UNESCAPE = /%([0-9A-F]{2})/g;
-
-/** Free text with every character the grammar uses escaped. */
-export function escapeText(value: string): string {
-  return value.replace(ESCAPED, (c) => `%${c.charCodeAt(0).toString(16).toUpperCase()}`);
-}
-
-/** The inverse. Total: an unfinished escape is left as it stands. */
-export function unescapeText(value: string): string {
-  return value.replace(UNESCAPE, (_all, hex: string) => String.fromCharCode(parseInt(hex, 16)));
-}
-
-/**
- * A list's items. `''` is no items rather than one empty one -- but an empty
- * item *inside* a list is kept, because `''` is the value a "Not reported"
- * filter carries.
- */
-export function splitList(text: string, sep: string): readonly string[] {
-  return text === '' ? [] : text.split(sep);
-}
-
-/* ----------------------------------------------------------------- numbers */
-
-/**
- * A number at three significant figures, as short as it prints.
- *
- * Only the brush and a cohort's metric range go through this: they are ranges a
- * reader dragged out of a chart and the card prints them at three figures
- * anyway, so the link carries what the page shows. A *filter* bound is typed, or
- * is one of the two open-end sentinels, and is written exactly.
- */
-export function writeRounded(value: number): string {
-  if (!Number.isFinite(value)) return '0';
-  return String(Number(value.toPrecision(3)));
-}
-
-/** A finite number, or null for anything else -- including the empty string. */
-export function readNumber(text: string): number | null {
-  if (text === '') return null;
-  const value = Number(text);
-  return Number.isFinite(value) ? value : null;
-}
-
-/** Bin counts outside 10..200 are clamped rather than rejected; the server caps them too. */
 export function clampBins(bins: unknown): number {
   const n = Math.round(Number(bins));
-  if (!Number.isFinite(n)) return defaultPanelOptions().bins;
-  return Math.min(MAX_BINS, Math.max(MIN_BINS, n));
+  return Number.isFinite(n)
+    ? Math.min(MAX_BINS, Math.max(MIN_BINS, n))
+    : defaultPanelOptions().bins;
 }
 
-/* ------------------------------------------------------------------- dates */
-
-const DATE_ONLY = /^(\d{4})-(\d{2})-(\d{2})$/;
-const INSTANT = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})\.000Z$/;
-
-/**
- * A date bound as digits: eight for a plain date, fourteen for an instant.
- *
- * Null for anything else, which the caller then writes as free text. The
- * instant is kept to the second rather than truncated to its date, because the
- * picker hands back local midnight and truncating in UTC moves the date a user
- * chose by a day.
- */
-export function writeDate(value: string): string | null {
-  const date = DATE_ONLY.exec(value);
-  if (date !== null) return `${date[1]}${date[2]}${date[3]}`;
-  const instant = INSTANT.exec(value);
-  if (instant === null) return null;
-  return instant.slice(1).join('');
-}
-
-/** The date or instant eight or fourteen digits name, or null. */
-export function readDate(text: string): string | null {
-  if (/^\d{8}$/.test(text)) {
-    return `${text.slice(0, 4)}-${text.slice(4, 6)}-${text.slice(6, 8)}`;
-  }
-  if (!/^\d{14}$/.test(text)) return null;
-  const d = `${text.slice(0, 4)}-${text.slice(4, 6)}-${text.slice(6, 8)}`;
-  return `${d}T${text.slice(8, 10)}:${text.slice(10, 12)}:${text.slice(12, 14)}.000Z`;
-}
-
-/* ------------------------------------------------------------------ shapes */
-
-/**
- * A string with an unpaired surrogate survives a decode but makes
- * `encodeURIComponent` throw, which would error the fold from inside query-key
- * construction. Such a string is not a value any catalog column holds, so it is
- * dropped here rather than defended against everywhere downstream.
- */
 const LONE_SURROGATE = /[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/;
+export const isWellFormed = (value: string): boolean => !LONE_SURROGATE.test(value);
 
-/** True when every surrogate in the string is paired, so `encodeURIComponent` is safe. */
-export function isWellFormed(value: string): boolean {
-  return !LONE_SURROGATE.test(value);
-}
-
-/**
- * Panel ids address the memo table, `removePanel`, `mapPanel` and the grid's
- * track function, so a link carrying the same id twice would corrupt all four.
- * The second occurrence is re-minted rather than dropped: the thing was asked
- * for, only its name was unusable.
- */
 export function uniqueIds<T extends { id: string }>(
   items: readonly T[],
   prefix: 'p' | 'c' = 'p',
 ): readonly T[] {
-  // Seeded with *every* id in the list, not only the ones already walked past:
-  // re-minting against a partial set can hand the duplicate an id a later
-  // element still owns, and then a panel referencing that id binds to the wrong
-  // thing -- which is worse than the collision it was fixing.
   const taken = new Set(items.map((item) => item.id));
   const seen = new Set<string>();
   let candidate = 1;
@@ -263,58 +327,13 @@ export function uniqueIds<T extends { id: string }>(
       seen.add(item.id);
       return item;
     }
-    while (seen.has(`${prefix}${candidate}`) || taken.has(`${prefix}${candidate}`)) {
-      candidate += 1;
-    }
-    const id = `${prefix}${candidate}`;
+    while (seen.has(prefix + candidate) || taken.has(prefix + candidate)) candidate++;
+    const id = prefix + candidate;
     seen.add(id);
     return { ...item, id };
   });
 }
 
-/* ------------------------------------------------------------------- limits */
-
-/**
- * Sanity bounds on what one link may carry. They are not security limits --
- * the server validates independently -- only a guard against a hand-written
- * parameter turning into an unbounded panel list or filter.
- */
-export const MAX_PANELS = 50;
-export const MAX_FILTER_VALUES = 500;
-export const MAX_ID_LENGTH = 32;
-/** More predicates than there are filterable columns is not a cohort a form made. */
-export const MAX_COHORT_FILTERS = 50;
-/** A cohort name past this was not typed into the editor's name box. */
-export const MAX_COHORT_NAME = 80;
-/** The longest `s` parameter worth trying to read, and the most it may inflate to. */
-export const MAX_PARAM_LENGTH = 4096;
-export const MAX_PAYLOAD_BYTES = 64 * 1024;
-/**
- * A cohort id may be much longer than a panel id, because a group cohort's id
- * *is* its definition: `g\0<field>\0<value>`, and both halves are catalog
- * strings.
- */
-export const MAX_COHORT_ID_LENGTH = 160;
-
-/* ----------------------------------------------------------- base64url i/o */
-
-/** Bytes as base64url, unpadded: the only thing in the link that is not text. */
-export function toBase64Url(bytes: Uint8Array): string {
-  let binary = '';
-  for (const byte of bytes) binary += String.fromCharCode(byte);
-  return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-}
-
-/** The inverse. Throws on anything that is not base64, which every caller catches. */
-export function fromBase64Url(text: string): Uint8Array {
-  const padded = text.replace(/-/g, '+').replace(/_/g, '/');
-  const binary = atob(padded + '='.repeat((4 - (padded.length % 4)) % 4));
-  return Uint8Array.from(binary, (c) => c.charCodeAt(0));
-}
-
-/* -------------------------------------------------------------- selections */
-
-/** Finite and ordered, the same normalization the interactive `brush` path applies. */
 export function normalizeSelection<T extends { range: [number, number] }>(selection: T): T | null {
   const [lo, hi] = selection.range;
   if (!Number.isFinite(lo) || !Number.isFinite(hi)) return null;

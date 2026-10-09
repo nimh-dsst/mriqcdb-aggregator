@@ -9,7 +9,7 @@
       >
         <p class="text-body font-semibold text-ink">No panels yet</p>
         <p class="max-w-sm text-caption text-ink-2">
-          Add a distribution, a grouped summary, coverage over time, or the raw records behind them.
+          Choose a column to explore its values, categories, or upload times.
         </p>
       </div>
     } @else {
@@ -69,12 +69,8 @@
       <ng-template cdkConnectedOverlay [cdkConnectedOverlayOrigin]="addOrigin" [cdkConnectedOverlayOpen]="addOpen()"
         [cdkConnectedOverlayHasBackdrop]="true" cdkConnectedOverlayBackdropClass="cdk-overlay-transparent-backdrop"
         (backdropClick)="addOpen.set(false)" (overlayKeydown)="$event.key === 'Escape' && addOpen.set(false)">
-        <div class="metric-popover" role="dialog" aria-label="Add panel" cdkTrapFocus [cdkTrapFocusAutoCapture]="true" data-testid="add-panel-picker">
-          <div class="flex items-center justify-between gap-2">
-            <span class="text-body font-semibold">Choose a metric</span>
-            <button type="button" class="icon-btn" aria-label="Close Add panel" (click)="addOpen.set(false)"><lucide-icon name="x" [size]="16" aria-hidden="true" /></button>
-          </div>
-          <app-metric-picker [metrics]="metrics()" (picked)="addMetric($event)" />
+        <div class="column-drawer" role="dialog" aria-modal="true" aria-label="Add panel" cdkTrapFocus [cdkTrapFocusAutoCapture]="true" data-testid="add-panel-picker">
+          <app-column-picker [metrics]="metrics()" [fields]="fields()" [drawer]="true" (closed)="addOpen.set(false)" />
         </div>
       </ng-template>
 

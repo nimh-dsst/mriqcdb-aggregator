@@ -29,7 +29,7 @@ describe('linked selection lists', () => {
   it('rejects a fifth metric and an overflowing 2D update without partial changes', () => {
     let state = initial();
     for (const panel of state.panels.slice(0, 4)) state = reduce(state, { t: 'brush', from: panel.id, metric: panel.x as typeof fd, range: [1, 2] });
-    state = reduce(state, { t: 'addPanel', kind: 'distribution', metric: asColumnId('gcor') });
+    state = reduce(state, { t: 'addPanel',  x: asColumnId('gcor') });
     const before = state.selections;
     expect(reduce(state, { t: 'brush', from: 'p6', metric: asColumnId('gcor'), range: [0, 1] }).selections).toBe(before);
     state = reduce(state, { t: 'patchPanel', id: 'p6', patch: { y: fd } });
@@ -41,12 +41,12 @@ describe('linked selection lists', () => {
     expect(panelQueries(selected, selected.panels[0])).toEqual(panelQueries(base, base.panels[0]));
     const common = { ...selected.panels[2], id: 'target' };
     const variants: Panel[] = [common,
-      { ...common, split: asColumnId('manufacturer'), chart: 'box' },
-      { ...common, x: 'created_at', split: asColumnId('manufacturer'), chart: 'stackedBar' },
-      { ...common, chart: 'table' }, { ...common, y: tsnr, chart: 'density2d' },
-      { ...common, chart: 'correlation', options: { ...common.options, metrics: [fd, tsnr] } }, { ...common, x: 'created_at', y: fd, chart: 'medianBand' }];
+      { ...common, series: [{ kind: 'field' as const, field: asColumnId('manufacturer') }], form: 'box' },
+      { ...common, x: 'created_at', series: [{ kind: 'field' as const, field: asColumnId('manufacturer') }], form: 'bars' },
+      { ...common, form: 'table' }, { ...common, y: tsnr, form: 'heatmap' },
+      { ...common, form: 'matrix', options: { ...common.options, metrics: [fd, tsnr] } }, { ...common, x: 'created_at', y: fd, form: 'band' }];
     expect(variants.map(panel => panelQueries(selected, panel)[0].proc)).toEqual([
-      'distribution', 'groupedSummary', 'coverage', 'sample', 'density2d', 'correlation', 'timeSummary',
+      'distribution', 'distribution', 'coverage', 'sample', 'density2d', 'correlation', 'timeSummary',
     ]);
     for (const panel of variants) for (const query of panelQueries(selected, panel)) {
       expect(query).toMatchObject({ selections: [{ metric: fd, range: [0.4, 1.2] }, { metric: tsnr, range: [20, 60] }] });
@@ -60,11 +60,9 @@ describe('linked selection lists', () => {
     expect(saved.cohorts[0].name).toContain('tSNR 20–60');
     expect(reduce(saved, { t: 'clearSelections' }).cohorts[0]).toBe(saved.cohorts[0]);
   });
-  it('round-trips dashboard and cohort ranges and reads the old compact singleton', () => {
+  it('round-trips dashboard and cohort ranges and rejects the removed singleton format', () => {
     const state = reduce(brush(), { t: 'saveCurrentAsCohort' });
     expect(decodeUrlState(encodeUrlState(urlState(state)))).toEqual(urlState(state));
-    expect(readUrlRecord(`sp1,${toToken(METRIC_TOKENS, fd)},0.4,1.2`)?.selections).toEqual([
-      { from: 'p1', metric: fd, range: [0.4, 1.2] },
-    ]);
+    expect(readUrlRecord(`sp1,${toToken(METRIC_TOKENS, fd)},0.4,1.2`)).toBeNull();
   });
 });

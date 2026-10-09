@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { asColumnId } from '@mriqc/shared';
 import { defaultDashboard } from './reducer';
 
 import {
@@ -22,51 +23,30 @@ function panel(
     id,
     x: 'metric',
     y: null,
-    chart: 'histogram',
-    split: null,
-    cohorts: [],
+    form: 'histogram',
+    series: [],
+
     options: {},
     ...overrides,
   } as LayoutPanel;
 }
 
 describe('preferredSize', () => {
-  it('gives split metric charts twelve rows while preserving larger row-driven charts', () => {
-    for (const chart of ['density', 'histogram', 'ecdf', 'box', 'facetedHistogram'] as const) {
-      expect(preferredSize(panel('split', { chart, split: 'manufacturer', rows: 7 } as Partial<LayoutPanel>), 3)).toMatchObject({ w: 4, h: 12 });
+  it('uses only axes and form, adding two rows when series exist', () => {
+    expect(preferredSize(panel('number'),3)).toMatchObject({w:4,h:10});
+    expect(preferredSize(panel('time',{x:'created_at'}),3)).toMatchObject({w:8,h:10});
+    expect(preferredSize(panel('field',{x:asColumnId('manufacturer')}),3)).toMatchObject({w:8,h:10});
+    expect(preferredSize(panel('pair',{y:asColumnId('tsnr'),form:'scatter'}),3)).toMatchObject({w:8,h:10});
+    expect(preferredSize(panel('matrix',{form:'matrix'}),3)).toMatchObject({w:8,h:14});
+    for (const form of ['histogram','density','ecdf','box','table'] as const) {
+      expect(preferredSize(panel(form,{form,series:[{kind:'population'}]}),3)).toMatchObject({w:4,h:12});
     }
-    expect(preferredSize(panel('large', { chart: 'box', split: 'manufacturer', rows: 20 } as Partial<LayoutPanel>), 3).h).toBe(24);
+    expect(preferredSize(panel('matrix',{form:'matrix',series:[{kind:'population'}]}),3)).toMatchObject({w:8,h:16});
   });
-  it('uses the rendered series-row hint for box height', () => {
-    expect(preferredSize(panel('box', { chart:'box', rows:7 }),3)).toMatchObject({w:4,h:11});
-    expect(preferredSize(panel('box', { chart:'box', rows:3 }),3)).toMatchObject({w:4,h:10});
-  });
-  it('uses the responsive base width and doubles time and comparison panels', () => {
-    expect(preferredSize(panel('base'), 3)).toMatchObject({ w: 4, h: 10 });
-    expect(preferredSize(panel('medium'), 2)).toMatchObject({ w: 6, h: 10 });
-    expect(preferredSize(panel('narrow'), 1)).toMatchObject({ w: 12, h: 10 });
-    expect(preferredSize(panel('time', { x: 'created_at' }), 3)).toMatchObject({ w: 8, h: 10 });
-    expect(preferredSize(panel('comparison', { cohorts: ['a', 'b'] }), 3)).toMatchObject({ w: 8, h: 10 });
-  });
-
-  it('uses explicit chart geometry', () => {
-    expect(
-      preferredSize(panel('correlation', { chart: 'correlation', x: 'created_at', cohorts: ['a', 'b'] }), 3),
-    ).toMatchObject({ w: 8, h: 14 });
-    expect(preferredSize(panel('scatter', { chart: 'scatter' }), 3)).toMatchObject({
-      w: 6,
-      h: 12,
-    });
-    expect(preferredSize(panel('density', { chart: 'density' }), 3)).toMatchObject({
-      w: 4,
-      h: 10,
-    });
-    expect(
-      preferredSize(panel('boxes', { chart: 'box', cohorts: twelveCohorts }), 3),
-    ).toMatchObject({ w: 8, h: 16 });
-    expect(
-      preferredSize(panel('facets', { chart: 'facetedHistogram', cohorts: twelveCohorts }), 3),
-    ).toMatchObject({ w: 8, h: 16 });
+  it('adapts quantity width to the responsive column count', () => {
+    expect(preferredSize(panel('medium'),2)).toMatchObject({w:6,h:10});
+    expect(preferredSize(panel('narrow'),1)).toMatchObject({w:12,h:10});
+    expect(preferredSize(panel('time',{x:'created_at'}),2)).toMatchObject({w:12,h:10});
   });
 });
 

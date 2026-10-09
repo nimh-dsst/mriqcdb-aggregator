@@ -42,7 +42,7 @@ const TIME_UNIT: Record<Granularity, string> = {
  * colour.
  */
 export function coverageSpec(
-  chart: 'stackedBar' | 'area' | 'line',
+  chart: 'bars' | 'area' | 'line',
   /** Kept in the signature -- it is part of the panel's spec key -- but no
    * longer drawn: the card's meaning line names the grouping field. */
   groupLabel: string,
@@ -59,6 +59,8 @@ export function coverageSpec(
   theme: ChartTheme = LIGHT_THEME,
 ): TopLevelSpec {
   void groupLabel;
+  const stackedShare = chart === 'area' && groups.length > 1;
+  const share = options.share || stackedShare;
   return {
     $schema: VL_SCHEMA,
     ...baseConfig(theme),
@@ -79,14 +81,14 @@ export function coverageSpec(
         field: 'n',
         type: 'quantitative',
         aggregate: 'sum',
-        stack: chart === 'line' ? null : 'zero',
-        title: options.share
+        stack: chart === 'line' ? null : stackedShare ? 'normalize' : 'zero',
+        title: share
           ? `Share of ${countTitle.toLowerCase()}`
           : options.cumulative
             ? `Cumulative ${countTitle}`
             : countTitle,
-        axis: options.share ? { format: '.0%' } : undefined,
-        scale: options.share
+        axis: share ? { format: '.0%' } : undefined,
+        scale: share
           ? { domain: [0, 1] }
           : options.coverageLogY
             ? { type: 'log', clamp: true }

@@ -340,6 +340,29 @@ form. Axes, scale, layout and bins are set once. The face follows that.
   select triggers never exceed their column, long values truncate with the
   full text in `title`.
 
+### Column drawer (owner, 2026-10-09: "make the add panel thing a bottom drawer across the screen to fit more stuff")
+
+Choosing what a card shows is the one place the whole catalog must be visible
+at once, so it is not a popover. It is a **bottom drawer** across the full
+viewport width, 40vh tall (min 320px), surface background, 1px top border,
+opened by "Add panel" and by a card title (then pre-selected). Layout:
+
+- Left to right, as columns with their own scroll: **Time** (Upload time),
+  one column per metric family (family name as heading, sub-family as a
+  caption, each metric as a row: full name, short label in `--ink-3`, unit),
+  **Fields** (the categorical fields). Columns are `minmax(200px, 1fr)`; on
+  narrow screens they wrap into a two-column grid and the drawer grows to
+  70vh.
+- Right pane, 320px: the hovered or selected column's description, unit,
+  direction ("higher is better" when known) and docs link; below it the
+  **Second metric (y)** select (numeric x only) and, for time x, the metric
+  select that turns Bars into Band/Lines.
+- Search box at the top left filters every column live; Escape closes;
+  focus returns to the opener.
+- Selecting a column creates the card (Add panel) or re-targets it (title) at
+  once; the drawer closes unless Shift is held, which keeps it open to add
+  several cards in a row.
+
 ## Fixed-height captions and real icons (owner, 2026-10-07)
 
 - Every control caption is exactly 16px tall (`line-height: 16px`, no wrap).
@@ -454,3 +477,31 @@ Follow the dataviz skill: thin bars with a 2px surface gap, recessive grid in
 `--border`, axis text in `--ink-2`, tooltip on every mark, legend present for
 two or more series and absent for one, direct labels only where they add
 information. The brush interval is amber at 35% alpha with a 1px amber edge.
+
+## Implementation notes: scheme card face (2026-10-09)
+
+The card title opens the shared bottom drawer, pre-selected to the card column:
+searchable Time (Upload time), metric families and Fields. Add panel uses the
+same drawer. Each family scrolls independently. The right pane describes the
+hovered or selected column and exposes Second metric (y), or Metric over time
+for time quantities. Selection dispatches immediately; Shift keeps the drawer
+open. Escape closes and returns focus to the opener. Matrix quantities choose
+their metric set.
+
+The control row is Compare chips `1fr` and a minimum-130px, 36px-high form
+select that grows for the longest name in its axis row, wrapping below 480px
+card width. The trigger shows a 20x14 inline SVG mark and an untruncated name;
+each option shows that mark, its name and a separate use-when line. Only `formsFor(x, y)` is listed.
+The old segmented chart toggle, metric-only picker, split select and per-card
+scope controls are gone. The title's accessible name includes its visible
+quantity, and both picker and dropdown support keyboard interaction.
+
+The face order is title, Compare/form, one compact series statistics table when
+comparing, chart, then the meaning line. Single-series cards retain their
+count and numeric stat row; comparison cards omit that redundant block.
+Expanded Compare chips carry the plotted colours and n, support click isolation
+and double-click reset, and replace the separate legend row. Saved groups are
+managed from Save as group… and the editor, not a separate dashboard bar.
+Preferred sizing accounts for quantity, series count and chip wrapping. The
+chart keeps a 160px minimum and statistics scroll inside the remaining height;
+explicit user layout and mobile single-column packing continue to apply.

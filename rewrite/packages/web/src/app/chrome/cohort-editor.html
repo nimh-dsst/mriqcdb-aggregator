@@ -24,6 +24,24 @@
   </div>
 
   <div class="flex min-h-0 min-w-0 flex-1 flex-col gap-4 overflow-y-auto overflow-x-hidden px-6 py-4">
+    @if (savedCohorts().length) {
+      <section aria-label="Saved groups" class="flex flex-col gap-2">
+        <h3 class="text-body font-semibold">Saved groups</h3>
+        @for (entry of savedCohorts(); track entry.cohort.id) {
+          <div class="flex min-w-0 items-center gap-2">
+            <input class="min-w-0 flex-1 rounded border border-border bg-surface px-2 py-1 text-control"
+              [attr.aria-label]="'Rename ' + entry.cohort.name" [value]="entry.cohort.name" (change)="renameGroup(entry.cohort.id, $event)" />
+            <button type="button" class="btn btn-quiet" [attr.aria-label]="'Delete ' + entry.cohort.name" (click)="deleteGroup(entry.cohort.id)">Delete</button>
+          </div>
+        }
+      </section>
+    }
+    @if (mode() === 'create') {
+      <label class="flex items-center gap-2 text-control">
+        <input type="checkbox" [checked]="addToAll()" (change)="addToAll.set($any($event.target).checked)" />
+        Add to all cards
+      </label>
+    }
     <!-- (1) Where the fields come from. First, because it overwrites every
          control below it, and a control that silently discards what you typed
          belongs above what it discards, not beneath it. -->
@@ -38,7 +56,7 @@
         @for (option of [
           { id: 'current', label: 'This dashboard' },
           { id: 'blank', label: 'Blank' },
-          { id: 'cohort', label: 'Saved cohort' }
+          { id: 'cohort', label: 'Saved group' }
         ]; track option.id) {
           <button
             type="button"
@@ -60,8 +78,8 @@
              branch nobody took is a control with nothing to do. -->
         <mat-form-field appearance="outline" subscriptSizing="dynamic" class="mt-2 w-full">
           <mat-select
-            aria-label="Which saved cohort"
-            placeholder="Pick a cohort"
+            aria-label="Which saved group"
+            placeholder="Pick a group"
             [value]="startCohort()"
             (valueChange)="pickStart($event)"
             data-testid="cohort-duplicate"
@@ -344,31 +362,6 @@
       </div>
     </div>
   </div>
-
-  @if (mode() !== 'timespans') {
-    <!-- The two-span comparison, as a mode of this dialog rather than a third
-         button on a 28px chip: it is this cohort, copied across two date
-         ranges, so everything above it is already the right input. -->
-    <div class="flex-none px-6 pb-4">
-      <button
-        type="button"
-        class="btn btn-quiet"
-        (click)="compareTimeSpans()"
-        data-testid="cohort-compare-spans"
-        matTooltip="Copy this cohort across two date ranges and open a comparison panel"
-      >
-        <lucide-icon
-          class="icon-16"
-          name="arrow-left-right"
-          color="currentColor"
-          [size]="16"
-          [strokeWidth]="1.75"
-          aria-hidden="true"
-        />
-        Compare across two date ranges&hellip;
-      </button>
-    </div>
-  }
 
   <!-- (8) The footer: what this cohort currently matches on the left, the two
        actions on the right. Sticky, so the actions are reachable on a phone

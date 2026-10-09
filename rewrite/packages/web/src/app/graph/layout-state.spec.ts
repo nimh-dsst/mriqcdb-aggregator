@@ -75,7 +75,7 @@ describe('dashboard layout state', () => {
       throw new Error('Expected a manual layout snapshot');
     }
     const savedIds = new Set(state.panels.map((panel) => panel.id));
-    const added = reduce(state, { t: 'addPanel', kind: 'distribution' });
+    const added = reduce(state, { t: 'addPanel',  });
     const newPanel = added.panels.find((panel) => !savedIds.has(panel.id));
 
     expect(newPanel).toBeDefined();

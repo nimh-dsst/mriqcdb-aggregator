@@ -1,24 +1,9 @@
 import { asColumnId, type Filter } from '@mriqc/shared';
-import { inflateSync } from 'fflate';
-import { RAW_TOKEN_VERSION, URL_DICTIONARY } from './url-tokens';
+import { BitReader, BitWriter, URL_VERSION } from './url-tokens';
 import { decodeUrlState, encodeUrlState, validateUrlState, type UrlState } from './url';
 import { OPEN_LO } from './filters';
 import { defaultDashboard } from './reducer';
 import { defaultPanelOptions, type Cohort } from './state';
-
-/**
- * The payload's own text, inflated: the white-box view the compaction tests
- * need. The first character is the format version, the rest base64url of a
- * deflate stream (`url.ts`).
- */
-function payloadText(param: string): string {
-  if (param[0] === RAW_TOKEN_VERSION) return param.slice(1);
-  const padded = param.slice(1).replace(/-/g, '+').replace(/_/g, '/');
-  const bytes = Uint8Array.from(atob(padded + '='.repeat((4 - (padded.length % 4)) % 4)), (c) =>
-    c.charCodeAt(0),
-  );
-  return new TextDecoder().decode(inflateSync(bytes, { dictionary: URL_DICTIONARY }));
-}
 
 const filters: Filter[] = [
   { field: asColumnId('manufacturer'), op: 'in', values: ['SIEMENS', 'GE MEDICAL SYSTEMS'] },
@@ -34,33 +19,23 @@ const sample: UrlState = {
       id: 'p1',
       y: null,
       x: asColumnId('fd_mean'),
-      chart: 'histogram',
-      split: null,
-      cohorts: ['current'],
+      form: 'histogram',
+      series: [],
+
       options: { ...defaultPanelOptions(), bins: 64, xScale: 'log' },
     },
     {
       id: 'p2',
       y: null,
       x: 'created_at',
-      chart: 'area',
-      split: asColumnId('manufacturer'),
-      cohorts: ['current'],
+      form: 'bars',
+      series: [{ kind: 'field' as const, field: asColumnId('manufacturer') }],
+
       options: { ...defaultPanelOptions('none'), granularity: 'year', useSelection: false },
     },
   ],
   selections: [{ from: 'p1', metric: asColumnId('fd_mean'), range: [0.1, 0.9] }],
 };
-
-/** A hand-built wire payload, encoded the way `encodeUrlState` would. */
-function encodeWire(wire: unknown): string {
-  const bytes = new TextEncoder().encode(JSON.stringify(wire));
-  let binary = '';
-  for (const byte of bytes) binary += String.fromCharCode(byte);
-  return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-}
-
-const validPanel = ['p1', 'distribution', 'fd_mean', 'histogram', null, 40, 'p01p99', 2, 'month'];
 
 describe('url', () => {
   it('round-trips a dashboard through the s parameter', () => {
@@ -80,7 +55,7 @@ describe('url', () => {
 
   it('survives query-parameter URL escaping', () => {
     const encoded = encodeUrlState(sample);
-    const params = new URLSearchParams({s: encoded});
+    const params = new URLSearchParams({ s: encoded });
     expect(decodeUrlState(new URLSearchParams(params.toString()).get('s'))).toEqual(sample);
   });
 
@@ -102,7 +77,7 @@ describe('url', () => {
     expect(decodeUrlState(btoa('{"m":"MRI"}'))).toBeNull();
   });
 
-  it('clamps a bin count from an old link into 10..200', () => {
+  it('clamps bin counts into 10..200', () => {
     const wide = {
       ...sample,
       panels: [{ ...sample.panels[0], options: { ...sample.panels[0].options, bins: 5000 } }],
@@ -116,133 +91,17 @@ describe('url', () => {
     expect(decodeUrlState(encodeUrlState(wrong))?.global.view).toBe('k3pp');
   });
 
-  it('falls back for a panel whose chart its kind does not allow, in the old format', () => {
-    const param = encodeWire({
-      m: 'bold',
-      v: 'raw',
-      f: [],
-      p: [
-        ['p1', 'distribution', 'fd_mean', 'stackedBar', null, 40, 'p01p99', 2, 'month'],
-        validPanel,
-      ],
-    });
-    const panels = decodeUrlState(param)?.panels;
-    expect(panels).toHaveLength(2);
-    expect(panels?.[0].chart).toBe('density');
-  });
-
   it('falls back to the chart its kind opens on, in the compact format', () => {
     // The compact format writes a token, so a chart outside the kind's list can
     // only come from a hand-edited payload -- and the kinder answer is the card
     // the link asked for, on the chart that kind draws.
     const tampered: UrlState = {
       ...sample,
-      panels: [{ ...sample.panels[0], chart: 'stackedBar' as never }],
+      panels: [{ ...sample.panels[0], form: 'bars' as never }],
     };
     const decoded = decodeUrlState(encodeUrlState(tampered));
     expect(decoded?.panels).toHaveLength(1);
-    expect(decoded?.panels[0].chart).toBe('density');
-  });
-
-  /**
-   * A decode that throws would error `state$` from inside the fold and kill
-   * every projection and edge, so each of these is a dead page, not a bad
-   * dashboard. They are JSON-valid and base64-valid: only the element shapes
-   * are wrong.
-   */
-  describe('crafted payloads never throw', () => {
-    it('survives a null filter, a non-array panel and a prototype-walking kind', () => {
-      const param = encodeWire({
-        m: 'bold',
-        v: 'raw',
-        f: [null],
-        p: [5, ['p1', 'constructor', null, 'histogram', null, 40, 'p01p99', 0, 'month']],
-      });
-      // Nothing in it survived, so it was never a dashboard: the router edge
-      // opens the default one rather than an empty one.
-      expect(decodeUrlState(param)).toBeNull();
-    });
-
-    it('drops filter elements that are not filters', () => {
-      const param = encodeWire({
-        m: 'bold',
-        v: 'raw',
-        f: [
-          null,
-          5,
-          [],
-          ['manufacturer'],
-          ['manufacturer', 'in', 'SIEMENS'],
-          ['manufacturer', 'in', []],
-          ['task_id', 'nn'],
-        ],
-        p: [validPanel],
-      });
-      expect(decodeUrlState(param)?.global.filters).toEqual([{ field: 'task_id', op: 'notNull' }]);
-    });
-
-    it('drops panel elements that are not panels', () => {
-      const param = encodeWire({
-        m: 'bold',
-        v: 'raw',
-        f: [],
-        p: [
-          null,
-          'p1',
-          {},
-          [],
-          ['p1', 'toString', null, 'histogram', null, 40, 'p01p99', 0, 'month'],
-          validPanel,
-        ],
-      });
-      expect(decodeUrlState(param)?.panels.map((p) => p.id)).toEqual(['p1']);
-    });
-
-    it('ignores a selection that is not a finite ordered range', () => {
-      const withSelection = (s: unknown) =>
-        decodeUrlState(encodeWire({ m: 'bold', v: 'raw', f: [], p: [validPanel], s }));
-      expect(withSelection(['p1', 'fd_mean', null, 1])?.selections).toEqual([]);
-      expect(withSelection(['p1', 'fd_mean', 'NaN', 1])?.selections).toEqual([]);
-      expect(withSelection(['p1', 'fd_mean'])?.selections).toEqual([]);
-      expect(withSelection({})?.selections).toEqual([]);
-      // An inverted range is ordered, the way the interactive brush orders a
-      // right-to-left drag, rather than passed on reversed.
-      expect(withSelection(['p1', 'fd_mean', 9, 1])?.selections[0]?.range).toEqual([1, 9]);
-    });
-
-    it('drops a filter value carrying a lone surrogate, which would throw in the query key', () => {
-      const param = encodeWire({
-        m: 'bold',
-        v: 'raw',
-        f: [
-          ['manufacturer', 'in', ['\ud800']],
-          ['manufacturer', 'in', ['SIEMENS', '\udfff']],
-          ['task_id', 'bt', '\ud800', 'x'],
-        ],
-        p: [validPanel],
-      });
-      const decoded = decodeUrlState(param);
-      expect(decoded?.global.filters).toEqual([
-        { field: 'manufacturer', op: 'in', values: ['SIEMENS'] },
-      ]);
-      expect(() =>
-        (decoded?.global.filters ?? []).forEach((f) =>
-          f.op === 'in' ? f.values.forEach((v) => encodeURIComponent(String(v))) : undefined,
-        ),
-      ).not.toThrow();
-    });
-
-    it('re-mints a panel id a link used twice', () => {
-      const param = encodeWire({
-        m: 'bold',
-        v: 'raw',
-        f: [],
-        p: [validPanel, validPanel, validPanel],
-      });
-      const ids = decodeUrlState(param)?.panels.map((p) => p.id);
-      expect(ids).toHaveLength(3);
-      expect(new Set(ids).size).toBe(3);
-    });
+    expect(decoded?.panels[0].form).toBe('histogram');
   });
 
   describe('the compact format', () => {
@@ -354,9 +213,9 @@ describe('url', () => {
             id: 'p1',
             y: null,
             x: asColumnId('fd_mean'),
-            chart: 'density',
-            split: null,
-            cohorts: ['current'],
+            form: 'density',
+            series: [],
+
             options: defaultPanelOptions(),
           },
         ],
@@ -401,12 +260,12 @@ describe('url', () => {
       expect(validateUrlState(hijack).cohorts).toEqual([]);
     });
 
-    it('refuses a payload that would inflate out of all proportion', () => {
+    it('refuses an oversized stream', () => {
       expect(decodeUrlState(`1${'A'.repeat(5000)}`)).toBeNull();
     });
 
-    it('keeps a default dashboard under 80 characters', () => {
-      expect(encodeUrlState(defaultDashboard()).length).toBeLessThan(80);
+    it('omits the parameter for the default dashboard', () => {
+      expect(encodeUrlState(defaultDashboard())).toBe('');
     });
 
     it('keeps ten panels with three cohorts and a brush under 400', () => {
@@ -438,31 +297,33 @@ describe('url', () => {
             id: `p${i + 1}`,
             y: null,
             x: asColumnId(metric),
-            chart: 'histogram' as const,
-            split: null,
-            cohorts: ['current' as const],
+            form: 'histogram' as const,
+            series: [{ kind: 'cohort' as const, id: 'current' as const }],
+
             options: defaultPanelOptions(),
           })),
           {
             id: 'p9',
             y: null,
             x: asColumnId('fd_mean'),
-            chart: 'density' as const,
-            split: null,
-            
+            form: 'density' as const,
+            series: [
+              { kind: 'cohort' as const, id: 'c1' },
+              { kind: 'cohort' as const, id: 'c2' },
+            ],
+
             options: defaultPanelOptions(),
-            cohorts: ['current', 'c1', 'c2'],
+
             reference: 'c2',
           },
           {
             id: 'p10',
             y: null,
             x: asColumnId('tsnr'),
-            chart: 'ecdf' as const,
-            split: null,
-            
+            form: 'ecdf' as const,
+            series: [{ kind: 'population' as const }, { kind: 'cohort' as const, id: 'c3' }],
+
             options: { ...defaultPanelOptions(), bins: 64, xScale: 'log' },
-            cohorts: ['all', 'c3'],
           },
         ],
         selections: [{ from: 'p1', metric: asColumnId('fd_mean'), range: [0.103456, 0.41234] }],
@@ -476,23 +337,6 @@ describe('url', () => {
     it('refuses a payload written under a version it cannot read', () => {
       const encoded = encodeUrlState(sample);
       expect(decodeUrlState(`9${encoded.slice(1)}`)).toBeNull();
-    });
-
-    it('opens a link written before the version character existed', () => {
-      // Captured from the previous encoder, before this pass changed it: seven
-      // panels, a saved cohort and a comparison over it. A link in somebody's
-      // chat window has to keep working.
-      const old =
-        'eyJtIjoiYm9sZCIsInYiOiJrNHBsdXMiLCJmIjpbXSwicCI6W1sicDEiLCJkaXN0cmlidXRpb24iLCJmZF9tZWFuIiwiaGlzdG9ncmFtIixudWxsLDQwLCJwMDFwOTkiLDIsIm1vbnRoIl0sWyJwMiIsImRpc3RyaWJ1dGlvbiIsInRzbnIiLCJoaXN0b2dyYW0iLG51bGwsNDAsInAwMXA5OSIsMiwibW9udGgiXSxbInAzIiwiZGlzdHJpYnV0aW9uIiwiZHZhcnNfc3RkIiwiZWNkZiIsbnVsbCw0MCwicDAxcDk5IiwyLCJtb250aCJdLFsicDQiLCJkaXN0cmlidXRpb24iLCJzbnIiLCJkZW5zaXR5IixudWxsLDQwLCJwMDFwOTkiLDIsIm1vbnRoIl0sWyJwNSIsImdyb3VwZWQiLCJmZF9tZWFuIiwiYm94IiwibWFudWZhY3R1cmVyIiw0MCwicDAxcDk5IiwyLCJtb250aCJdLFsicDYiLCJjb3ZlcmFnZSIsbnVsbCwic3RhY2tlZEJhciIsIm1hbnVmYWN0dXJlciIsNDAsInAwMXA5OSIsMiwibW9udGgiXSxbInA3IiwiY29tcGFyaXNvbiIsImZkX21lYW4iLCJkZW5zaXR5IixudWxsLDQwLCJwMDFwOTkiLDIsIm1vbnRoIixbImN1cnJlbnQiLCJjMSJdXV0sImMiOltbImMxIiwiQk9MRCDCtyBLNCsgwrcgU0lFTUVOUyDCtyAyMDE54oCTMjAyMSIsMiwicCIsIms0cGx1cyIsW1sibWFudWZhY3R1cmVyIiwiaW4iLFsiU0lFTUVOUyJdXSxbImNyZWF0ZWRfYXQiLCJidCIsIjIwMTktMDEtMDEiLCIyMDIxLTEyLTMxIl1dXV19';
-      const decoded = decodeUrlState(old);
-      expect(decoded?.panels.map((p) => p.id)).toEqual(['p1', 'p2', 'p3', 'p4', 'p5', 'p6', 'p7']);
-      expect(decoded?.panels[6].cohorts).toEqual(['current', 'c1']);
-      expect(decoded?.cohorts.map((c) => c.name)).toEqual([
-        'BOLD \u00b7 K4+ \u00b7 SIEMENS \u00b7 2019\u20132021',
-      ]);
-      expect(decoded?.global.view).toBe('k4plus');
-      // And it re-encodes into the compact format, so copying the link shortens it.
-      expect(encodeUrlState(decoded as UrlState).length).toBeLessThan(old.length / 2);
     });
   });
 
@@ -595,11 +439,14 @@ describe('cohorts in the url', () => {
         id: 'p1',
         y: null,
         x: asColumnId('fd_mean'),
-        chart: 'histogram',
-        split: null,
-        
+        form: 'histogram',
+        series: [
+          { kind: 'cohort' as const, id: 'c1' },
+          { kind: 'cohort' as const, id: 'c2' },
+        ],
+
         options: defaultPanelOptions(),
-        cohorts: ['current', 'c1', 'c2'],
+
         reference: 'c2',
       },
     ],
@@ -607,14 +454,6 @@ describe('cohorts in the url', () => {
 
   it('round-trips cohorts and a panel’s cohort list', () => {
     expect(decodeUrlState(encodeUrlState(withCohorts))).toEqual(withCohorts);
-  });
-
-  it('writes nothing for a dashboard with no cohorts', () => {
-    // The common case carries no cohort field at all, and a panel writes only
-    // the fields that differ from what its kind defaults to.
-    const fields = payloadText(encodeUrlState(sample)).split(';');
-    expect(fields.some((field) => field.startsWith('c'))).toBe(false);
-    expect(fields.some((field) => field.startsWith('p'))).toBe(true);
   });
 
   it('keeps a study cohort out of the link', () => {
@@ -633,75 +472,6 @@ describe('cohorts in the url', () => {
       cohorts: [{ ...siemens, id: 'c9', source: 'study' }],
     };
     expect(validateUrlState(crafted).cohorts).toEqual([]);
-  });
-
-  it('decodes a link written before cohorts existed', () => {
-    // The two comparison slots are appended to the panel tuple, so a short one
-    // reads as "no cohorts" and the default overlay rather than as a bad panel.
-    const old = encodeWire({ m: 'bold', v: 'raw', f: [], p: [validPanel] });
-    const decoded = decodeUrlState(old);
-    expect(decoded?.cohorts).toEqual([]);
-    expect(decoded?.panels[0].cohorts).toEqual(['current']);
-  });
-
-  it('rejects a cohort with no id, a reserved id, or a name that is not a string', () => {
-    const wire = (c: unknown[]) =>
-      decodeUrlState(encodeWire({ m: 'bold', v: 'raw', f: [], p: [validPanel], c: [c] }));
-    // A whole-list rejection means the payload was not written by the encoder,
-    // which is "no URL state" -- the default dashboard -- not an empty one.
-    expect(wire(['', 'A', 0, 'p', 'raw', []])).toBeNull();
-    expect(wire(['current', 'A', 0, 'p', 'raw', []])).toBeNull();
-    expect(wire(['all', 'A', 0, 'p', 'raw', []])).toBeNull();
-    expect(wire(['c1', 42, 0, 'p', 'raw', []])).toBeNull();
-  });
-
-  it('never re-mints onto an id a later cohort already owns', () => {
-    // Re-minting against the ids walked past so far would rename the duplicate
-    // of c1 to 'c2' and push the real c2 to 'c3' -- and a panel naming c2
-    // would then bind to the copy of c1.
-    const decoded = decodeUrlState(
-      encodeWire({
-        m: 'bold',
-        v: 'raw',
-        f: [],
-        p: [validPanel],
-        c: [
-          ['c1', 'A', 0, 'p', 'raw', []],
-          ['c1', 'B', 1, 'p', 'raw', []],
-          ['c2', 'C', 2, 'p', 'raw', []],
-        ],
-      }),
-    );
-    expect(decoded?.cohorts.map((c) => [c.id, c.name])).toEqual([
-      ['c1', 'A'],
-      ['c3', 'B'],
-      ['c2', 'C'],
-    ]);
-  });
-
-  it('re-mints a repeated cohort id rather than dropping the cohort', () => {
-    const decoded = decodeUrlState(
-      encodeWire({
-        m: 'bold',
-        v: 'raw',
-        f: [],
-        p: [validPanel],
-        c: [
-          ['c1', 'A', 0, 'p', 'raw', []],
-          ['c1', 'B', 1, 'p', 'raw', []],
-        ],
-      }),
-    );
-    expect(decoded?.cohorts.map((c) => c.id)).toEqual(['c1', 'c2']);
-    expect(decoded?.cohorts.map((c) => c.name)).toEqual(['A', 'B']);
-  });
-
-  it('caps the cohort list and the per-panel cohort list', () => {
-    const many = Array.from({ length: 40 }, (_, i) => [`c${i + 1}`, `C${i}`, 0, 'p', 'raw', []]);
-    const decoded = decodeUrlState(
-      encodeWire({ m: 'bold', v: 'raw', f: [], p: [validPanel], c: many }),
-    );
-    expect(decoded?.cohorts.length).toBeLessThanOrEqual(12);
   });
 
   it('validates a cohort against its own view, not the top bar’s', () => {
@@ -724,7 +494,7 @@ describe('cohorts in the url', () => {
 
   it('drops a panel’s reference to a cohort the link did not carry', () => {
     const dangling: UrlState = { ...withCohorts, cohorts: [] };
-    expect(validateUrlState(dangling).panels[0].cohorts).toEqual(['current']);
+    expect(validateUrlState(dangling).panels[0].series).toEqual([]);
   });
 
   it('moves a cohort to the canonical view of a modality that lacks its own', () => {
@@ -736,5 +506,45 @@ describe('cohorts in the url', () => {
     };
     // `k4plus` is bold-only; the honest substitute is the other policy, not raw.
     expect(validateUrlState(t1w).cohorts[0].view).toBe('k3pp');
+  });
+});
+
+describe('strict stream framing', () => {
+  it('refuses every truncation of a non-default record', () => {
+    const encoded = encodeUrlState(sample);
+    for (let i = 1; i < encoded.length; i++) expect(decodeUrlState(encoded.slice(0, i))).toBeNull();
+  });
+  it('refuses appended data, invalid alphabet and unknown presence bits', () => {
+    const encoded = encodeUrlState(sample);
+    expect(decodeUrlState(encoded + 'A')).toBeNull();
+    expect(decodeUrlState(encoded + '%')).toBeNull();
+    const writer = new BitWriter();
+    writer.write(6, 0);
+    writer.write(6, 4);
+    expect(decodeUrlState(URL_VERSION + writer.finish())).toBeNull();
+  });
+  it('round-trips duplicate identities without stealing a later identity', () => {
+    const cohorts = ['c1', 'c1', 'c2'].map((id, i) => ({
+      id,
+      name: String(i),
+      color: i + 2,
+      source: 'population' as const,
+      view: 'k4plus' as const,
+      filters: [],
+      selections: [],
+    }));
+    const decoded = decodeUrlState(encodeUrlState({ ...sample, cohorts }));
+    expect(decoded?.cohorts.map((c) => c.id)).toEqual(['c1', 'c3', 'c2']);
+  });
+  it('never throws on arbitrary URL characters', () => {
+    let seed = 71239;
+    for (let i = 0; i < 500; i++) {
+      const chars: string[] = ['1'];
+      for (let n = 0; n < i % 80; n++) {
+        seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0;
+        chars.push(String.fromCharCode(seed % 128));
+      }
+      expect(() => decodeUrlState(chars.join(''))).not.toThrow();
+    }
   });
 });

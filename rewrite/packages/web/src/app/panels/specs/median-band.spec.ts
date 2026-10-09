@@ -69,6 +69,13 @@ function layersOf(spec: unknown): readonly Layer[] {
 }
 
 describe('medianBandChart', () => {
+  it('draws p05/p50/p95 Lines as separate series paths and compiles them', () => {
+    const chart = medianBandChart(series, 'FD mean', undefined, 'lines');
+    expect(chart.datasets['timeLines']).toHaveLength(9);
+    expect(chart.datasets['timeLines'][0]).toMatchObject({ percentile: 'p05', value: 0, seriesId: 'included' });
+    expect(chart.datasets['timeLines'][2]).toMatchObject({ percentile: 'p95', value: 5 });
+    expect(() => compile(chart.spec)).not.toThrow();
+  });
   it('draws a quartile area spanning adjacent buckets', async () => {
     const chart = medianBandChart(series, 'Median value');
     const compiled = compile({ ...chart.spec, width: 400, datasets: chart.datasets }).spec;

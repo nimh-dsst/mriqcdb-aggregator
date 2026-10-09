@@ -37,7 +37,7 @@ describe('About route', () => {
     );
     expect(
       host.querySelector<HTMLAnchorElement>('[data-testid="about-back"]')?.getAttribute('href'),
-    ).toContain('/?s=');
+    ).toBe('/');
   });
   it('does not call a capped catalog list a population total', async () => {
     const catalog = await firstValueFrom(TestBed.inject(MockApi).catalog());

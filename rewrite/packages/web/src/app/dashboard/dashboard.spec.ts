@@ -22,7 +22,7 @@ import { decodeUrlState, encodeUrlState, type UrlState } from '../graph/url';
 import { PHONE_QUERY } from '../chrome/media';
 import { Theme, THEME_STORAGE_KEY } from '../chrome/theme';
 import { WEB_ICONS } from '../app.config';
-import { Dashboard, visiblePanelKinds } from './dashboard';
+import { Dashboard } from './dashboard';
 
 /* jsdom has neither of these, and Angular Material asks for both. */
 beforeAll(() => {
@@ -100,128 +100,102 @@ describe('Dashboard with MockApi', () => {
     await fixture.whenStable();
     const cards = (fixture.nativeElement as HTMLElement).querySelectorAll('[data-testid="panel-card"]');
     expect(cards).toHaveLength(5);
-    expect([...cards].map((card) => card.getAttribute('data-panel-kind'))).toEqual([
-      'distribution',
-      'distribution',
-      'distribution',
-      'distribution',
-      'coverage',
-    ]);
+    expect([...cards].map(card => card.querySelector('[data-testid="metric-title"]')?.textContent)).toHaveLength(5);
+    expect(cards[4].textContent).toContain('Uploads over time');
   });
 
-  it('names every chart toggle and activates exactly the selected form', async () => {
-    const fixture = TestBed.createComponent(Dashboard);
-    await fixture.whenStable();
-    const card = (fixture.nativeElement as HTMLElement).querySelector('[data-panel-id="p1"]')!;
-    const buttons = () => [...card.querySelectorAll<HTMLButtonElement>('.chart-form-toggle button')];
-    expect(buttons().map(button => button.getAttribute('aria-label'))).toEqual(['Histogram', 'Density', 'ECDF', 'Box', 'Table']);
-    expect(buttons().filter(button => button.getAttribute('aria-pressed') === 'true')).toHaveLength(1);
-    buttons()[1].click();
-    await fixture.whenStable();
-    expect(buttons().filter(button => button.getAttribute('aria-pressed') === 'true').map(button => button.getAttribute('aria-label'))).toEqual(['Density']);
-    expect(card.querySelector('[data-testid="panel-chart-selector"]')).toBeNull();
-    expect(card.querySelector('[data-testid="metric-info"]')).toBeNull();
+  it('lists the numeric forms and changes the selected form through the dropdown', async () => {
+    const fixture=TestBed.createComponent(Dashboard);await fixture.whenStable();
+    const card=(fixture.nativeElement as HTMLElement).querySelector('[data-panel-id="p1"]')!;
+    card.querySelector<HTMLElement>('[aria-label="Form"] .mat-mdc-select-trigger')!.click();await fixture.whenStable();
+    const options=[...document.querySelectorAll<HTMLElement>('mat-option')];
+    expect(options.map(option=>option.querySelector('.font-medium')?.textContent?.trim())).toEqual(['Histogram','Density','ECDF','Box','Table']);
+    options[1].click();await fixture.whenStable();
+    expect(card.querySelector('[aria-label="Form"] .mat-mdc-select-trigger')!.textContent).toContain('Density');
+    expect(card.querySelector('[data-testid="panel-split-selector"]')).toBeNull();
   });
 
   it('keeps axes, layout, bins, clip and box ordering in Options', async () => {
     const fixture = TestBed.createComponent(Dashboard);
     await fixture.whenStable();
     const graph = TestBed.inject(Graph);
-    graph.dispatch({ t: 'patchPanel', id: 'p1', patch: { split: asColumnId('manufacturer'), chart: 'box' } });
+    graph.dispatch({ t: 'patchPanel', id: 'p1', patch: { series: [{ kind: 'field' as const, field: asColumnId('manufacturer') }], form: 'box' } });
     await fixture.whenStable();
     const card = (fixture.nativeElement as HTMLElement).querySelector('[data-panel-id="p1"]')!;
     card.querySelector<HTMLButtonElement>('[aria-label="Panel options"]')!.click();
     await fixture.whenStable();
     const menu = document.querySelector('.mat-mdc-menu-panel')!;
     expect(menu.querySelector('app-axes-controls')).not.toBeNull();
-    expect(menu.querySelector('[aria-label="Layout"]')).not.toBeNull();
-    expect(menu.querySelector('[aria-label="Bars"]')).not.toBeNull();
-    expect(menu.querySelector('[aria-label="Range"]')).not.toBeNull();
-    expect(menu.textContent).toContain('Rank boxes by');
+    expect(menu.textContent).toContain('Layout');
+    expect(menu.textContent).toContain('Bins');
+    expect(menu.textContent).toContain('Clip');
+    expect(menu.textContent).toContain('Box sort');
     expect(menu.querySelector('[data-testid="panel-chart-selector"]')).toBeNull();
     expect(menu.querySelector('[data-testid="panel-show-selector"]')).toBeNull();
   });
 
-  it('offers time forms while requiring a second metric for Median band', async () => {
-    const fixture = TestBed.createComponent(Dashboard);
+  it('offers Bars, Line and Area for counts, then Band and Lines for a time metric', async () => {
+    const fixture=TestBed.createComponent(Dashboard);await fixture.whenStable();
+    const card=(fixture.nativeElement as HTMLElement).querySelector('[data-panel-id="p5"]')!;
+    card.querySelector<HTMLElement>('[aria-label="Form"] .mat-mdc-select-trigger')!.click();await fixture.whenStable();
+    const options=[...document.querySelectorAll<HTMLElement>('mat-option')];
+    expect(options).toHaveLength(3);expect(options.map(o=>o.textContent)).toEqual([expect.stringContaining('Bars'),expect.stringContaining('Line'),expect.stringContaining('Area')]);
+    options[2].click();await fixture.whenStable();
+    TestBed.inject(Graph).dispatch({t:'setPanelAxis',id:'p5',axis:'y',value:asColumnId('fd_mean')});
     await fixture.whenStable();
-    const card = (fixture.nativeElement as HTMLElement).querySelector('[data-panel-id="p5"]')!;
-    const forms = () => [...card.querySelectorAll<HTMLButtonElement>('.chart-form-toggle button')];
-    expect(forms().map(button => button.getAttribute('aria-label'))).toEqual(['Bars', 'Line', 'Median band']);
-    expect(forms()[2].disabled).toBe(true);
-    TestBed.inject(Graph).dispatch({ t: 'setPanelAxis', id: 'p5', axis: 'y', value: asColumnId('tsnr') });
+    expect(card.querySelector('[aria-label="Form"] .mat-mdc-select-trigger')!.textContent).toContain('Band');
+    card.querySelector<HTMLElement>('[aria-label="Form"] .mat-mdc-select-trigger')!.click();
     await fixture.whenStable();
-    expect(forms()[2].disabled).toBe(false);
-    expect(forms()[2].getAttribute('aria-pressed')).toBe('true');
+    const metricOptions=[...document.querySelectorAll<HTMLElement>('mat-option')];
+    expect(metricOptions.map(o=>o.textContent)).toEqual([expect.stringContaining('Band'),expect.stringContaining('Lines')]);
+    metricOptions[1].click(); await fixture.whenStable();
+    expect(card.querySelector('[aria-label="Form"] .mat-mdc-select-trigger')!.textContent).toContain('Lines');
   });
 
-  it('uses full metric titles for pairs and opens the correlation metric set from its title', async () => {
-    const fixture = TestBed.createComponent(Dashboard);
-    await fixture.whenStable();
-    const graph = TestBed.inject(Graph);
-    graph.dispatch({ t: 'setPanelAxis', id: 'p1', axis: 'y', value: asColumnId('tsnr') });
-    await fixture.whenStable();
-    const card = (fixture.nativeElement as HTMLElement).querySelector('[data-panel-id="p1"]')!;
-    const title = card.querySelector<HTMLButtonElement>('[data-testid="metric-title"]')!;
-    expect(title.title).toBe('Mean framewise displacement vs Temporal SNR');
-    expect([...card.querySelectorAll('.chart-form-toggle button')].map(button => button.getAttribute('aria-label'))).toEqual(['Density', 'Scatter', 'Hexbin', 'Clusters']);
-    graph.dispatch({ t: 'patchPanel', id: 'p1', patch: { y: null, chart: 'correlation' } });
-    await fixture.whenStable();
-    expect(title.title).toBe('Metric correlations');
-    expect(card.querySelector('.card-controls')).toBeNull();
-    expect(card.querySelector('.correlation-controls')).not.toBeNull();
-    title.click();
-    await fixture.whenStable();
-    expect(document.querySelector('[role="dialog"][aria-label="Correlation metrics"] app-metric-picker')).not.toBeNull();
-    expect(document.querySelector('[aria-label="Selected correlation metrics"]')).not.toBeNull();
+  it('derives pair and correlation titles from the selected quantity', async () => {
+    const fixture=TestBed.createComponent(Dashboard);await fixture.whenStable();const graph=TestBed.inject(Graph);
+    graph.dispatch({t:'setPanelAxis',id:'p1',axis:'y',value:asColumnId('tsnr')});await fixture.whenStable();
+    const card=(fixture.nativeElement as HTMLElement).querySelector('[data-panel-id="p1"]')!;
+    expect(card.querySelector<HTMLButtonElement>('[data-testid="metric-title"]')!.title).toBe('FD mean vs tSNR');
+    graph.dispatch({t:'patchPanel',id:'p1',patch:{y:null,form:'matrix'}});await fixture.whenStable();
+    expect(card.querySelector<HTMLButtonElement>('[data-testid="metric-title"]')!.title).toBe('Metric correlations');
+    expect(card.querySelector('app-compare-input')).not.toBeNull();
   });
 
-  it('offers saved and study cohorts in Compare and keeps the existing per-card binding', async () => {
-    const fixture = TestBed.createComponent(Dashboard);
-    await fixture.whenStable();
-    const graph = TestBed.inject(Graph);
-    graph.dispatch({ t: 'addCohort', cohort: { id: 'saved', name: 'Saved Siemens', color: 2, source: 'population', view: 'k4plus', filters: [], selections: [] } });
-    graph.dispatch({ t: 'studyLoaded', name: 'study.csv', rows: 10, metrics: [asColumnId('fd_mean')], totalMetrics: 1, ignoredColumns: [], missingMetrics: [] });
-    await fixture.whenStable();
-    const select = (fixture.nativeElement as HTMLElement).querySelector<HTMLElement>('[data-panel-id="p1"] [data-testid="panel-compare-selector"]')!;
-    select.click();
-    await fixture.whenStable();
-    const options = [...document.querySelectorAll<HTMLElement>('mat-option')];
-    expect(options.map(option => option.textContent?.trim())).toEqual(['This dashboard', 'Saved Siemens', 'My study', 'Whole population', 'Compare with…']);
-    options[1].click();
-    await fixture.whenStable();
-    let state!: State;
-    const subscription = graph.state$.subscribe(value => state = value);
-    expect(state.panels[0].cohorts).toEqual(['saved']);
-    expect(state.panels[1].cohorts).toEqual(['current']);
-    subscription.unsubscribe();
+  it('offers saved groups and study through the one Compare menu', async () => {
+    const fixture=TestBed.createComponent(Dashboard);await fixture.whenStable();const graph=TestBed.inject(Graph);
+    graph.dispatch({t:'addCohort',cohort:{id:'saved',name:'Saved Siemens',color:2,source:'population',view:'k4plus',filters:[],selections:[]}});
+    graph.dispatch({t:'studyLoaded',name:'study.csv',rows:10,metrics:[asColumnId('fd_mean')],totalMetrics:1,ignoredColumns:[],missingMetrics:[]});await fixture.whenStable();
+    const card=(fixture.nativeElement as HTMLElement).querySelector('[data-panel-id="p1"]')!;
+    card.querySelector<HTMLButtonElement>('button[aria-label="Add comparison"]')!.click();await fixture.whenStable();
+    const options=[...document.querySelectorAll<HTMLButtonElement>('[mat-menu-item]')];
+    expect(options.some(o=>o.textContent?.includes('My study'))).toBe(true);
+    options.find(o=>o.textContent?.trim()==='Saved Siemens')!.click();await fixture.whenStable();
+    let state!:State;const sub=graph.state$.subscribe(value=>state=value);
+    expect(state.panels[0].series).toEqual([{kind:'cohort',id:'saved'}]);expect(state.panels[1].series).toEqual([]);sub.unsubscribe();
   });
 
-  it('opens Compare with… in the cohort editor without changing the selected scope', async () => {
-    const fixture = TestBed.createComponent(Dashboard);
-    await fixture.whenStable();
-    const open = vi.spyOn(TestBed.inject(MatDialog), 'open');
-    const select = (fixture.nativeElement as HTMLElement).querySelector<HTMLElement>('[data-panel-id="p1"] [data-testid="panel-compare-selector"]')!;
-    select.click();
-    await fixture.whenStable();
-    [...document.querySelectorAll<HTMLElement>('mat-option')].find(option => option.textContent?.includes('Compare with'))!.click();
-    await vi.waitFor(() => expect(open).toHaveBeenCalled());
-    await fixture.whenStable();
-    expect(open).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ data: { mode: 'create', seed: null, convertPanel: 'p1' } }));
-    expect(select.textContent).toContain('This dashboard');
+  it('opens New group from Compare', async () => {
+    const fixture=TestBed.createComponent(Dashboard);await fixture.whenStable();const open=vi.spyOn(TestBed.inject(MatDialog),'open');
+    (fixture.nativeElement as HTMLElement).querySelector<HTMLButtonElement>('[data-panel-id="p1"] button[aria-label="Add comparison"]')!.click();await fixture.whenStable();
+    [...document.querySelectorAll<HTMLButtonElement>('[mat-menu-item]')].find(option=>option.textContent?.includes('New group'))!.click();
+    await vi.waitFor(()=>expect(open).toHaveBeenCalled());
+    expect(open).toHaveBeenCalledWith(expect.anything(),expect.objectContaining({data:{mode:'create',seed:null,convertPanel:'p1'}}));
     TestBed.inject(MatDialog).closeAll();
   });
 
-  it.each(['density', 'histogram', 'facetedEcdf'] as const)('uses only the chips as the split %s legend', async chart => {
+  it.each(['density', 'histogram', 'ecdf'] as const)('uses only the chips as the split %s legend', async chart => {
     const fixture = TestBed.createComponent(Dashboard);
     await fixture.whenStable();
     const graph = TestBed.inject(Graph);
-    graph.dispatch({ t: 'setPanelSplit', id: 'p4', split: asColumnId('manufacturer') });
-    graph.dispatch({ t: 'setPanelChart', id: 'p4', chart });
+    graph.dispatch({ t: 'addPanelSeries', id: 'p4', series: { kind: 'field', field: asColumnId('manufacturer') } });
+    graph.dispatch({ t: 'setPanelChart', id: 'p4', form: chart });
     await new Promise(resolve => setTimeout(resolve, MOCK_LATENCY_MS * 6));
     await fixture.whenStable();
     const card = (fixture.nativeElement as HTMLElement).querySelector('[data-panel-id="p4"]')!;
-    expect(card.querySelectorAll('[data-testid="split-select"]')).toHaveLength(1);
+    expect(card.querySelectorAll('[data-testid="series-legend"]')).toHaveLength(0);
+    expect(card.querySelectorAll('app-compare-input button[aria-pressed]').length).toBeGreaterThan(1);
+    expect(card.querySelectorAll('[data-testid="comparison-table"]')).toHaveLength(1);
     let spec!: TopLevelSpec;
     const subscription = graph.panelView$('p4').subscribe(view => { if (view?.spec) spec = view.spec; });
     const compiled = compile(spec).spec;
@@ -265,7 +239,7 @@ describe('Dashboard with MockApi', () => {
     const fixture = TestBed.createComponent(Dashboard);
     await fixture.whenStable();
     const graph = TestBed.inject(Graph);
-    graph.dispatch({ t: 'patchPanel', id: 'p4', patch: { split: asColumnId('manufacturer') } });
+    graph.dispatch({ t: 'patchPanel', id: 'p4', patch: { series: [{ kind: 'field' as const, field: asColumnId('manufacturer') }] } });
     graph.dispatch({ t: 'setPanelOptions', id: 'p4', options: { layout: 'stacked' } });
     await fixture.whenStable();
     const root = fixture.nativeElement as HTMLElement;
@@ -289,7 +263,7 @@ describe('Dashboard with MockApi', () => {
     const fixture = TestBed.createComponent(Dashboard);
     await fixture.whenStable();
     window.matchMedia = matchMedia;
-    TestBed.inject(Graph).dispatch({ t: 'patchPanel', id: 'p1', patch: { chart: 'correlation' } });
+    TestBed.inject(Graph).dispatch({ t: 'patchPanel', id: 'p1', patch: { form: 'matrix' } });
     await new Promise((resolve) => setTimeout(resolve, MOCK_LATENCY_MS * 4));
     await fixture.whenStable();
     const root = fixture.nativeElement as HTMLElement;
@@ -333,18 +307,18 @@ describe('Dashboard with MockApi', () => {
           id: 'p1',
           y: null,
           x: asColumnId('fd_mean'),
-          chart: 'histogram',
-          split: null,
-          cohorts: ['current'],
+          form: 'histogram',
+          series: [],
+
           options: defaultPanelOptions(),
         },
         {
           id: 'p2',
           y: null,
           x: asColumnId('aor'),
-          chart: 'histogram',
-          split: null,
-          cohorts: ['current'],
+          form: 'histogram',
+          series: [],
+
           options: defaultPanelOptions(),
         },
       ],
@@ -397,7 +371,7 @@ describe('Dashboard with MockApi', () => {
     await new Promise((resolve) => setTimeout(resolve, MOCK_LATENCY_MS * 4));
     await fixture.whenStable();
 
-    const card = (fixture.nativeElement as HTMLElement).querySelector('[data-panel-kind="distribution"]');
+    const card = (fixture.nativeElement as HTMLElement).querySelector('[data-panel-id="p1"]');
     const stats = card?.querySelector('[data-testid="panel-stats"]');
     expect(stats).not.toBeNull();
     // parseFloat, not Number: a metric with a unit prints "0.4 mm".
@@ -423,8 +397,8 @@ describe('Dashboard with MockApi', () => {
     expect(card?.querySelector('[data-testid="panel-count"]')?.textContent).toContain(
       'scans with a value',
     );
-    const coverage = (fixture.nativeElement as HTMLElement).querySelector('[data-panel-kind="coverage"]');
-    expect(coverage?.querySelector('[data-testid="panel-stats"]')).toBeNull();
+    const coverage = (fixture.nativeElement as HTMLElement).querySelector('[data-panel-id="p5"]');
+    expect(coverage?.querySelector('[data-testid="panel-stats"]')?.textContent).toContain('Total');
     const coverageCount = coverage?.querySelector('[data-testid="panel-count"]')?.textContent ?? '';
     expect(coverageCount).not.toContain('with a value');
     expect(coverageCount).toContain('scans');
@@ -480,17 +454,17 @@ describe('Dashboard with MockApi', () => {
       ?.click();
     await fixture.whenStable();
     const picker = document.querySelector('[data-testid="add-panel-picker"]')!;
-    expect(picker.querySelector('app-metric-picker')).not.toBeNull();
+    expect(picker.querySelector('app-column-picker')).not.toBeNull();
     expect((fixture.nativeElement as HTMLElement).querySelectorAll('[data-testid="panel-card"]')).toHaveLength(5);
     const search = picker.querySelector<HTMLInputElement>('input[type="search"]')!;
     search.value = 'efc';
     search.dispatchEvent(new Event('input'));
     await fixture.whenStable();
-    picker.querySelector<HTMLButtonElement>('app-metric-picker button')!.click();
+    picker.querySelector<HTMLButtonElement>('[data-column-id="efc"]')!.click();
     await fixture.whenStable();
     let state!: State;
     const subscription = TestBed.inject(Graph).state$.subscribe(value => state = value);
-    expect(state.panels.at(-1)).toMatchObject({ x: 'efc', y: null, chart: 'histogram', split: null, cohorts: ['current'] });
+    expect(state.panels.at(-1)).toMatchObject({ x: 'efc', y: null, form: 'histogram', series: [] });
     expect(document.querySelector('[data-testid="add-panel-picker"]')).toBeNull();
     subscription.unsubscribe();
   });
@@ -628,12 +602,12 @@ describe('Dashboard with MockApi', () => {
     const host = fixture.nativeElement as HTMLElement;
     host.querySelector<HTMLButtonElement>('[data-testid="add-panel"]')?.click();
     await fixture.whenStable();
-    const items = document.querySelectorAll<HTMLButtonElement>('[data-testid="add-panel-picker"] app-metric-picker button');
+    const items = document.querySelectorAll<HTMLButtonElement>('[data-testid="add-panel-picker"] [data-column-id]');
     expect(items.length).toBeGreaterThan(5);
     items[0].click();
     await fixture.whenStable();
     expect(host.querySelectorAll('[data-testid="panel-card"]')).toHaveLength(6);
-    expect(host.querySelector('[data-panel-id="p6"]')?.getAttribute('data-panel-kind')).toBe('distribution');
+    expect(host.querySelector('[data-panel-id="p6"] [aria-label="Form"]')?.textContent).toContain('Bars');
   });
 });
 
@@ -846,7 +820,7 @@ describe('Dashboard chrome', () => {
     // 778,075 in both printed the same figure twice.
     expect(meaning('p1')).toMatch(/^How many scans fall in each range of .+\.$/);
     expect(meaning('p1')).not.toMatch(/\d/);
-    expect(meaning('p5')).toMatch(/^Scans uploaded per \w+, by .+\.$/);
+    expect(meaning('p5')).toMatch(/^Scans uploaded per \w+\.$/);
     // The corpus is named once, on the count line.
     const count = (id: string) =>
       host
@@ -882,7 +856,7 @@ describe('Dashboard chrome', () => {
     await settle(fixture);
     const host = fixture.nativeElement as HTMLElement;
     const about = host.querySelector<HTMLAnchorElement>('[data-testid="about-open"]');
-    expect(about?.getAttribute('href')).toContain('/about?s=');
+    expect(about?.getAttribute('href')).toBe('/about');
     expect(host.querySelector<HTMLAnchorElement>('[data-testid="quarantine-line"]')?.getAttribute('href')).toContain('#dedup');
   });
 
@@ -902,11 +876,11 @@ describe('Dashboard chrome', () => {
     expect(
       document.querySelector('[data-testid="metric-info-family"]')?.textContent?.trim(),
     ).toBeTruthy();
-    expect(document.querySelector('[data-testid="metric-popover"] app-metric-picker')).not.toBeNull();
+    expect(document.querySelector('[data-testid="metric-popover"] app-column-picker')).not.toBeNull();
     expect(document.querySelector('[aria-label="Second metric (y)"]')).not.toBeNull();
     expect(document.querySelector<HTMLAnchorElement>('[data-testid="metric-popover"] a')?.href).toContain('mriqc.readthedocs.io');
     // The old caption info icon has left the face.
-    expect(host.querySelector('[data-panel-kind="coverage"] [data-testid="metric-info"]')).toBeNull();
+    expect(host.querySelector('[data-panel-id="p5"] [data-testid="metric-info"]')).toBeNull();
   });
 
   it('discloses the clip the chart is actually drawing', async () => {
@@ -1030,10 +1004,12 @@ describe('Dashboard chrome', () => {
     const fixture = TestBed.createComponent(Dashboard);
     await settle(fixture);
     const host = fixture.nativeElement as HTMLElement;
-    host.querySelector<HTMLButtonElement>('[data-panel-id="p1"] .chart-form-toggle button[aria-label="Table"]')?.click();
+    host.querySelector<HTMLElement>('[data-panel-id="p1"] [aria-label="Form"] .mat-mdc-select-trigger')!.click();
+    await fixture.whenStable();
+    [...document.querySelectorAll<HTMLElement>('mat-option')].find(option=>option.textContent?.trim().startsWith('Table'))!.click();
     await settle(fixture);
 
-    const card = host.querySelector('[data-panel-kind="sample"]');
+    const card = host.querySelector('[data-panel-id="p1"]');
     // "100 rows loaded" said nothing about what it was 100 of.
     expect(card?.querySelector('[data-testid="panel-shown"]')?.textContent).toMatch(
       /Showing [\d,]+ of [\d,]+ scans/,
@@ -1085,25 +1061,6 @@ describe('Dashboard chrome', () => {
     // case: nothing spans. The arithmetic itself is `lastCardSpan`'s own test.
     expect(cards[cards.length - 1].style.gridColumn).toBe('');
     expect(cards[cards.length - 1].style.height).toBe('544px');
-  });
-});
-
-describe('visiblePanelKinds', () => {
-  const kinds = [
-    { kind: 'distribution' as const, label: 'Distribution', hint: '' },
-    { kind: 'comparison' as const, label: 'Compare cohorts', hint: '' },
-  ];
-
-  it('offers the comparison kind whether or not a study can be uploaded', () => {
-    // A comparison is between cohorts, and "This dashboard" and "Whole
-    // population" always exist, so there is no state in which the entry would
-    // produce a panel that cannot draw.
-    for (const studyUpload of [false, true]) {
-      expect(visiblePanelKinds(kinds, studyUpload).map((k) => k.kind)).toEqual([
-        'distribution',
-        'comparison',
-      ]);
-    }
   });
 });
 

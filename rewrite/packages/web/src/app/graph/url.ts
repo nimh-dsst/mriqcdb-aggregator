@@ -1,32 +1,8 @@
 import { validSelections } from './selections';
-import { shapeOf } from './panel-shapes';
+import { axisType, validForm } from './panel-shapes';
+import { normalizeSeries } from './series';
 import { reconcileLayout, type DashboardLayout } from './layout';
-/**
- * URL serialization: the shareable half of the dashboard, in one `s` parameter.
- *
- * Four layers, outermost first:
- *
- * 1. a version character, so a payload this build cannot read is refused rather
- *    than misread (`url-tokens.ts`, `TOKEN_VERSION`);
- * 2. base64url of
- * 3. a deflate stream (fflate, synchronous -- the first hydrate has to be
- *    synchronous or a shared link would flash the default dashboard) of
- * 4. the field-table text (`url-fields.ts`): every field equal to its default
- *    omitted, every catalog identifier a one- or two-character token, dates as
- *    digits, brush bounds at three significant figures.
- *
- * A link written before the version character existed is compact JSON in
- * base64url, and `url-legacy.ts` still reads it: links live in chats and
- * papers, and the one thing a shared dashboard must do is open.
- *
- * Everything here treats the parameter as hostile input. `decodeUrlState` never
- * throws: a link that is truncated, hand-edited or crafted degrades to null, and
- * the router edge opens the default dashboard. `validateUrlState` then drops
- * anything the catalog or the server's own schemas would reject, so no value
- * that arrived from a URL can reach a query key or a procedure unchecked.
- *
- * Pure. No Angular, no router; the router edge lives in `graph.ts`.
- */
+/** Shareable dashboard state. The only wire format is the versioned six-bit stream. */
 
 import {
   asColumnId,
@@ -42,10 +18,8 @@ import {
   type Modality,
   type View,
 } from '@mriqc/shared';
-import { deflateSync, inflateSync } from 'fflate';
-import { PANEL_KINDS } from './panel-shapes';
-import { validChart } from './panel-shapes';
-import { normalizedOptions } from './panels';
+
+import { normalizedOptions, validColumn } from './panels';
 import {
   ALL_COHORT,
   CURRENT_COHORT,
@@ -60,19 +34,13 @@ import {
   type State,
 } from './state';
 import { readUrlRecord, writeUrlRecord } from './url-fields';
-import { decodeLegacyUrlState } from './url-legacy';
 import {
   MAX_FILTER_VALUES,
   MAX_PANELS,
   MAX_PARAM_LENGTH,
-  MAX_PAYLOAD_BYTES,
-  TOKEN_VERSION,
-  RAW_TOKEN_VERSION,
-  URL_DICTIONARY,
-  fromBase64Url,
+  URL_VERSION,
   isWellFormed,
   normalizeSelection,
-  toBase64Url,
   uniqueIds,
 } from './url-tokens';
 
@@ -117,49 +85,15 @@ export function urlState(state: State): UrlState {
 
 /** Serialize a URL state into the value of the `s` query parameter. */
 export function encodeUrlState(url: UrlState): string {
-  // A study cohort's rows live only in this browser, so a link carrying one
-  // would promise its recipient a comparison they cannot have.
-  const shareable = url.cohorts.filter((cohort) => cohort.source !== 'study');
-  const text = writeUrlRecord({ ...url, cohorts: shareable });
-  const bytes = deflateSync(new TextEncoder().encode(text), { level: 9, dictionary: URL_DICTIONARY });
-  const compressed = toBase64Url(bytes);
-  return text.length < compressed.length ? RAW_TOKEN_VERSION + text : TOKEN_VERSION + compressed;
+  const stream = writeUrlRecord(url);
+  return stream ? URL_VERSION + stream : '';
 }
 
-/**
- * Parse the `s` parameter. Returns null for anything unparseable, which the
- * router edge treats as "no URL state" rather than as an error: a truncated
- * link should open the default dashboard, not a broken one.
- *
- * The whole decode sits in one try/catch and every element is shape-checked, so
- * no crafted payload can throw out of here and error `state$`.
- */
+/** Unknown versions and undecodable streams use the router's default fallback. */
 export function decodeUrlState(param: string | null | undefined): UrlState | null {
   if (!param) return null;
-  try {
-    // A deflate stream expands by up to a thousand to one, and the first
-    // hydrate is synchronous, so an uncapped one is a link that freezes the tab
-    // it is pasted into. Both ends are bounded: ten panels with three cohorts
-    // and a brush is 316 characters, and the caps leave an order of magnitude
-    // over the longest link the validation limits can produce.
-    if (param.length > MAX_PARAM_LENGTH) return null;
-    const version = param[0];
-    if (version === RAW_TOKEN_VERSION) return readUrlRecord(param.slice(1));
-    if (version >= '0' && version <= '9') {
-      // A version this build does not know is refused outright: a link that
-      // decodes to the *wrong* metric is worse than one that does not decode.
-      if (version !== TOKEN_VERSION) return null;
-      const bytes = inflateSync(fromBase64Url(param.slice(1)), {
-        dictionary: URL_DICTIONARY,
-        out: new Uint8Array(MAX_PAYLOAD_BYTES),
-      });
-      return readUrlRecord(new TextDecoder().decode(bytes));
-    }
-    // Written before the version character: compact JSON in base64url.
-    return decodeLegacyUrlState(param);
-  } catch {
-    return null;
-  }
+  if (param.length > MAX_PARAM_LENGTH || param[0] !== URL_VERSION || param.length < 3) return null;
+  return readUrlRecord(param.slice(1));
 }
 
 /* --------------------------------------------------------------- validation */
@@ -249,41 +183,44 @@ export function validateUrlState(url: UrlState): UrlState {
       }),
     'c',
   );
-  const known = new Set<CohortId>([CURRENT_COHORT, ALL_COHORT, ...cohorts.map((c) => c.id)]);
   const panels = uniqueIds(
     url.panels.slice(0, MAX_PANELS).map((panel) => {
-      const next = {
-        ...panel,
-        x: panel.x === 'created_at' ? 'created_at' as const : panel.x && isValidMetric(modality, panel.x) ? panel.x : metricsFor(modality)[0].id,
-        y: panel.y !== panel.x && panel.y && isValidMetric(modality, panel.y) ? panel.y : null,
-        split:
-          panel.split && isValidField(modality, view, panel.split, 'group') ? panel.split : null,
-        options: normalizedOptions({ ...panel, cursors: [null] }, {}, modality),
-      };
-      // Ids a cohort no longer answers to go, and the reducer's `pruneCohortRefs`
-      // turns a list that fell below two into a distribution panel. Validation
-      // reports what exists; the reducer decides what that makes the panel.
-      const ids = (panel.cohorts ?? []).filter(
-        (id, i, all) => isKnownUrlCohort(id, known, modality, view) && all.indexOf(id) === i,
-      );
-      // A reference the panel no longer draws is not a reference; the reducer's
-      // prune settles the rest.
-      const anchor =
-        panel.reference !== undefined && ids.includes(panel.reference)
-          ? { reference: panel.reference }
-          : {};
-      const cohorts = ids.length ? ids : [CURRENT_COHORT];
-      const validated = validChart({ ...next, cohorts, ...anchor, cursors: [null],
-        split: (next.x !== 'created_at' && next.y !== null) || cohorts.length > 1 ? null : next.split });
+      const x =
+        panel.x && validColumn(panel.x, modality, view) ? panel.x : metricsFor(modality)[0].id;
+      const y =
+        axisType(x) !== 'categorical' &&
+        panel.y !== x &&
+        panel.y &&
+        isValidMetric(modality, panel.y)
+          ? panel.y
+          : null;
+      const series = normalizeSeries(panel.series, {
+        cohortIds: cohorts.map((cohort) => cohort.id),
+        fieldCount: () => 0,
+      }).filter((item) => !('field' in item) || isValidField(modality, view, item.field, 'group'));
+      const candidate: Panel = { ...panel, x, y, series, cursors: [null] };
+      const validated = validForm({
+        ...candidate,
+        options: normalizedOptions(candidate, {}, modality),
+      });
       const { cursors: _, ...result } = validated;
       return result;
     }),
   );
-  const selections = validSelections(url.selections, modality).filter(selection =>
-    panels.some(panel => panel.id === selection.from && [panel.x, panel.y].includes(selection.metric)));
-  return { global: { modality, view, filters }, cohorts, panels, selections,
+  const selections = validSelections(url.selections, modality).filter((selection) =>
+    panels.some(
+      (panel) => panel.id === selection.from && [panel.x, panel.y].includes(selection.metric),
+    ),
+  );
+  return {
+    global: { modality, view, filters },
+    cohorts,
+    panels,
+    selections,
     ...(url.layout ? { layout: reconcileLayout(url.layout, panels, 3) } : {}),
-    ...(url.maximizedPanel && panels.some(panel => panel.id === url.maximizedPanel) ? { maximizedPanel: url.maximizedPanel } : {}),
+    ...(url.maximizedPanel && panels.some((panel) => panel.id === url.maximizedPanel)
+      ? { maximizedPanel: url.maximizedPanel }
+      : {}),
   };
 }
 

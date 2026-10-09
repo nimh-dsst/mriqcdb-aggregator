@@ -21,7 +21,7 @@ describe('export dialog',()=>{
     fixture.destroy();
   });
   it('excludes the local study and names that limitation',()=>{
-    expect(exportView({...state,panels:[{...state.panels[0],cohorts:['current','study']}]}).study).toBe(true);
+    expect(exportView({...state,panels:[{...state.panels[0],series: [{ kind: 'study' as const }]}]}).study).toBe(true);
     expect(exportView(state).groups.some(group=>group.family==='Motion')).toBe(true);
   });
 });

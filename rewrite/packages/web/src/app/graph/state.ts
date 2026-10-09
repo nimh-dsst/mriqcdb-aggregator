@@ -8,14 +8,12 @@
 import { canonicalViewFor } from '@mriqc/shared';
 import type { DashboardLayout } from './layout';
 import type {
-  ChartType,
   ClipMode,
   ColumnId,
   CompletedCatalog,
   Filter,
   Granularity,
   Modality,
-  PanelKind,
   QueryKey,
   Selection,
   View,
@@ -27,17 +25,12 @@ export type PanelId = string;
 /** A cohort's identity inside one dashboard. Carried in the URL and by panels. */
 export type CohortId = string;
 
-/**
- * The charts a panel may draw: every `ChartType` the shared vocabulary names,
- * plus `density`.
- *
- * `density` is deliberately *not* in `@mriqc/shared`. It is a kernel smoothing
- * of a histogram the `distribution` procedure already returns, computed in the
- * browser, so the server has no opinion about it and never needs one --
- * `ChartType` is in shared only because the URL carries a chart name. A chart
- * that asks the server for nothing new belongs to the client that draws it.
- */
-export type PanelChart = ChartType | 'density' | 'density2d' | 'scatter' | 'hexbin' | 'correlation' | 'clusters' | 'line' | 'medianBand';
+/** The form vocabulary is derived from the one axis-to-form table. */
+export type Form = ReturnType<typeof import('./panel-shapes').formsFor>[number];
+export type PanelChart = Form;
+export type ColumnRef = ColumnId | 'created_at';
+export type { Series } from './series';
+import type { Series } from './series';
 
 /** How a distribution split is presented; facets are an explicit reading mode. */
 export type SplitPresentation = 'overlay' | 'facets';
@@ -221,18 +214,12 @@ export const MIN_COMPARISON_COHORTS = 2;
 /** One card on the dashboard. */
 export interface Panel {
   id: PanelId;
-  x: MetricId | 'created_at';
+  x: ColumnRef;
   y: MetricId | null;
-  chart: PanelChart;
-  /** Facet or group column; null when the panel is ungrouped. */
-  split: GroupField | null;
+  form: Form;
+  series: readonly Series[];
   /** Rendering and analysis parameters, independent of the axes. */
   options: PanelOptions;
-  /**
-   * Ordered scopes, defaulting to ['current']. `current` follows the top bar;
-   * saved cohorts and `all` are fixed scopes. Two or more form a comparison.
-   */
-  cohorts: readonly CohortId[];
   /**
    * Which cohort the differences block subtracts from, when it is not the first.
    *
@@ -247,8 +234,8 @@ export interface Panel {
    * always starting with `null`. The document's `Panel` carries a single
    * `cursor`; a single cursor can only name the page on screen, and a table
    * that pages forward has to keep the pages behind it, so the field is the
-   * chain rather than its last link. Sample panels only; every other kind
-   * carries the one-element chain and never asks for a second page.
+   * chain rather than its last link. Table uses this chain; other forms keep
+   * the initial page. With series, each entry holds their independent cursors.
    */
   cursors: readonly (string | null)[];
 }
@@ -359,7 +346,7 @@ export function defaultPanelOptions(clip: ClipMode = 'p01p99'): PanelOptions {
 
 /** True for a chart whose x axis is the metric's and which therefore carries a brush. */
 export function isValueChart(chart: PanelChart): boolean {
-  return chart !== 'box' && chart !== 'table' && chart !== 'stackedBar' && chart !== 'area';
+  return chart !== 'box' && chart !== 'table' && chart !== 'bars' && chart !== 'area';
 }
 
 /** Bin-count bounds the server also enforces. */

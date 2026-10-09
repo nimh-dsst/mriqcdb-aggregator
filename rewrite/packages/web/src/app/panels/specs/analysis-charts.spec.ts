@@ -30,7 +30,7 @@ describe("analysis chart specifications", () => {
     const chart = densityChart(series, {
       xLabel: "SNR",
       yLabel: "CNR",
-      chart: "density2d",
+      form: "heatmap",
       showPoints: true,
     });
     const spec = chart.spec as unknown as { params: { name: string; select: { encodings: string[] } }[] };
@@ -43,7 +43,7 @@ describe("analysis chart specifications", () => {
     const chart = densityChart(series, {
       xLabel: "SNR",
       yLabel: "CNR",
-      chart: "hexbin",
+      form: "hexbin",
       showPoints: false,
     });
     const rows = chart.datasets["hex-samples"] as { sampleCount: number }[];

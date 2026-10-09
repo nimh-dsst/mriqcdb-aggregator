@@ -217,7 +217,7 @@ export function densityChart(
     yLabel: string;
     xScale?: Record<string, unknown>;
     yScale?: Record<string, unknown>;
-    chart: "density2d" | "scatter" | "hexbin";
+    form: "heatmap" | "scatter" | "hexbin";
     showPoints: boolean;
     theme?: ChartTheme;
     brush?: { x: [number, number]; y: [number, number] } | null;
@@ -260,7 +260,7 @@ export function densityChart(
     },
   };
 
-  if (opts.chart === "scatter") {
+  if (opts.form === "scatter") {
     return {
       datasets: { "density-samples": points },
       spec: {
@@ -275,7 +275,7 @@ export function densityChart(
     };
   }
 
-  if (opts.chart === "hexbin") {
+  if (opts.form === "hexbin") {
     return {
       datasets: { "hex-samples": hexagons },
       spec: {

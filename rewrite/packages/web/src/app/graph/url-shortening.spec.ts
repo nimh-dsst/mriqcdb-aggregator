@@ -1,49 +1,32 @@
-import { deflateSync } from "fflate";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from 'vitest';
 
-import { asColumnId } from "@mriqc/shared";
+import { asColumnId } from '@mriqc/shared';
 
-import { defaultDashboard, initialState, reduce } from "./reducer";
-import { defaultPanelOptions } from "./state";
-import { writeUrlRecord } from "./url-fields";
-import {
-  RAW_TOKEN_VERSION,
-  TOKEN_VERSION,
-  toBase64Url,
-} from "./url-tokens";
-import {
-  decodeUrlState,
-  encodeUrlState,
-  type UrlState,
-} from "./url";
+import { defaultDashboard, initialState, reduce } from './reducer';
+import { defaultPanelOptions } from './state';
+import { decodeUrlState, encodeUrlState, validateUrlState, type UrlState } from './url';
 
-const legacyToken = (state: UrlState) =>
-  `1${toBase64Url(
-    deflateSync(new TextEncoder().encode(writeUrlRecord(state)), { level: 9 }),
-  )}`;
-
-const roundTrip = (name: string, state: UrlState) => {
-  const oldToken = legacyToken(state);
+const roundTrip = (name: string, state: UrlState, limit: number) => {
   const token = encodeUrlState(state);
-  const decoded = decodeUrlState(token);
+  const decoded = decodeUrlState(token) ?? (token === '' ? defaultDashboard() : null);
 
   console.log(
     JSON.stringify({
       name,
-      oldLength: oldToken.length,
       newLength: token.length,
     }),
   );
+  expect.soft(token.length, name).toBeLessThanOrEqual(limit);
   expect(decoded).not.toBeNull();
   if (!decoded) {
-    throw new Error("Encoded URL token did not decode");
+    throw new Error('Encoded URL token did not decode');
   }
   expect(decoded).toEqual(state);
   return { token, decoded };
 };
 
-describe("short graph URL tokens", () => {
-  it("round-trips representative dashboard states and hydrates them", () => {
+describe('short graph URL tokens', () => {
+  it('round-trips representative dashboard states and hydrates them', () => {
     const defaultState = defaultDashboard();
     const filteredState: UrlState = {
       ...defaultDashboard(),
@@ -51,20 +34,20 @@ describe("short graph URL tokens", () => {
         ...defaultDashboard().global,
         filters: [
           {
-            field: asColumnId("manufacturer"),
-            op: "in",
-            values: ["Siemens", "GE", "Philips"],
+            field: asColumnId('manufacturer'),
+            op: 'in',
+            values: ['Siemens', 'GE', 'Philips'],
           },
           {
-            field: asColumnId("magnetic_field_strength"),
-            op: "in",
+            field: asColumnId('magnetic_field_strength'),
+            op: 'in',
             values: [1.5, 3],
           },
           {
-            field: asColumnId("created_at"),
-            op: "between",
-            lo: "2020-01-01",
-            hi: "2024-01-01",
+            field: asColumnId('created_at'),
+            op: 'between',
+            lo: '2020-01-01',
+            hi: '2024-01-01',
           },
         ],
       },
@@ -73,31 +56,31 @@ describe("short graph URL tokens", () => {
       ...defaultDashboard(),
       cohorts: [
         {
-          id: "c1",
-          name: "Siemens cohort",
+          id: 'c1',
+          name: 'Siemens cohort',
           color: 2,
-          source: "population",
+          source: 'population',
           view: defaultDashboard().global.view,
           filters: [
             {
-              field: asColumnId("manufacturer"),
-              op: "in",
-              values: ["Siemens"],
+              field: asColumnId('manufacturer'),
+              op: 'in',
+              values: ['Siemens'],
             },
           ],
           selections: [],
         },
         {
-          id: "c2",
-          name: "GE cohort",
+          id: 'c2',
+          name: 'GE cohort',
           color: 3,
-          source: "population",
+          source: 'population',
           view: defaultDashboard().global.view,
           filters: [
             {
-              field: asColumnId("manufacturer"),
-              op: "in",
-              values: ["GE"],
+              field: asColumnId('manufacturer'),
+              op: 'in',
+              values: ['GE'],
             },
           ],
           selections: [],
@@ -106,7 +89,10 @@ describe("short graph URL tokens", () => {
       panels: [
         {
           ...defaultDashboard().panels[0],
-          cohorts: ["c1", "c2"],
+          series: [
+            { kind: 'cohort' as const, id: 'c1' },
+            { kind: 'cohort' as const, id: 'c2' },
+          ],
         },
       ],
     };
@@ -115,13 +101,13 @@ describe("short graph URL tokens", () => {
       panels: [
         {
           ...defaultDashboard().panels[0],
-          split: asColumnId("manufacturer"),
-          chart: "histogram",
+          series: [{ kind: 'field' as const, field: asColumnId('manufacturer') }],
+          form: 'histogram',
           options: {
             ...defaultPanelOptions(),
-            layout: "stacked",
+            layout: 'stacked',
             xRange: [0.1, 2.5],
-            xScale: "symlog",
+            xScale: 'symlog',
           },
         },
       ],
@@ -131,55 +117,40 @@ describe("short graph URL tokens", () => {
       panels: [
         {
           ...defaultDashboard().panels[0],
-          id: "left",
+          id: 'left',
         },
         {
           ...defaultDashboard().panels[0],
-          id: "right",
-          x: asColumnId("tsnr"),
+          id: 'right',
+          x: asColumnId('tsnr'),
           y: null,
-          chart: "histogram",
+          form: 'histogram',
         },
       ],
       layout: {
         left: { x: 0, y: 0, w: 6, h: 12 },
         right: { x: 6, y: 0, w: 6, h: 10 },
       },
-      maximizedPanel: "right",
+      maximizedPanel: 'right',
     };
 
     const cases = [
-      ["default", defaultState],
-      ["three-filters", filteredState],
-      ["cohort-comparison", cohortsState],
-      ["split-custom-range", splitState],
-      ["explicit-layout", layoutState],
+      ['default', defaultState, 0],
+      ['three-filters', filteredState, 40],
+      ['cohort-comparison', cohortsState, 45],
+      ['split-custom-range', splitState, 18],
+      ['explicit-layout', layoutState, 26],
     ] as const;
 
-    for (const [name, state] of cases) {
-      const { decoded } = roundTrip(name, state);
-      expect(reduce(initialState, { t: "hydrate", url: decoded })).toMatchObject(
-        decoded,
+    const positionalLayout: UrlState = { ...layoutState,
+      panels: layoutState.panels.map((panel, index) => ({ ...panel, id: `p${index + 1}` })),
+      layout: { p1: layoutState.layout!['left'], p2: layoutState.layout!['right'] }, maximizedPanel: 'p2' };
+    roundTrip('positional-layout', positionalLayout, 18);
+    for (const [name, state, limit] of cases) {
+      const { decoded } = roundTrip(name, state, limit);
+      expect(reduce(initialState, { t: 'hydrate', url: decoded })).toMatchObject(
+        validateUrlState(decoded),
       );
     }
-  });
-
-  it("uses the raw form when the record is smaller than its compressed form", () => {
-    const state: UrlState = {
-      global: { ...defaultDashboard().global, filters: [] },
-      cohorts: [],
-      panels: [],
-      selections: [],
-    };
-
-    const token = encodeUrlState(state);
-
-    expect(token.startsWith(RAW_TOKEN_VERSION)).toBe(true);
-    expect(token.startsWith(TOKEN_VERSION)).toBe(false);
-    expect(decodeUrlState(token)).toEqual(state);
-  });
-
-  it("refuses compressed tokens from an older token version", () => {
-    expect(decodeUrlState(legacyToken(defaultDashboard()))).toBeNull();
   });
 });

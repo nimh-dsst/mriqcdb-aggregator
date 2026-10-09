@@ -283,15 +283,12 @@ Hover state, tooltip positions, open or closed side sheets, the file picker's
 own state, and the WASM instance itself. None of these decide what a user sees
 for a given command history, so none of them are state.
 
-## URL encoding (revised 2026-10-07: "can we shrink the url encodings?")
+## URL encoding (2026-10-09)
 
-Three layers, applied in order: omit every field equal to its default; map
-catalog-drawn identifiers (metric ids, field ids, views, chart types) to one or
-two character codes from a versioned token table, dates to eight digits,
-numbers to three significant figures; then deflate (fflate, synchronous so the
-first hydrate stays synchronous) and base64url. Decode reverses the layers and
-accepts the previous unversioned format for old links. Targets: a default
-dashboard under 80 characters, ten panels with three saved cohorts under 400.
+The only URL codec is the schema-positional six-bit stream described below.
+A default dashboard produces an empty parameter value. Catalog identifiers,
+typed filter values, series descriptors and layout rectangles are written
+directly in the URL alphabet; there is no compression or base64 stage.
 
 ## Implementation notes (2026-10-01)
 
@@ -743,9 +740,9 @@ parameters a query carries -- the switch stayed, in `graph/queries.ts`, over
 | `graph/datasets.ts`       | `touch` and `evict` over the datasets map                                                                        |
 | `graph/reducer.ts`        | the fold, and nothing else                                                                                       |
 | `graph/url.ts`            | `UrlState`, `urlState`, `encodeUrlState` / `decodeUrlState`, `validateUrlState`                                  |
-| `graph/url-tokens.ts`     | the versioned token tables, the scalar codecs, the limits, base64url                                             |
-| `graph/url-fields.ts`     | the field tables that drive both directions of the compact format                                                |
-| `graph/url-legacy.ts`     | the previous JSON format, read-only                                                                              |
+| `graph/url-tokens.ts`     | six-bit reader/writer, catalog tokens, scalar codecs and limits                                               |
+| `graph/url-fields.ts`     | declarative record schemas walked in both directions                                                         |
+
 | `graph/graph.ts`          | the loop: sources, `scan`, the projections, the three edges                                                      |
 | `graph/effects.ts`        | the runner                                                                                                       |
 | `view/text.ts`            | the card's words: unit nouns, the meaning line, notes, chips, `significant`                                      |
@@ -781,64 +778,59 @@ name and covers the lot.
   could, and the value it set was written back into the link and read by
   nothing.
 
-## URL format (2026-10-07)
+## URL format (2026-10-09)
 
-The `s` parameter is, outermost first: a **version character**, then base64url
-of a **deflate** stream (fflate, synchronous -- the first hydrate has to be
-synchronous or a shared link would flash the default dashboard) of a flat
-**field-table text**.
+A non-default `s` begins with schema version `1`, followed by characters from
+`ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_`.
+`BitWriter.write(bits, value)` and `BitReader.read(bits)` operate directly on
+this alphabet. No JSON, field keys, delimiters, deflate, dictionary or base64
+layer remains. Unknown versions, invalid alphabet, truncation, trailing data
+and nonzero padding are rejected. The router falls back to the default dashboard.
 
-The text is driven by one table per record (`url-fields.ts`), and each field
-says four things: the single character it is written under, how a value becomes
-text, how text becomes a value, and what it is when the payload leaves it out.
-That last one is also the rule for leaving it out -- a field whose text equals
-its fallback's text is not written -- so a default dashboard writes almost
-nothing and the two directions cannot drift apart.
+`url-fields.ts` declares one table each for dashboard, panel, series, filter,
+selection, layout entry and cohort. Common and additional panel options use
+separate tables so common adjustments do not pay for every analysis option.
+Each table names a field, its codec and its default. Both directions walk
+that same table in order. A presence bitmap uses one character per six optional
+fields; only non-default values follow. A saved cohort's source is implicitly
+population, so that constant takes no presence bit or value.
 
-On top of that:
+- Omitted panels mean `defaultDashboard().panels`; an explicit empty list
+  still means no panels. A completely default dashboard encodes as an empty
+  string. Defaults for individual panel IDs and quantities are positional.
+- Catalog IDs use prefix-free one- or two-character tokens. Enums use one
+  character. Small integers/list lengths use one character; 63 is an escape
+  followed by two characters for larger values. Input and list limits remain
+  bounded, including the 4096-character parameter limit.
+- Range and brush endpoints carry a sign, three significant digits and an
+  exponent in three or four characters. Filter numbers retain their exact
+  decimal spellings with length-prefixed, packed decimal digits. Open bounds
+  retain their exact sentinels.
+- Plain dates occupy three characters as signed days since 2000-01-01.
+  Timestamp filter bounds keep their original text, including timezone and
+  fractional seconds; they are never truncated to a day.
+- Pinned categorical values use indices. Live catalog counts and ordering
+  never determine the wire vocabulary. Free text has a byte-length prefix;
+  alphanumerics and spaces cost one character, other UTF-8 bytes are escaped.
+- Series are records, not escaped JSON. Saved-cohort references use cohort
+  positions, including positional defaults when comparing saved cohorts.
+  Custom identities remain supported. Study rows and stored study cohorts
+  never enter a link.
+- Layout entries follow panel order, so geometry repeats no panel IDs or list
+  length. Coordinates equal to derived geometry are omitted. Geometry equal
+  to the complete derived default is omitted altogether; partial layouts
+  retain which entries were absent. Maximized panels use a positional reference.
 
-- Every catalog-drawn identifier (metric, column, view, modality, panel kind,
-  chart, clip, granularity, filter op, cohort source) is **its index in the
-  authored catalog**, in one or two characters from a 64-character alphabet.
-  That makes the catalog's authored order part of the wire format, so
-  `TOKEN_VERSION` guards it: appending to the catalog is free, reordering or
-  removing an entry means bumping the version, and a payload under a version
-  this build does not know is refused outright rather than misread.
-- Dates are eight digits (`yyyymmdd`), or fourteen for an instant. Not
-  truncated to the date: the picker hands back local midnight, and truncating
-  in UTC moves the day a user chose.
-- The brush and a cohort's metric range are written at **three significant
-  figures**, which is what the card prints anyway. A filter bound is _not_: it
-  is typed, or it is one of the two open-end sentinels (one character each,
-  `_` and `^`), and rounding either would change which rows it matches.
-- Nesting is one separator per level (`; , : | ~ !`), and free text escapes
-  them. A record all of whose fields are defaults writes one `.`, because
-  otherwise it writes nothing -- and a one-element list of nothing is
-  indistinguishable from the omitted list, which lost the single panel, the
-  single cohort and the empty dashboard their own links.
-- Both ends are capped: a parameter over 4096 characters is refused unread and
-  the inflate is bounded to 64 KiB. A deflate stream expands by up to a
-  thousand to one and the first hydrate is synchronous, so an uncapped one is a
-  link that freezes the tab it is pasted into.
-- A stored cohort may not claim `current`, `all` or a split group’s id. Every
-  lookup by those answers with the derived cohort, so a stored one under them
-  could never be edited or deleted and would be written into every later link.
+The available `url-shortening.spec.ts` scenarios currently measure **0, 25,
+45, 18 and 26** characters: default, three filters, cohort comparison,
+split/custom range, and explicit layout. The requested 14/18 limits for the
+last two remain failing assertions. The referenced scratchpad benchmark was
+not present in this checkout. All lengths are already URL-safe characters.
 
-Measured: the default dashboard went from **520 to 32** characters, and ten
-panels including two comparisons with three saved cohorts and a brush from
-**1634 to 316**.
-
-`decodeUrlState` detects the format by the first character -- a digit is a
-versioned payload, anything else is the previous format, whose base64 of a JSON
-object always began with `e` -- and `url-legacy.ts` still reads the old one, so
-links already in chats and papers open. Reading one re-encodes it compactly, so
-copying a shared link shortens it. Everything the usability pass guaranteed
-holds: the decode never throws, every element is shape-checked, and a payload
-that is truncated, crafted or written under an unknown version yields the
-default dashboard. Where the old decoder dropped a whole panel whose chart its
-kind forbade, the compact one falls back to the chart that kind opens on; a
-chart token can only be wrong in a hand-edited payload, and the card the link
-asked for is the kinder answer.
+`fflate` remains a web dependency solely for ZIP study uploads; URL code
+does not import it. The former URL codecs and their migration fixtures are
+removed. Changing schema order, defaults or token meanings requires a future
+schema version.
 
 ## Implementation notes: local study upload (2026-10-07)
 
@@ -937,11 +929,11 @@ gzip -9; the development server used for the run sends the raw asset.
 
 - `Panel` has x/y/split/cohorts/chart; no stored kind, metric, group or singular
   cohort field. `graph/panel-shapes.ts` replaces `panel-kinds.ts`. Its shape
-  lookup drives chart validation, while old kind names remain URL and add-menu
+  lookup drives chart validation, while old kind names remain add-menu
   presets. `setPanelAxis` and `setPanelSplit` flow through the existing reducer
   path. Split plus multiple cohorts is refused with a notice; converting a
-  split to a comparison drops the split with a notice. Old kind URLs decode
-  to axes, and the compact codec has additive y/chart/analysis-option fields.
+  split to a comparison drops the split with a notice. The current URL stream
+  carries quantities, series, forms and analysis options directly.
 - `api/api.ts`, the tRPC adapter and query planner explicitly cover both new
   procedures, removing the initial TS2366 failures. `view/analysis-view.ts`
   derives chart data, stats and status from one state snapshot. Density
@@ -976,9 +968,8 @@ gzip -9; the development server used for the run sends the raw asset.
   snapshots only metric/range pairs. The reducer owns replacement, per-metric
   clear, the four-metric cap, atomic two-axis updates and pruning. Query planning
   includes the list in every data query and excludes the source's own entries.
-- The compact codec adds `S` list fields without changing existing tokens;
-  legacy `s` singleton fields and old JSON links decode into lists. Global
-  and saved-cohort lists are validated for distinct, finite, ordered ranges.
+- The stream codec carries global and saved-cohort selection lists.
+  Both are validated for distinct, finite, ordered ranges.
 - `medianBand` is the default time-plus-metric shape in `panel-shapes.ts`.
   `view/time-view.ts` derives status, named datasets and per-series first/last
   median statistics from one state snapshot. The web query union adds the
@@ -1011,15 +1002,8 @@ gzip -9; the development server used for the run sends the raw asset.
   Shift+arrows resize, and a live region announces the dimensions.
 - State.maximizedPanel is URL state; maximizePanel and Escape preserve layout.
   Narrow viewports stack rectangles in (y,x) order and hide drag handles.
-- The URL codec writes version 2 with a deterministic preset deflate dictionary
-  from authored tokens and known categorical values, or version 3 with raw
-  token text when that text is shorter. Version 1 is refused; unversioned
-  legacy JSON still migrates. G stores per-panel geometry, Z the maximized id,
-  D the second metric, and C the non-default correlation coefficient.
-  Any dictionary-byte change, including new authored catalog entries, requires
-  another version bump. Raw payload lengths exclude query escaping: a 37-character raw fixture is
-  55 characters including s= and percent escapes, versus 54 for its old
-  compressed query. The other four measured queries become shorter.
+- The URL stream stores geometry positionally and omits derived defaults;
+  see the URL format section for the current schema.
 - Export effects snapshot scope, abort on cancellation, count Arrow record
   batches, and produce an Arrow or client-converted CSV Blob. Columns use the
   server route's comma-separated parameter; filters and selections are JSON.
@@ -1029,3 +1013,54 @@ gzip -9; the development server used for the run sends the raw asset.
 Chart-container ResizeObservers update Vega width/height on the next frame;
 these measurements never set card geometry. The dashboard route and Arrow
 export runtime load on demand to retain the existing production size limit.
+
+## Implementation notes: Quantity · Series · Form (2026-10-09)
+
+Panels are quantities and series rendered in a form, not kinds. New command
+payloads are:
+
+| Command | Payload and effect |
+|---|---|
+| `addPanel` | optional `x`, `y`, `form`, `series`; creates a valid quantity |
+| `setPanelAxis` | `id`, `axis`, `value`; keeps the form when still valid |
+| `setPanelForm` | `id`, `form`; validates through `formsFor` |
+| `addPanelSeries` | `id`, `series`; validates descriptor, mixing and cap |
+| `removePanelSeries` | `id`, `key`; removes the stable descriptor key |
+| `addGroupToPanels` | `id`, optional `panelIds`; adds a saved group where capacity permits |
+| `patchPanel` | `id`, `patch`; normalizes axes, forms, options and series |
+| `addCohort` / `updateCohort` / `removeCohort` | saved-group storage; deletion also prunes references |
+| `requestPage` | `id`, `cursor`; extends Table's ephemeral page chain |
+
+Old command aliases remain read-compatible for callers; active controls use
+the quantity/series/form commands. The URL stream carries only the current
+panel model. `panelCohorts` resolves every form's series through the
+same filters/brush machinery. Query keys deduplicate network work while
+preserving distinct semantic series in projections, even when their rows
+coincide. The default dashboard has four metric histograms and Uploads over
+time, all with empty series lists.
+
+
+The sole URL codec is the version-1 six-bit stream, with one-character form
+tokens derived in `formsFor` order. The default dashboard emits no `s`
+parameter. Undecodable streams restore it with a notice; shared numeric ranges
+round to three significant digits. Legacy codecs and compression dictionaries
+are removed. The fflate dependency is removed; ZIP study uploads use native
+raw-DEFLATE and stored-entry parsing with integrity checks.
+
+Scroll behavior is part of the same URL integration:
+
+- The router disables scrollPositionRestoration so state mirrored into the
+  s query parameter leaves the viewport alone. anchorScrolling stays enabled
+  for About links. Query-only navigation uses the default RouteReuseStrategy
+  and retains the same Dashboard component instance and host element.
+- Scroll handling does not change history policy: Graph.syncUrl still uses
+  router.navigate and the existing urlSyncMode/replaceUrl decision. Form and
+  series changes push; hydration canonicalization replaces. Back hydrates
+  the previous state without an extra history entry or a scroll reset.
+- dashboard-navigation.spec.ts asserts component and host identity across
+  changed s parameters and a return to the original URL. The standalone
+  packages/web/e2e/scroll-position.spec.mjs uses the existing servers and real
+  API: at a 1100 x 800 viewport, p3 changes Histogram to ECDF, adds Whole
+  population, and traverses Back twice. It checks URL/history, restored
+  controls, and component identity. Recorded scrollY values were 900 before,
+  900 after Form, 900 after adding the series, and 900 after each Back.
