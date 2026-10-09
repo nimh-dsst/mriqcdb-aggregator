@@ -222,6 +222,7 @@ export function runStudyEffects(
         map((loaded): Command => ({
           t: 'studyLoaded',
           ...loaded,
+          ...(command.addToAll === undefined ? {} : { addToAll: command.addToAll }),
         })),
         catchError((error: unknown) => of<Command>({ t: 'studyFailed', error: describe(error) })),
       );

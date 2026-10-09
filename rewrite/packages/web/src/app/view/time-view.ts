@@ -1,4 +1,5 @@
-import { queryKey, type BinnedSummaryResult } from '@mriqc/shared';
+import { queryKey } from '../api/api';
+import { type BinnedSummaryResult } from '@mriqc/shared';
 import { withChipLegend } from '../panels/specs/chip-legend';
 import { binnedQueries, panelCohort, panelCohorts, panelQueries, resultOf, scopedQuery } from '../graph/queries';
 import type { Panel, State } from '../graph/state';
@@ -31,25 +32,31 @@ export function timePanelView(state: State, panel: Panel, theme: ChartTheme): Pa
   const status: PanelStatus = failures.length ? { kind: 'error', message: (state.datasets[failures[0]] as { error: string }).error, retryKeys: failures }
     : keys.some(key => state.datasets[key]?.status !== 'ready') ? { kind: 'loading' }
     : { kind: 'ready', stale: keys.some(key => state.datasets[key]?.version !== state.dataVersion) };
-  const metric = metricDef(state, panel.y), label = metric?.shortLabel ?? metric?.label ?? String(panel.y);
+  const metric = metricDef(state, panel.y), label = panel.y === 'created_at' ? 'Upload time' : metric?.shortLabel ?? metric?.label ?? String(panel.y);
   const color = (index: number) => cohorts[index]?.name === 'Other' ? OTHER_COLOR : theme.categories[index % 6];
   const series: BinnedSeries[] = cohorts.flatMap((cohort,index) => results[index] ? [{
     id: cohort.id, name: cohort.name, color: color(index), result: results[index]!,
   }] : []);
   const time = panel.x === 'created_at';
-  const xLabel = time ? 'Upload time' : metricDef(state, panel.x)?.label ?? String(panel.x);
+  const xLabel = time ? 'Upload time' : metricDef(state, panel.x)?.shortLabel ?? metricDef(state, panel.x)?.label ?? String(panel.x);
+  const tails = panel.options.quantiles === 'tails';
+  const lower = tails ? 'p05' : 'p25', upper = tails ? 'p95' : 'p75';
+  const lowerLabel = tails ? 'p05' : 'Q1', upperLabel = tails ? 'p95' : 'Q3';
   const evidence = axisEvidence(state, panel);
   const chart = bandChart(series, label, { label: xLabel, theme, logScale: false,
     xScale: time ? 'time' : panel.options.xScale === 'log' && !evidence.positive ? 'symlog' : panel.options.xScale,
-    xRange: panel.options.xRange, constant: evidence.constant, granularity: panel.options.granularity, countTitle: 'Scans' }, panel.form === 'lines' ? 'lines' : 'band');
+    xRange: panel.options.xRange, constant: evidence.constant, granularity: panel.options.granularity, countTitle: 'Scans' }, panel.form === 'lines' ? 'lines' : 'band', panel.options.quantiles);
   const aggregate = resultFor(panelCohort(state,panel));
   const n = aggregate?.buckets.reduce((sum,bucket) => sum + bucket.n,0) ?? null;
   const rows = series.map(item => {
     const stats = timeSeriesStats(item);
-    return { id:item.id, name:item.name,color:item.color,cells:[stats.n.toLocaleString('en-US'), ...[stats.first,stats.last,stats.change].map(value => significant(value))] };
+    const buckets = [...item.result.buckets].sort((a, b) => a.lo - b.lo);
+    const first = buckets[0]?.quantiles, last = buckets.at(-1)?.quantiles;
+    return { id:item.id, name:item.name,color:item.color,cells:[stats.n.toLocaleString('en-US'),
+      ...[first?.[lower], stats.first, first?.[upper], last?.[lower], stats.last, last?.[upper], stats.change].map(value => significant(value ?? null))] };
   });
   return {
-    id:panel.id,panel,title:time ? 'Uploads over time' : `${label} vs ${xLabel}`,meaning:label+' per '+xLabel+' bin: '+(panel.form === 'lines' ? '5th, 50th and 95th percentiles.' : 'median and middle half.'),subtitle:'',
+    id:panel.id,panel,title:time ? `${label} over time` : `${label} vs ${xLabel}`,meaning:label+' per '+xLabel+' bin: '+(panel.form === 'lines' ? `${lowerLabel}, median and ${upperLabel} lines.` : `median and ${lowerLabel}–${upperLabel} band.`),subtitle:'',
     notes:panelNotes(state,panel),clipChip:null,
     metricHelp:metric ? {label:metric.label,taxonomy:metric.family,description:metric.description??null,unit:metric.unit??null}:null,
     specKey:JSON.stringify([theme.mode,panel.form,panel.x,panel.y,panel.options,series.map(item=>[item.id,item.name,item.color])]),
@@ -59,7 +66,7 @@ export function timePanelView(state: State, panel: Panel, theme: ChartTheme): Pa
     cohorts:panel.series.length ? cohorts.map((cohort,i)=>({id:cohort.id,name:cohort.name,color:color(i),
       n:results[i]?.buckets.reduce((sum,bucket)=>sum+bucket.n,0)??null,editable:false,descriptorKey:cohort.descriptorKey})):null,
     comparison:null,splitCohorts:[],outsideNotes:[],partial:false,
-    analysisHeaders:cohorts.length>1?['n','First median','Last median','Change']:[],analysisRows:cohorts.length>1?rows:[],
-    analysisNote:'Medians are shown for each series’ first and last occupied buckets. Faded buckets contain fewer than 20 observations.',correlationPairs:[],
+    analysisHeaders:['n',`First ${lowerLabel}`,'First median',`First ${upperLabel}`,`Last ${lowerLabel}`,'Last median',`Last ${upperLabel}`,'Median change'],analysisRows:rows,
+    analysisNote:`${lowerLabel}, median and ${upperLabel} are shown for each series’ first and last occupied buckets. Faded buckets contain fewer than 20 observations.`,correlationPairs:[],
   };
 }

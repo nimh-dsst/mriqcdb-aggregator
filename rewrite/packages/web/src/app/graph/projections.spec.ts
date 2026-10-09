@@ -1,8 +1,8 @@
+import { queryKey } from '../api/api';
 import {
   asColumnId,
   fieldsFor,
   metricsFor,
-  queryKey,
   viewsFor,
   type CompletedCatalog,
   type Modality,

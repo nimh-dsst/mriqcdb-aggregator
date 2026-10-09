@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
 import type { PanelView } from '../view/panel-view';
 import type { PanelOptions } from '../graph/state';
+import { axisType } from '../graph/panel-shapes';
 
 @Component({
   selector: 'app-axes-controls', changeDetection: ChangeDetectionStrategy.OnPush,
@@ -9,18 +10,20 @@ import type { PanelOptions } from '../graph/state';
       @for (axis of axes(); track axis) {
         <div class="flex items-center gap-1 text-caption" [attr.data-testid]="axis + '-axis-controls'">
           <span class="w-3">{{ axis.toUpperCase() }}</span>
+          @if (!(axis === 'x' && view().panel.x === 'created_at') && !(axis === 'y' && view().panel.y === null)) {
           <select class="min-w-0 rounded border border-border bg-surface p-1" [attr.aria-label]="axis.toUpperCase() + ' scale'"
             [value]="axis === 'x' ? view().panel.options.xScale : view().panel.options.yScale" (change)="scale(axis, $event)">
             <option value="linear">Linear</option>
             @if (axis === 'x' ? view().xPositive : view().yPositive) { <option value="log">Log</option> }
             <option value="symlog">Symlog</option>
           </select>
+          }
           <input #lo type="number" class="w-16 min-w-0 rounded border border-border bg-surface p-1" placeholder="Auto"
             [attr.aria-label]="axis.toUpperCase() + ' minimum'" [value]="bound(axis, 0)" (change)="range(axis, lo.value, hi.value)" />
           <span>–</span>
           <input #hi type="number" class="w-16 min-w-0 rounded border border-border bg-surface p-1" placeholder="Auto"
             [attr.aria-label]="axis.toUpperCase() + ' maximum'" [value]="bound(axis, 1)" (change)="range(axis, lo.value, hi.value)" />
-          <span>{{ axis === 'x' ? view().metricHelp?.unit : yUnit() }}</span>
+          <span>{{ unit(axis) }}</span>
           <button type="button" class="text-action-ink underline" (click)="reset(axis)" [attr.aria-label]="axis.toUpperCase() + ' automatic range'">Auto</button>
         </div>
       }
@@ -37,7 +40,14 @@ export class AxesControls {
   readonly view = input.required<PanelView>();
   readonly yUnit = input<string | undefined>();
   readonly changed = output<Partial<PanelOptions>>();
-  protected axes(): readonly ('x' | 'y')[] { return this.view().panel.y === null ? ['x'] : ['x', 'y']; }
+  protected axes(): readonly ('x' | 'y')[] {
+    return axisType(this.view().panel.x) === 'categorical' ? ['y'] : ['x', 'y'];
+  }
+  protected unit(axis: 'x' | 'y'): string {
+    const panel = this.view().panel;
+    if (axis === 'x') return panel.x === 'created_at' ? 'UTC milliseconds' : this.view().metricHelp?.unit || 'unitless';
+    return panel.y ? this.yUnit() || 'unitless' : panel.options.yMode === 'share' ? 'share' : 'count';
+  }
   protected bound(axis: 'x' | 'y', index: number): number | string {
     const value = axis === 'x' ? this.view().panel.options.xRange : this.view().panel.options.yRange;
     return value === 'auto' ? '' : value[index];

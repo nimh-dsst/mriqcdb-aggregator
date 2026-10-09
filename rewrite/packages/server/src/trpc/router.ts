@@ -389,7 +389,7 @@ export const appRouter = router({
         const holes = {
           table, where,
           x: continuousXExpr(input.modality, input.view, input.x),
-          y: metricExpr(input.modality, input.y),
+          y: continuousXExpr(input.modality, input.view, input.y),
           // DuckDB SAMPLE requires literals. Zod admits only bounded integers.
           sample_size: String(input.sampleSize),
           seed: String(input.seed),
@@ -430,6 +430,7 @@ export const appRouter = router({
             typeof value === 'number' && Number.isFinite(value) ? value : null;
           return {
             xKind: input.x === 'created_at' ? 'time' : 'metric',
+            yKind: input.y === 'created_at' ? 'time' : 'metric',
             x, y, counts, n,
             pearson: coefficient(stats?.['pearson']), spearman: coefficient(stats?.['spearman']),
             sample: sampled.map((row) => [Number(row['x']), Number(row['y'])]),
@@ -626,7 +627,7 @@ export const appRouter = router({
         const common = {
           table: compiled.table,
           x: continuousXExpr(input.modality, input.view, input.x),
-          y: metricExpr(input.modality, input.y),
+          y: continuousXExpr(input.modality, input.view, input.y),
           ...binnedSummaryFragments(input.bins),
           group_expr: field === undefined ? 'NULL::VARCHAR' : groupValueExpr(field),
           group_numeric: field?.kind === 'numeric' ? 'TRUE' : 'FALSE',
@@ -684,7 +685,7 @@ export const appRouter = router({
               });
             }
           }
-          return { xKind, range, buckets };
+          return { xKind, yKind: input.y === 'created_at' ? 'time' : 'metric', range, buckets };
         });
       }),
     ),

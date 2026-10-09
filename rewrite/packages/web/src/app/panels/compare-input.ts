@@ -413,6 +413,7 @@ export class CompareInput {
   }
 
   disabledReason(candidate: Series): string | null {
+    if (candidate.kind === 'study' && this.studyReady() && this.studyFormReason()) return this.studyFormReason();
     const reason = seriesDisabledReason(this.series(), candidate, this.context());
     if (reason) return reason;
     const study = candidate.kind === 'study' || (candidate.kind === 'cohort' && this.groups().find(group => group.id === candidate.id)?.source === 'study');

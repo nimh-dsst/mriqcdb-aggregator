@@ -96,6 +96,20 @@ const formOptionLabels = (panel: Panel): readonly string[] => {
 };
 
 describe('PanelCard', () => {
+  it.each(['band', 'lines', 'histogram'] as const)('offers Quantiles only for Band/Lines: %s', async form => {
+    const fixture = create(makePanel({ form, y: form === 'histogram' ? null : asColumnId('fd_mean') }));
+    fixture.nativeElement.querySelector('[aria-label="Panel options"]').click();
+    fixture.detectChanges();
+    await fixture.whenStable();
+    const select = TestBed.inject(OverlayContainer).getContainerElement().querySelector<HTMLSelectElement>('[aria-label="Quantiles"]');
+    if (form === 'histogram') { expect(select).toBeNull(); return; }
+    expect(Array.from(select!.options, option => option.text)).toEqual(['Quartiles', 'Tails']);
+    expect(select!.value).toBe('quartiles');
+    select!.value = 'tails';
+    select!.dispatchEvent(new Event('change'));
+    expect(TestBed.inject(Graph).dispatch).toHaveBeenCalledWith(expect.objectContaining({ t: 'patchPanel', patch: { options: expect.objectContaining({ quantiles: 'tails' }) } }));
+  });
+
   it.each([
     [makePanel(), ['Histogram', 'Line', 'Area', 'Density', 'ECDF', 'Box', 'Table', 'Heatmap', 'Scatter', 'Hexbin', 'Clusters', 'Band', 'Lines']],
     [
@@ -130,8 +144,8 @@ describe('PanelCard', () => {
     options.forEach((option, index) => {
       const disabled = singleContinuous && index >= 7;
       expect(option.getAttribute('aria-disabled')).toBe(String(disabled));
-      expect(option.querySelector('.form-option-hint')?.textContent?.trim() === 'add a second metric').toBe(disabled);
-      if (disabled) expect(option.getAttribute('aria-label')).toContain('add a second metric');
+      expect(option.querySelector('.form-option-hint')?.textContent?.trim() === 'add a second column').toBe(disabled);
+      if (disabled) expect(option.getAttribute('aria-label')).toContain('add a second column');
     });
   });
 
@@ -151,7 +165,7 @@ describe('PanelCard', () => {
     expect(dispatch).toHaveBeenCalledExactlyOnceWith({ t: 'setPanelForm', id: 'panel-1', form: 'density' });
   });
 
-  it.each([asColumnId('snr'), 'created_at' as const])('opens and focuses the y select from a disabled reason for %s', async x => {
+  it.each([asColumnId('snr'), 'created_at' as const])('opens and focuses the Y filter slot from a disabled reason for %s', async x => {
     const fixture = create(makePanel({ x }));
     fixture.nativeElement.querySelector('[aria-label="Form"] .mat-mdc-select-trigger').click();
     fixture.detectChanges();
@@ -163,10 +177,17 @@ describe('PanelCard', () => {
     fixture.detectChanges();
     await fixture.whenStable();
     expect(fixture.nativeElement.querySelector('[aria-label="Form"]').getAttribute('aria-expanded')).toBe('false');
-    expect(overlay.querySelector('.column-drawer select')).not.toBeNull();
+    expect(overlay.querySelector('.column-drawer [aria-label="Y slot (optional)"]')).not.toBeNull();
     // jsdom has no layout for CDK's visibility check; the live check verifies focus.
-    expect(overlay.querySelector('.column-drawer select')?.hasAttribute('cdkFocusInitial')).toBe(true);
+    expect(overlay.querySelector('.column-drawer [aria-label="Y slot (optional)"]')?.hasAttribute('cdkFocusInitial')).toBe(true);
     expect(TestBed.inject(Graph).dispatch).not.toHaveBeenCalled();
+    const slot = overlay.querySelector<HTMLInputElement>('.column-drawer [aria-label="Y slot (optional)"]')!;
+    slot.value = 'tsnr';
+    slot.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+    await fixture.whenStable();
+    overlay.querySelector<HTMLButtonElement>('[data-column-id="tsnr"]')!.click();
+    expect(TestBed.inject(Graph).dispatch).toHaveBeenCalledWith({ t: 'patchPanel', id: 'panel-1', patch: { x, y: 'tsnr', form: 'heatmap' } });
   });
 
   it('lets keyboard users activate the disabled reason without selecting a form', async () => {
@@ -197,7 +218,7 @@ describe('PanelCard', () => {
     const drawer = overlay.querySelector('.column-drawer')!;
     expect(drawer.getAttribute('role')).toBe('dialog');
     expect(drawer.querySelector('[data-column-id="snr"]')?.getAttribute('aria-pressed')).toBe('true');
-    expect(drawer.querySelector('[aria-label="Second metric (y)"]')).not.toBeNull();
+    expect(drawer.querySelector('[aria-label="Y slot (optional)"]')).not.toBeNull();
     drawer.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
     fixture.detectChanges();
     await fixture.whenStable();

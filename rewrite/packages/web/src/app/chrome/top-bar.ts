@@ -39,6 +39,7 @@ import { RouterLink } from '@angular/router';
 import { ThemeToggle } from './theme-toggle';
 import { PHONE_QUERY, matchesMedia } from './media';
 import { ExportDialog } from './export-dialog';
+import { UploadDialogComponent } from './upload-dialog';
 
 const MODALITY_LABELS: Record<string, string> = {
   bold: 'BOLD (functional)',
@@ -246,6 +247,7 @@ export function studyMetricSummary(study: {
     RouterLink,
     ThemeToggle,
     ExportDialog,
+    UploadDialogComponent,
   ],
   templateUrl: './top-bar.html',
 })
@@ -268,10 +270,8 @@ export class TopBar {
   protected readonly studyUpload = environment.features.studyUpload;
   protected readonly study = computed(() => this.chrome()?.study ?? 'none');
   protected readonly studyDialogOpen = signal(false);
-  protected readonly selectedStudyName = signal<string | null>(null);
   protected readonly notice = computed(() => this.chrome()?.notice ?? null);
 
-  protected readonly studyMetricSummary = studyMetricSummary;
 
   protected openStudyDialog(): void {
     this.studyDialogOpen.set(true);
@@ -281,19 +281,12 @@ export class TopBar {
     this.studyDialogOpen.set(false);
   }
 
-  protected chooseStudy(event: Event): void {
-    const input = event.target as HTMLInputElement;
-    const file = input.files?.[0];
-    if (!file) return;
-    this.selectedStudyName.set(file.name);
-    this.graph.dispatch({ t: 'studyChosen', file });
-    // Choosing the same file again after an error must still emit `change`.
-    input.value = '';
+  protected chooseStudy(event: { file: File; addToAll: boolean }): void {
+    this.graph.dispatch({ t: 'studyChosen', ...event });
   }
 
   protected clearStudy(): void {
     this.graph.dispatch({ t: 'clearStudy' });
-    this.selectedStudyName.set(null);
   }
 
   /** The primary filter row: the everyday categorical fields of this view. */
@@ -403,6 +396,9 @@ export class TopBar {
 
   /** The brushed interval, or null. Rendered as an amber chip that clears it. */
   protected readonly brushes = computed(() => this.chrome()?.brushes ?? []);
+  protected zoomToBrush(brush: { from: string }): void {
+    this.graph.dispatch({ t: 'zoomToBrush', from: brush.from });
+  }
 
   /** Drop the linked selection. The reducer ignores `from` and `metric` on a null range. */
   protected clearBrush(brush: { from: string; metric: import('../graph/state').MetricId }): void {

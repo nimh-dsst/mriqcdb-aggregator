@@ -72,6 +72,39 @@ afterAll(async () => {
 });
 
 describe('density2d', () => {
+  it('returns epoch-day y grids, disjoint tails, correlations and samples after swapping axes', async () => {
+    const epoch = (Date.UTC(2020, 0, 1) - Date.UTC(2000, 0, 1)) / 86_400_000;
+    const query = { ...density, x: 'fwhm_y', y: 'created_at', sampleSize: 47,
+      range: { x: [10, 150] as [number, number], y: [epoch + 30, epoch + 230] as [number, number] } };
+    const result = await caller.density2d(query);
+    const kept = rows.map((row, i) => [row[1], epoch + i] as const).filter(pair => finite(pair[0]));
+    const expected = new Array<number>(100).fill(0);
+    const tails = [0, 0, 0, 0];
+    for (const [value, y] of kept) {
+      const x = value!;
+      if (x < 10) tails[0]! += 1;
+      else if (x > 150) tails[1]! += 1;
+      else if (y < epoch + 30) tails[2]! += 1;
+      else if (y > epoch + 230) tails[3]! += 1;
+      else expected[Math.min(9, Math.floor((y - epoch - 30) / 20)) * 10 + Math.min(9, Math.floor((x - 10) / 14))]! += 1;
+    }
+    expect(result).toMatchObject({ xKind: 'metric', yKind: 'time', n: kept.length });
+    expect(result.y).toMatchObject({ lo: epoch + 30, width: 20 });
+    expect(result.counts).toEqual(expected);
+    expect([result.x.underflow, result.x.overflow, result.y.underflow, result.y.overflow]).toEqual(tails);
+    expect(result.pearson).toBeCloseTo(pearson(kept.map(p => p[0]!), kept.map(p => p[1])), 9);
+    expect(result.spearman).toBeCloseTo(pearson(ranks(kept.map(p => p[0]!)) as number[], ranks(kept.map(p => p[1])) as number[]), 9);
+    expect(result.sample).toHaveLength(47);
+    expect(result.sample.every(([x, y]) => x >= 10 && x <= 150 && Number.isInteger(y) && y >= epoch + 30 && y <= epoch + 230)).toBe(true);
+    const empty = await caller.density2d({ ...query, filters: [{ field: 'manufacturer', op: 'in', values: ['absent'] }] });
+    expect(empty).toMatchObject({ yKind: 'time', n: 0, y: { lo: epoch + 30, width: 20 }, sample: [] });
+    expect((await caller.density2d(density)).yKind).toBe('metric');
+  });
+
+  it.each(['unknown', 'created_at); DROP TABLE raw_bold; --', 'manufacturer'])('rejects noncontinuous or unknown y %s', async y => {
+    await expect(caller.density2d({ ...density, y })).rejects.toMatchObject({ code: 'BAD_REQUEST' });
+  });
+
   it('returns time grids and samples in days since 2000-01-01 with independent counts and correlations', async () => {
     const epoch = (Date.UTC(2020, 0, 1) - Date.UTC(2000, 0, 1)) / 86_400_000;
     const result = await caller.density2d({ ...density, x: 'created_at', y: 'fwhm_y', sampleSize: 47,

@@ -446,7 +446,7 @@ describe('Dashboard with MockApi', () => {
     expect(embedded.specs.length).toBe(embeds);
   });
 
-  it('opens the shared metric picker before adding a default card', async () => {
+  it('opens the shared filter-slot drawer before creating a default card', async () => {
     const fixture = TestBed.createComponent(Dashboard);
     await fixture.whenStable();
     (fixture.nativeElement as HTMLElement)
@@ -456,15 +456,21 @@ describe('Dashboard with MockApi', () => {
     const picker = document.querySelector('[data-testid="add-panel-picker"]')!;
     expect(picker.querySelector('app-column-picker')).not.toBeNull();
     expect((fixture.nativeElement as HTMLElement).querySelectorAll('[data-testid="panel-card"]')).toHaveLength(5);
-    const search = picker.querySelector<HTMLInputElement>('input[type="search"]')!;
+    expect(picker.querySelectorAll('.column-picker-body > nav, .column-picker-body > .column-picker-columns, .column-picker-body > .column-picker-details')).toHaveLength(3);
+    expect(picker.querySelector('[role="listbox"], [role="combobox"]')).toBeNull();
+    const search = picker.querySelector<HTMLInputElement>('input[aria-label="X slot"]')!;
     search.value = 'efc';
     search.dispatchEvent(new Event('input'));
     await fixture.whenStable();
     picker.querySelector<HTMLButtonElement>('[data-column-id="efc"]')!.click();
     await fixture.whenStable();
+    expect((fixture.nativeElement as HTMLElement).querySelectorAll('[data-testid="panel-card"]')).toHaveLength(5);
+    [...picker.querySelectorAll<HTMLButtonElement>('button')].find(button => button.textContent?.trim() === 'Create panel')!.click();
+    await fixture.whenStable();
     let state!: State;
     const subscription = TestBed.inject(Graph).state$.subscribe(value => state = value);
     expect(state.panels.at(-1)).toMatchObject({ x: 'efc', y: null, form: 'histogram', series: [] });
+    expect((fixture.nativeElement as HTMLElement).querySelectorAll('[data-testid="panel-card"]')).toHaveLength(6);
     expect(document.querySelector('[data-testid="add-panel-picker"]')).toBeNull();
     subscription.unsubscribe();
   });
@@ -602,9 +608,15 @@ describe('Dashboard with MockApi', () => {
     const host = fixture.nativeElement as HTMLElement;
     host.querySelector<HTMLButtonElement>('[data-testid="add-panel"]')?.click();
     await fixture.whenStable();
-    const items = document.querySelectorAll<HTMLButtonElement>('[data-testid="add-panel-picker"] [data-column-id]');
-    expect(items.length).toBeGreaterThan(5);
-    items[0].click();
+    const picker = document.querySelector('[data-testid="add-panel-picker"]')!;
+    expect(picker.querySelectorAll('[data-family]').length).toBeGreaterThan(5);
+    const slot = picker.querySelector<HTMLInputElement>('input[aria-label="X slot"]')!;
+    slot.value = 'tsnr';
+    slot.dispatchEvent(new Event('input'));
+    await fixture.whenStable();
+    picker.querySelector<HTMLButtonElement>('[data-column-id="tsnr"]')!.click();
+    await fixture.whenStable();
+    [...document.querySelectorAll<HTMLButtonElement>('[data-testid="add-panel-picker"] button')].find(button => button.textContent?.trim() === 'Create panel')!.click();
     await fixture.whenStable();
     expect(host.querySelectorAll('[data-testid="panel-card"]')).toHaveLength(6);
     expect(host.querySelector('[data-panel-id="p6"] [aria-label="Form"]')?.textContent).toContain('Histogram');
@@ -877,7 +889,7 @@ describe('Dashboard chrome', () => {
       document.querySelector('[data-testid="metric-info-family"]')?.textContent?.trim(),
     ).toBeTruthy();
     expect(document.querySelector('[data-testid="metric-popover"] app-column-picker')).not.toBeNull();
-    expect(document.querySelector('[aria-label="Second metric (y)"]')).not.toBeNull();
+    expect(document.querySelector('[aria-label="Y slot (optional)"]')).not.toBeNull();
     expect(document.querySelector<HTMLAnchorElement>('[data-testid="metric-popover"] a')?.href).toContain('mriqc.readthedocs.io');
     // The old caption info icon has left the face.
     expect(host.querySelector('[data-panel-id="p5"] [data-testid="metric-info"]')).toBeNull();

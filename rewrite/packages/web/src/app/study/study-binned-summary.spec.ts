@@ -32,7 +32,7 @@ describe("compileStudyBinnedSummary", () => {
     const buckets = statements.buckets([0, 40]);
     expect(buckets.sql).toContain('quantile_cont(y, [.05, .25, .5, .75, .95])');
     expect(buckets.sql).not.toContain('{{');
-    expect(buckets.params.slice(-2)).toEqual([0, 40]);
+    expect(buckets.params.slice(-3)).toEqual([0, 40, 4]);
   });
 });
 
@@ -59,7 +59,7 @@ describe("shapeBinnedSummary", () => {
       buckets: [{
         lo: 10,
         hi: 20,
-        group: "10–15",
+        group: "20–25",
         n: 3,
         quantiles: { p05: 1, p25: 2, p50: 3, p75: 4, p95: 5 },
         thin: true,

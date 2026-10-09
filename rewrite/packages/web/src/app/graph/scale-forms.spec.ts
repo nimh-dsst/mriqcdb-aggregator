@@ -1,4 +1,5 @@
-import { asColumnId, queryKey } from '@mriqc/shared';
+import { queryKey } from '../api/api';
+import { asColumnId } from '@mriqc/shared';
 import { describe, expect, it } from 'vitest';
 import { INITIAL_STATE } from './state';
 import { defaultDashboard, reduce } from './reducer';

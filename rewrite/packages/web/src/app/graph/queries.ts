@@ -1,7 +1,7 @@
-import { getAuthoredCatalog, asColumnId, fieldsFor, metricsFor, queryKey, fieldValueLabel, isNoneValue, NONE_FILTER_VALUE,
+import { getAuthoredCatalog, asColumnId, fieldsFor, metricsFor, fieldValueLabel, isNoneValue, NONE_FILTER_VALUE,
   type ClipMode, type ColumnId, type DistributionResult, type Density2dResult, type Filter, type QueryKey, type Selection,
   type BinnedSummaryQuery, type BinnedSummaryResult } from '@mriqc/shared';
-import type { Query } from '../api/api';
+import { queryKey, type Query } from '../api/api';
 import { exportCountQuery } from '../chrome/export-view';
 import { asDistributionResult, clipBounds } from '../panels/specs';
 import { cohortById, currentCohort } from './cohorts';
@@ -16,10 +16,19 @@ export function effectiveSelection(state: State, panel: Panel): readonly Selecti
   return panel.options.useSelection ? state.selections.filter(selection => selection.from !== panel.id).map(({ metric, range }) => ({ metric, range })) : [];
 }
 export function studyReady(state: State): boolean { return typeof state.study === 'object' && state.study.status === 'ready'; }
-export function studyFormReason(panel: Panel): string | null {
-  if (panel.form === 'table') return 'Local studies do not provide raw-record queries for Table.';
-  if (axisType(panel.x) === 'categorical' || (axisType(panel.x) === 'time' && panel.y === null)) {
-    return 'Local studies do not provide the row-count query required by this form.';
+export function studyFormReason(panel: Panel, state: State): string | null {
+  const study = state.study;
+  if (typeof study !== 'object' || study.status !== 'ready') return null;
+  const columns = study.columns ?? study.metrics;
+  if (panel.form === 'matrix') {
+    const metrics = correlationMetrics(panel, state.global.modality);
+    const available = metrics.filter(metric => study.metrics.includes(metric));
+    if (panel.options.family === 'custom' && available.length !== metrics.length) return 'your file is missing a selected metric';
+    return available.length < 2 ? 'your file needs at least two metrics in this set' : null;
+  }
+  if ((panel.x === 'created_at' || panel.y === 'created_at') && !columns.includes('created_at')) return 'your file has no upload time';
+  for (const column of [panel.x, panel.y]) {
+    if (column && !columns.includes(column)) return `your file has no ${column} column`;
   }
   return null;
 }
@@ -35,6 +44,7 @@ export function panelCohorts(state: State, panel: Panel): readonly ResolvedSerie
   const grouped = groupingSeries(panel);
   const out: ResolvedSeries[] = grouped ? [] : [base];
   for (const descriptor of panel.series) {
+    if (descriptor.kind === 'study' && studyFormReason(panel, state)) continue;
     const descriptorKey = seriesKey(descriptor);
     if (descriptor.kind === 'field' || descriptor.kind === 'values') {
       const entries = state.catalog?.fieldValues?.[descriptor.field]?.[state.global.modality]?.[state.global.view] ?? [];
@@ -88,7 +98,13 @@ export function coverageFilters(
   now = new Date(),
 ): readonly Filter[] {
   const window = panel.options.coverageWindow;
-  if (window === 'all') return filters;
+  const withAxisRange = (base: readonly Filter[]): readonly Filter[] => {
+    const range = panel.options.xRange;
+    return panel.x === 'created_at' && range !== 'auto'
+      ? [...base, { field: asColumnId('created_at'), op: 'between', lo: new Date(range[0]).toISOString(), hi: new Date(range[1]).toISOString() }]
+      : base;
+  };
+  if (window === 'all') return withAxisRange(filters);
   const rest = filters.filter((filter) => filter.field !== 'created_at');
   let range = panel.options.coverageCustom;
   if (window === '12m' || window === '5y') {
@@ -98,8 +114,8 @@ export function coverageFilters(
     range = [dateOnly(start), dateOnly(end)];
   }
   return range === null || range.some((date) => date === '' || Number.isNaN(Date.parse(date)))
-    ? rest
-    : [...rest, { field: 'created_at' as ColumnId, op: 'between', lo: range[0], hi: range[1] }];
+    ? withAxisRange(rest)
+    : withAxisRange([...rest, { field: 'created_at' as ColumnId, op: 'between', lo: range[0], hi: range[1] }]);
 }
 
 
@@ -189,12 +205,16 @@ export function distributionResult(
 
 
 export function scopedQuery(state: State, panel: Panel, cohort: Cohort, proc: Query['proc']): Query | null {
+  if (cohort.source === 'study' && studyFormReason(panel, state)) return null;
   const scoped = { source: cohort.source, modality: state.global.modality, view: cohort.view, filters: cohort.filters, selections: cohort.selections };
   switch (proc) {
     case 'distribution': return cohortQuery(state, panel, cohort, panel.options.xRange === 'auto' ? undefined : panel.options.xRange);
-    case 'groupedSummary': return { ...scoped, proc, metric: asColumnId('size_x'), group: panel.x as ColumnId };
+    case 'groupedSummary': return cohort.source === 'study' ? null : { ...scoped, proc, metric: asColumnId('size_x'), group: panel.x as ColumnId };
     case 'coverage': {
-      if (cohort.source === 'study') return null;
+      if (cohort.source === 'study') return { ...scoped, source: 'study', proc,
+        group: axisType(panel.x) === 'categorical' ? panel.x as ColumnId : asColumnId('created_at'),
+        countsOnly: axisType(panel.x) === 'categorical', granularity: panel.options.granularity,
+        filters: panel.x === 'created_at' ? coverageFilters(cohort.filters, panel) : cohort.filters };
       const group = axisType(panel.x) === 'categorical' ? panel.x as ColumnId :
         fieldsFor(state.global.modality, cohort.view, 'group').find(field => field.kind === 'categorical')?.id;
       return group ? { ...scoped, source: 'population', proc, group, granularity: panel.options.granularity,
@@ -205,7 +225,12 @@ export function scopedQuery(state: State, panel: Panel, cohort: Cohort, proc: Qu
       ...(panel.options.xRange !== 'auto' ? { range: [...panel.options.xRange] as [number, number] } : {}),
       filters: panel.x === 'created_at' ? coverageFilters(cohort.filters, panel) : cohort.filters } : null;
     case 'sample': return cohort.source === 'population' ? { ...scoped, source: 'population', proc, columns: sampleColumns(state, cohort.view), cursor: null,
-      filters: panel.x === 'created_at' ? coverageFilters(cohort.filters, panel) : cohort.filters } : null;
+      filters: panel.x === 'created_at' ? coverageFilters(cohort.filters, panel) : cohort.filters } :
+      typeof state.study === 'object' && state.study.status === 'ready' ? {
+        ...scoped, source: 'study', proc, cursor: null,
+        columns: (state.study.columns ?? state.study.metrics).map(asColumnId),
+        filters: panel.x === 'created_at' ? coverageFilters(cohort.filters, panel) : cohort.filters,
+      } : null;
     case 'density2d': return panel.y ? { ...scoped, proc, x: panel.x as ColumnId, y: panel.y, bins: 120, clip: panel.options.clip,
       sampleSize: panel.form === 'clusters' ? panel.options.sampleSize ?? 20000 : 2000, seed: panel.options.seed ?? 42 } : null;
     case 'correlation': {

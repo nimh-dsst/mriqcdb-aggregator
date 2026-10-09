@@ -1,5 +1,6 @@
 /**
  * SQL templates for summary plots that share the same axis and grouping rules.
+ * x/y holes are catalog-resolved continuousAxisExpr expressions; either axis may use epoch days.
  *
  * `buckets` bind parameters are ordered as follows: parameters in `{{where}}`,
  * then the lower axis bound, upper axis bound, and axis bin count.

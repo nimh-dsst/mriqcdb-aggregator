@@ -363,6 +363,78 @@ opened by "Add panel" and by a card title (then pre-selected). Layout:
   once; the drawer closes unless Shift is held, which keeps it open to add
   several cards in a row.
 
+#### Column drawer, as observed (2026-10-09, owner: "fixing the drawer")
+
+Live at 1600×1000 the drawer wrapped the family columns into TWO rows of
+148px-tall boxes, each showing two or three metrics behind its own scrollbar,
+with the search box on a line of its own. Rules that make that impossible:
+
+- The drawer is **one row of columns**, never wrapped. Each column is the full
+  height of the drawer body and scrolls vertically on its own; the row scrolls
+  horizontally only if the columns' minimum widths (200px) exceed the viewport.
+- Drawer height 45vh (min 360px); the body is `display: grid;
+  grid-auto-flow: column; grid-auto-columns: minmax(200px, 1fr);
+  overflow-x: auto; height: 100%`, with the description pane fixed at 320px on
+  the right outside that strip.
+- Header line: X slot · Y slot · ⇄ · Create/Apply on the left, search box in
+  the middle, Close on the right. One line, 48px.
+- A family column lists ALL its metrics (sub-family captions inline); no
+  per-family height cap, no nested scroll boxes smaller than the column.
+- Under 900px: columns wrap to a two-column grid and the drawer is 70vh (as
+  before); that is the only wrapping case.
+
+#### Column drawer, third pass (2026-10-09, owner: "that's a lot a lot")
+
+A row of every family with every metric is a wall. The drawer becomes a
+**column browser** (Finder style), three panes in the same 45vh drawer:
+
+- **Families** (left, 220px): Time, each metric family, Fields; one row each
+  with the count of columns; the card's current family selected on open,
+  Time when adding.
+- **Columns** (middle, flexible): only the selected family's columns, one
+  row each: full name, then short label and unit in `--ink-3`. Sub-family
+  captions inline. Keyboard: arrows move, Enter picks, Left/Right switch
+  panes.
+- **Details** (right, 320px): description, unit, direction, docs link, the
+  Y slot's select (unchanged).
+- Pane widths (owner, 2026-10-09: "why is second column so wide and has less
+  padding?"): families 220px · columns `minmax(320px, 480px)` · details
+  320px; the leftover space stays empty on the right. All three panes share
+  the same 16px inner padding and 36px row height; the columns pane rows use
+  the same left inset as the family rows.
+- **Search** (header, unchanged) filters the middle pane across ALL families
+  while non-empty, each hit captioned with its family; the left pane dims
+  families without hits.
+- **The slots are filters, not comboboxes** (owner, 2026-10-09: "can we go from
+  combobox to just filter?"). Clicking the X or Y slot focuses a text input;
+  typing filters the panes below across every family (name, short label,
+  id): the families pane dims families without hits, the columns pane shows
+  the hits with family captions. There is NO dropdown list under the slot.
+  Enter picks the first hit, arrows move through the columns pane, Escape
+  clears the filter. Picking fills the focused slot.
+- Header line: X filter slot · Y filter slot · swap · Create/Apply · Close.
+
+### Context actions and the options menu (owner, 2026-10-09: "move more things into context actions and fix the sizing of the panel settings")
+
+**A setting lives on the element it changes.** The options menu holds only
+what has no element on the card.
+
+| Element | Actions (hover affordance; right-click or a small ⋯ opens the same list) |
+|---|---|
+| Axis (x or y) | drag to set range (exists) · double-click resets · menu: Scale Linear/Log/Symlog · Range auto / custom lo–hi (unit) · for count axes Count/Share/Log count |
+| Compare chip / legend chip | ✕ remove · isolate (click) · reset (double-click) · "Save as group…" when the series is a field group or chosen values · "Only this group" (set the dashboard filter to it) |
+| Title | opens the drawer, which **edits live** when opened from a title (every slot change applies immediately, no Apply button; ✕ on Y removes the second column in one click). Create stays for Add panel only |
+| Colour legend (Heatmap, Hexbin, Matrix) | Scale: Linear / Log / Sqrt (default Log for counts) · Domain: auto / custom lo–hi · the legend title names the scale ("Count (log)") (owner, 2026-10-09: "no way to change scales? like heatmap log color") |
+| Chart body | brush (exists) · right-click: Zoom to brush · Reset axes · Maximize · Export this card's rows · Copy link to this card |
+| Form picker | the form list (exists) |
+| Options menu (⚙, sliders icon) | ONLY: Bins (Histogram/Line/Area; also the x bins of Band/Lines) · Cells (Heatmap/Hexbin: grid per axis 30 / 60 / 120, default 60) · Quantiles (Band/Lines) · Clip p01–p99/p05–p95/none · Layout overlaid/stacked/100% (series) · Follow the brushed range · Height is by resize |
+
+**Options menu sizing.** 320px wide, 16px padding, rows 36px, one setting per
+row: label left (`--ink-2`, 12px) and control right (min 120px). Range inputs
+are a pair of 88px inputs with the unit as a suffix; selects fill the control
+width; no label truncation; the menu never exceeds 80vh and scrolls inside.
+The same control components are reused by the axis context menu.
+
 ## Fixed-height captions and real icons (owner, 2026-10-07)
 
 - Every control caption is exactly 16px tall (`line-height: 16px`, no wrap).

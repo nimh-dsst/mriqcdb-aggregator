@@ -155,6 +155,11 @@ app-panel-card:hover .panel-resize-handle, app-panel-card:focus-within .panel-re
 html,
 body {
   height: 100%;
+  /* No rubber-band overscroll: the overlay container is position: fixed and
+     stays put while the page bounces past its scroll range, so menus and
+     selects appear to detach from their triggers. Disabling the bounce keeps
+     page and overlays in the same frame. */
+  overscroll-behavior: none;
 }
 
 body {
@@ -701,21 +706,21 @@ body {
   position: fixed;
   inset: auto 0 0;
   width: 100vw;
-  height: 40vh;
-  min-height: 320px;
+  height: 45vh;
+  min-height: 360px;
   max-height: 100dvh;
   padding: 16px;
   border-top: 1px solid var(--border);
   background: var(--surface);
   color: var(--ink);
-  box-shadow: 0 -8px 32px rgb(0 0 0 / 12%);
 }
 .column-drawer app-column-picker { display: block; height: 100%; }
 .column-picker { display: flex; flex-direction: column; height: 100%; gap: 12px; min-height: 0; }
-.column-picker-toolbar { display: flex; align-items: end; justify-content: space-between; gap: 16px; }
-.column-picker-search { display: grid; gap: 4px; width: min(420px, 100%); }
+.column-picker-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex: 0 0 48px; min-width: 0; white-space: nowrap; }
+.column-picker-toolbar > .btn { flex-shrink: 0; }
+.column-picker-search { display: grid; flex: 1; min-width: 120px; max-width: 420px; }
 .column-picker-body { display: flex; gap: 16px; flex: 1; min-height: 0; }
-.column-picker-columns { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); grid-auto-rows: minmax(0, 1fr); gap: 12px; flex: 1; min-width: 0; min-height: 0; }
+.column-picker-columns { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(200px, 1fr); grid-template-rows: minmax(0, 1fr); overflow-x: auto; height: 100%; gap: 12px; flex: 1; min-width: 0; min-height: 0; }
 .column-picker-family { overflow-y: auto; min-height: 0; padding-right: 8px; scrollbar-gutter: stable; }
 .column-picker-family h3 { position: sticky; top: 0; background: var(--surface); padding-bottom: 6px; }
 .column-picker-family h4 { padding: 6px 0; }
@@ -728,6 +733,17 @@ body {
 .column-picker-details { flex: 0 0 320px; overflow-y: auto; border-left: 1px solid var(--border); padding-left: 16px; font-size: var(--text-caption); }
 .column-picker-details > * + * { margin-top: 10px; }
 .column-picker-details a { color: var(--action-ink); text-decoration: underline; }
+.column-picker-browser .column-picker-body { display: grid; grid-template-columns: 220px minmax(0, 1fr) 320px; gap: 0; }
+.column-picker-families { overflow-y: auto; min-height: 0; padding-right: 8px; border-right: 1px solid var(--border); }
+.column-picker-family-choice { display: flex; justify-content: space-between; gap: 8px; width: 100%; padding: 8px; text-align: left; border-radius: 6px; font-size: var(--text-control); }
+.column-picker-family-choice[aria-pressed="true"] { background: var(--highlight); color: var(--highlight-ink); }
+.column-picker-family-choice.no-hits { opacity: .45; }
+.column-picker-count { font-variant-numeric: tabular-nums; }
+.column-picker-browser .column-picker-columns { display: block; overflow-y: auto; overflow-x: hidden; padding: 0 16px; }
+.column-picker-browser .column-picker-family { overflow: visible; padding: 0; }
+.column-picker-browser .column-picker-details { min-width: 0; }
+.column-picker-browser .column-picker-row { border-radius: 6px; padding: 8px; gap: 4px; }
+.column-picker-family-choice:focus-visible, .column-picker-row:focus-visible, .column-picker-details:focus-visible { outline: 2px solid var(--focus-edge); outline-offset: -2px; }
 .column-picker-y { display: grid; gap: 6px; }
 .column-picker-y select { min-width: 0; width: 100%; padding: 8px; background: var(--surface); border: 1px solid var(--border); border-radius: 4px; color: var(--ink); }
 .form-option { display: grid; grid-template-columns: 20px 1fr; column-gap: 8px; padding: 5px 0; }
@@ -738,9 +754,14 @@ body {
 .form-picker-panel .mat-mdc-option[aria-disabled="true"] .form-option { color: var(--ink-2); }
 .form-picker-panel .mat-mdc-option[aria-disabled="true"] .mdc-list-item__primary-text { opacity: 1; }
 .form-select .mat-mdc-select-value { overflow: visible; max-width: none; }
-@media (max-width: 1000px) {
+@media (width < 900px) {
   .column-drawer { height: 70vh; }
+  .column-picker-toolbar { gap: 8px; }
   .column-picker-body { overflow-y: auto; flex-direction: column; }
-  .column-picker-columns { flex: none; grid-template-columns: repeat(2, minmax(0, 1fr)); grid-auto-rows: 170px; }
+  .column-picker-columns { flex: none; height: auto; overflow: visible; grid-auto-flow: row; grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-rows: none; grid-auto-rows: auto; }
+  .column-picker-family { overflow: visible; }
   .column-picker-details { flex: none; border-left: 0; border-top: 1px solid var(--border); padding: 12px 0 0; overflow: visible; }
+  .column-picker-browser .column-picker-body { grid-template-columns: 220px minmax(220px, 1fr) 320px; overflow-x: auto; overflow-y: hidden; }
+  .column-picker-browser .column-picker-columns { height: 100%; }
+  .column-picker-browser .column-picker-details { overflow-y: auto; border-top: 0; border-left: 1px solid var(--border); padding: 0 0 0 16px; }
 }

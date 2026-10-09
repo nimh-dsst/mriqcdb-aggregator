@@ -21,6 +21,12 @@ import { outputFromObservable } from '@angular/core/rxjs-interop';
 import { Subject } from 'rxjs';
 import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
 import type { TopLevelSpec } from 'vega-lite';
+import {
+  attachAxisBandGestures,
+  type AxisBandGestures,
+  type AxisRangeEvent,
+  type VegaAxisBandView,
+} from './axis-band-gestures';
 
 /** What the directive needs from a panel view. */
 export interface VegaInput {
@@ -107,6 +113,7 @@ function sameRange(a: BrushRange, b: BrushRange): boolean {
 @Directive({ selector: '[appVegaView]' })
 export class VegaViewDirective {
   readonly cell = output<{ x: string; y: string }>();
+  readonly axisRange = output<AxisRangeEvent>();
   private readonly host = inject(ElementRef<HTMLElement>);
   private readonly embed = inject(VEGA_EMBED);
 
@@ -135,6 +142,11 @@ export class VegaViewDirective {
   private pendingClear2d = false;
 
   private view: EmbeddedView | null = null;
+  private axisBands: AxisBandGestures | null = null;
+  private clearAxisBands = (): void => {
+    this.axisBands?.destroy();
+    this.axisBands = null;
+  };
   private renderedSpecKey: string | null = null;
   private renderedDatasets: Readonly<Record<string, readonly unknown[]>> | null = null;
   /** Guards against an embed that resolves after a newer one started. */
@@ -252,6 +264,12 @@ export class VegaViewDirective {
       }
       const view = result.view as unknown as EmbeddedView;
       this.view = view;
+      this.clearAxisBands();
+      this.axisBands = attachAxisBandGestures(
+        this.host.nativeElement,
+        view as unknown as VegaAxisBandView,
+        (event) => this.axisRange.emit(event),
+      );
       this.resizeChart();
       this.renderedSpecKey = next.specKey;
       this.renderedDatasets = next.datasets;
@@ -290,7 +308,7 @@ export class VegaViewDirective {
       if (spec?.width === 'container') view.width?.(container.clientWidth);
       if (spec?.height === 'container') view.height?.(container.clientHeight);
       view.resize();
-      void view.runAsync().catch(() => undefined).finally(() => { this.updating--; });
+      void view.runAsync().catch(() => undefined).finally(() => { this.axisBands?.refresh(); this.updating--; });
     });
   }
 
@@ -306,11 +324,12 @@ export class VegaViewDirective {
         // A dataset the compiled spec does not name. Skip it.
       }
     }
-    if (changed) void view.runAsync().finally(() => { this.updating--; });
+    if (changed) void view.runAsync().finally(() => { this.axisBands?.refresh(); this.updating--; });
     else this.updating--;
   }
 
   private teardown(): void {
+    this.clearAxisBands();
     if (this.view) {
       try {
         this.view.finalize();

@@ -79,6 +79,7 @@ export interface PanelOptions {
   yRange: 'auto' | readonly [number, number];
   yMode: 'count' | 'share' | 'logCount';
   layout: 'overlaid' | 'stacked' | 'stacked100';
+  quantiles: 'quartiles' | 'tails';
   coefficient?: 'spearman' | 'pearson';
   /** Apply the linked brush from other panels. */
   useSelection: boolean;
@@ -268,6 +269,8 @@ export type StudyState =
       totalMetrics: number;
       ignoredColumns: readonly string[];
       missingMetrics: readonly MetricId[];
+      columns?: readonly string[];
+      columnMapping?: readonly { source: string; target: string }[];
     }
   | { status: 'error'; error: string };
 
@@ -332,6 +335,7 @@ export function defaultPanelOptions(clip: ClipMode = 'p01p99'): PanelOptions {
     clip,
     xScale: 'linear', xRange: 'auto', yScale: 'linear', yRange: 'auto',
     yMode: 'count', layout: 'overlaid',
+    quantiles: 'quartiles',
     useSelection: true,
     granularity: 'month',
     splitPresentation: 'overlay',

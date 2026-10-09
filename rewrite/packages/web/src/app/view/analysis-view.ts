@@ -1,4 +1,5 @@
-import { queryKey, type CorrelationResult, type Density2dResult } from '@mriqc/shared';
+import { queryKey } from '../api/api';
+import { type CorrelationResult, type Density2dResult } from '@mriqc/shared';
 import { axisEvidence } from '../graph/axis-options';
 import { valueScale } from '../panels/specs/palette';
 import { clusterKeys, panelCohorts, panelQueries, resultOf } from '../graph/queries';
@@ -6,7 +7,7 @@ import type { Panel, State } from '../graph/state';
 import { isDerivedCohort } from '../graph/state';
 import { densityChart, correlationChart, clustersChart, type AnalysisSeries } from '../panels/specs/analysis-charts';
 import { fisherInterval } from '../panels/specs/analysis-math';
-import { OTHER_COLOR, type ChartTheme } from '../panels/specs/palette';
+import { OTHER_COLOR, VL_SCHEMA, type ChartTheme } from '../panels/specs/palette';
 import type { KMeansResult } from '../study/kmeans';
 import type { PanelView, PanelStatus } from './panel-view';
 import { activeView, analysisMeaning, metricDef, significant, unitNoun } from './text';
@@ -29,6 +30,9 @@ function analysisFacets(items: Array<{ id: string; name: string; chart: ReturnTy
       if (Array.isArray(node)) { node.forEach(rename); return; }
       if (!node || typeof node !== 'object') return;
       const record = node as Record<string, unknown>;
+      // These fixed-size children have local dimensions; the standalone chart's
+      // width/height expression would resolve to the zero-sized concat root.
+      if (record['expr'] === 'min(width, height)') record['expr'] = '200';
       const data = record['data'] as { name?: string } | undefined;
       if (data?.name && names.has(data.name)) data.name = names.get(data.name);
       Object.values(record).forEach(rename);
@@ -37,7 +41,7 @@ function analysisFacets(items: Array<{ id: string; name: string; chart: ReturnTy
     for (const key of ['$schema', 'config', 'autosize', 'background']) delete spec[key];
     return { ...spec, title: item.name, width: 200, height: 200 };
   });
-  return { datasets, spec: { ...baseConfig(theme), concat, columns: 2 } as unknown as TopLevelSpec };
+  return { datasets, spec: { $schema: VL_SCHEMA, ...baseConfig(theme), concat, columns: 2 } as unknown as TopLevelSpec };
 }
 
 function correlationText(value: number | null, n: number): string {

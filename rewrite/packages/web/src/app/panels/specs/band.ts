@@ -88,11 +88,23 @@ function segmentRows(rows: readonly BinnedSummaryRow[]): SummaryRow[] {
   return segments;
 }
 
-function percentileRows(rows: readonly BinnedSummaryRow[]) {
+const percentileLabels = {
+  p05: 'p05',
+  p25: 'Q1',
+  p50: 'Median',
+  p75: 'Q3',
+  p95: 'p95',
+} as const;
+
+function percentileRows(
+  rows: readonly BinnedSummaryRow[],
+  lowerPercentile: 'p05' | 'p25',
+  upperPercentile: 'p75' | 'p95',
+) {
   return rows.flatMap((row) =>
-    (['p05', 'p50', 'p95'] as const).map((percentile) => ({
+    ([lowerPercentile, 'p50', upperPercentile] as const).map((percentile) => ({
       ...row,
-      percentile,
+      percentile: percentileLabels[percentile],
       value: row[percentile],
     })),
   );
@@ -103,10 +115,13 @@ export function bandChart(
   yLabel: string,
   axis: MetricAxis,
   form: 'band' | 'lines' = 'band',
+  quantiles: 'quartiles' | 'tails' = 'quartiles',
 ): { spec: TopLevelSpec; datasets: Record<string, readonly unknown[]> } {
+  const [lowerPercentile, upperPercentile] =
+    quantiles === 'tails' ? (['p05', 'p95'] as const) : (['p25', 'p75'] as const);
   const rows = binnedSummaryRows(series);
   const segments = segmentRows(rows);
-  const percentiles = percentileRows(rows);
+  const percentiles = percentileRows(rows, lowerPercentile, upperPercentile);
   const xKind = series[0]?.result.xKind ?? 'metric';
   const x = continuousX(axis, 'bucket');
   const y = { field: 'p50', type: 'quantitative', title: yLabel, scale: { zero: false } } as const;
@@ -119,11 +134,9 @@ export function bandChart(
   const tooltip = [
     { field: 'seriesName', type: 'nominal', title: 'Series' },
     { field: 'bucket', type: xKind === 'time' ? 'temporal' : 'quantitative', title: xKind === 'time' ? 'Date' : 'Value' },
-    { field: 'p05', type: 'quantitative', title: '5th percentile' },
-    { field: 'p25', type: 'quantitative', title: '25th percentile' },
+    { field: lowerPercentile, type: 'quantitative', title: quantiles === 'quartiles' ? 'Q1' : 'p05' },
     { field: 'p50', type: 'quantitative', title: 'Median' },
-    { field: 'p75', type: 'quantitative', title: '75th percentile' },
-    { field: 'p95', type: 'quantitative', title: '95th percentile' },
+    { field: upperPercentile, type: 'quantitative', title: quantiles === 'quartiles' ? 'Q3' : 'p95' },
     { field: 'n', type: 'quantitative', title: 'n' },
     { field: 'thin', type: 'nominal', title: 'Thin' },
     { field: 'note', type: 'nominal', title: 'Note' },
@@ -151,8 +164,8 @@ export function bandChart(
             mark: { type: 'area', interpolate: 'monotone', opacity: 0.22 },
             encoding: {
               x,
-              y: { field: 'p25', type: 'quantitative', title: yLabel, scale: { zero: false } },
-              y2: { field: 'p75' },
+              y: { field: lowerPercentile, type: 'quantitative', title: yLabel, scale: { zero: false } },
+              y2: { field: upperPercentile },
               color,
               detail: { field: 'segmentId' },
               opacity: { condition: { test: 'datum.segmentThin', value: 0.16 }, value: 0.36 },

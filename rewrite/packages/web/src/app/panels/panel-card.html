@@ -79,8 +79,9 @@
             [drawer]="true"
             [focusY]="focusSecondMetric()"
             [panelId]="panel.id"
-            [y]="panel.y"
-            (closed)="columnPickerOpen.set(false)"
+    [y]="panel.y"
+            [pendingForm]="pendingForm()"
+            (closed)="closeColumnPicker()"
           >
           @if (numericX()) {
             <button type="button" class="btn btn-quiet" (click)="openMetricSet()">Metric correlations</button>
@@ -142,8 +143,8 @@
                   <app-form-glyph [form]="entry.form" />
                   <span class="font-medium">{{ info.label }}</span>
                   @if (entry.reason) {
-                    <a class="form-option-hint form-reason" href="#second-metric" aria-disabled="false"
-                      (click)="addSecondMetric($event, formPicker)">{{ entry.reason }}</a>
+                    <a class="form-option-hint form-reason" href="#second-column" aria-disabled="false" [attr.data-form]="entry.form"
+                      (click)="addSecondMetric($event, formPicker, entry.form)">{{ entry.reason }}</a>
                   } @else {
                     <span class="form-option-hint">{{ info.hint }}</span>
                   }
@@ -155,19 +156,20 @@
       </div>
     </div>
 
-    @if (timeX() && (panel.form === 'band' || panel.form === 'lines')) {
+    @if (panel.form === 'band' || panel.form === 'lines') {
       <div class="flex items-center gap-2 border-b border-border p-2">
         <label class="text-caption text-ink-2" for="median-band-metric-{{ panel.id }}">
-          Metric over time
+          Second column
         </label>
         <mat-select
           class="min-w-40 rounded border border-border px-2 py-1 text-control text-ink"
-          aria-label="Metric over time"
+          aria-label="Second column"
           [value]="panel.y"
           (selectionChange)="changeY($event.value)"
         >
+          <mat-option value="created_at" [disabled]="panel.x === 'created_at'">Upload time</mat-option>
           @for (metric of metrics(); track metric.id) {
-            <mat-option [value]="metric.id">{{ metric.shortLabel || metric.label }}</mat-option>
+            <mat-option [value]="metric.id" [disabled]="panel.x === metric.id">{{ metric.shortLabel || metric.label }}</mat-option>
           }
         </mat-select>
       </div>
@@ -223,9 +225,19 @@
 
     <mat-menu #optionsMenu="matMenu">
       <div class="space-y-2 p-3" (click)="$event.stopPropagation()">
-        @if (numericX() && panel.form !== 'table' && panel.form !== 'matrix') {
+        @if (panel.form !== 'table' && panel.form !== 'matrix') {
         @if (view(); as panelView) {
-          <app-axes-controls [view]="panelView" (changed)="patch({ options: $event })" />
+          <app-axes-controls [view]="panelView" [yUnit]="yUnit()" (changed)="patch({ options: $event })" />
+          @if (panel.form === 'band' || panel.form === 'lines') {
+            <label class="flex items-center gap-2 text-caption">Quantiles
+              <select aria-label="Quantiles" class="rounded border border-border bg-surface p-1"
+                [value]="panel.options.quantiles" (change)="changeOption($event, 'quantiles')">
+                <option value="quartiles">Quartiles</option>
+                <option value="tails">Tails</option>
+              </select>
+            </label>
+          }
+          <button mat-menu-item type="button" (click)="resetPanelRanges()">Reset axes</button>
         }
         }
         <div class="grid grid-cols-2 gap-2 text-caption text-ink-2">
@@ -370,6 +382,7 @@
             [appVegaView]="vega"
             (brush)="onBrush($event)"
             (brush2d)="onBrush2d($event)"
+            (axisRange)="setAxisRange($event)"
             (cell)="onCell($event)"
           ></div>
         }

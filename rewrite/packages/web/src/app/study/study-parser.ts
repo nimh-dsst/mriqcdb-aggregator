@@ -17,6 +17,7 @@ export interface ParsedStudy {
   totalMetrics: number;
   ignoredColumns: readonly string[];
   missingMetrics: readonly ColumnId[];
+  columnMapping: readonly { source: string; target: string }[];
 }
 
 interface RawStudy {
@@ -228,6 +229,7 @@ export function normalizeStudy(raw: RawStudy): ParsedStudy {
   return {
     rows,
     columns,
+    columnMapping: [...targetByIndex].map(([index, target]) => ({ source: raw.columns[index], target })),
     metrics,
     totalMetrics: metricUniverse.length,
     ignoredColumns: [...new Set(ignored)],

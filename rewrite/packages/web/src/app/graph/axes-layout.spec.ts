@@ -1,4 +1,5 @@
-import { asColumnId, queryKey, type DistributionResult } from '@mriqc/shared';
+import { queryKey } from '../api/api';
+import { asColumnId, type DistributionResult } from '@mriqc/shared';
 import { defaultDashboard, initialState, reduce } from './reducer';
 import { defaultPanelOptions, FIRST_PAGE, type Panel, type State } from './state';
 import { decodeUrlState, encodeUrlState, validateUrlState } from './url';
@@ -7,6 +8,9 @@ import { panelQueries, panelSharedRange } from './queries';
 import { axisEvidence } from './axis-options';
 import { stackedRows, stackedHistogram } from '../panels/specs/comparison';
 import { valueScale } from '../panels/specs/palette';
+import { withCountRange } from '../panels/specs/axis-ranges';
+import { distributionBins } from '../panels/specs/rows';
+import { panelView, resetPanelViewMemo } from '../view/panel-view';
 
 const panel = (): Panel => ({ ...defaultDashboard().panels[0], options: defaultPanelOptions(), cursors: FIRST_PAGE });
 const state = (p = panel()): State => ({ ...initialState, panels: [p], dataVersion: 'v1' });
@@ -52,11 +56,38 @@ describe('axes, layout and size state', () => {
     const p=panel(); p.options.xRange=[0.05,0.5];
     expect(panelQueries(state(p),p)[0]).toMatchObject({range:[0.05,0.5]});
   });
+  it('renders every server-rebinned bin, including bins beyond the old clip quantiles', () => {
+    const p = panel(); p.options.xRange = [0.1, 0.6];
+    const s = state(p);
+    const result = { ...dist([2, 3]), histogram: { lo: 0.1, hi: 0.6, width: 0.05, counts: [2, 1, 2, 3, 2, 1, 3, 2, 1, 2] } };
+    const query = panelQueries(s, p)[0];
+    expect(query).toMatchObject({ range: [0.1, 0.6] });
+    s.datasets = { [queryKey(query)]: { status: 'ready', version: 'v1', result } };
+    resetPanelViewMemo();
+    const rows = Object.values(panelView(s, p.id)!.datasets).flat() as { lo: number; hi: number }[];
+    expect(rows).toHaveLength(result.histogram.counts.length);
+    expect(rows[0].lo).toBe(0.1);
+    expect(rows.at(-1)!.hi).toBeCloseTo(0.6, 12);
+    expect(rows).toEqual(distributionBins(result));
+  });
   it('uses one exact custom range for every cohort in the two-step plan', () => {
     const p={...panel(),series:[{kind:'population' as const}]}; p.options.xRange=[0.1,0.8];
     const queries=panelQueries(state(p),p);
     expect(queries).toHaveLength(4);
     expect(queries.slice(2).every(q=>'range' in q && JSON.stringify(q.range)==='[0.1,0.8]')).toBe(true);
+  });
+  it('sends temporal axis bounds to the server as UTC filters', () => {
+    const p = { ...panel(), x: 'created_at' as const };
+    p.options.xRange = [Date.parse('2024-01-01'), Date.parse('2024-05-01')];
+    expect(panelQueries(state(p), p)[0]).toMatchObject({ proc: 'coverage', filters: [
+      { field: 'created_at', op: 'between', lo: '2024-01-01T00:00:00.000Z', hi: '2024-05-01T00:00:00.000Z' },
+    ] });
+  });
+  it('uses the count range while preserving a logarithmic count scale', () => {
+    const p = panel(); p.options.yRange = [5, 100]; p.options.yMode = 'logCount';
+    const spec = { data: { name: 'counts' }, mark: 'bar' as const, encoding: { y: { field: 'count', type: 'quantitative' as const, scale: { type: 'log' as const } } } };
+    expect(withCountRange(spec, p)).toMatchObject({ encoding: { y: { scale: { type: 'log', domain: [5, 100], nice: false, zero: false } } } });
+    expect(spec.encoding.y.scale).toEqual({ type: 'log' });
   });
   it('allows log only when the known minimum is positive', () => {
     const p=panel(), s=state(p), key=queryKey(panelQueries(s,p)[0]);

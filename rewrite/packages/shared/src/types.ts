@@ -437,7 +437,7 @@ export interface BinnedSummaryInput extends SelectionScope {
   view: View;
   filters?: readonly Filter[];
   x: ColumnRef;
-  y: MetricId;
+  y: ColumnRef;
   bins: number | Granularity;
   /** Metric units, or days since 2000-01-01 for time. */
   range?: [number, number];
@@ -464,6 +464,7 @@ export interface BinnedSummaryBucket {
 
 export interface BinnedSummaryResult {
   xKind: 'metric' | 'time';
+  yKind: 'metric' | 'time';
   range: [number, number];
   buckets: readonly BinnedSummaryBucket[];
 }
@@ -488,8 +489,9 @@ export interface SampleResult {
  * `n`.
  */
 export interface Density2dResult {
-  /** Time x edges and samples are days since 2000-01-01. */
+  /** Time axis edges and samples are days since 2000-01-01. */
   xKind: 'metric' | 'time';
+  yKind: 'metric' | 'time';
   x: { lo: number; width: number; bins: number; underflow: number; overflow: number };
   y: { lo: number; width: number; bins: number; underflow: number; overflow: number };
   counts: number[];
@@ -504,7 +506,7 @@ export interface Density2dInput extends SelectionScope {
   view: View;
   filters?: readonly Filter[];
   x: ColumnRef;
-  y: MetricId;
+  y: ColumnRef;
   bins?: number;
   clip?: ClipMode;
   range?: { x: [number, number]; y: [number, number] };

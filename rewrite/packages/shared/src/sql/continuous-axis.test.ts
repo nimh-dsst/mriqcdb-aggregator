@@ -65,8 +65,43 @@ describe.each(['metric', 'time'] as const)('shared SQL with %s x', kind => {
 });
 
 it('only constructs expressions from locally validated identifiers and bounded bin units', () => {
+  expect(() => axis('unknown_y', 'time')).toThrow('unknown study column');
+  expect(() => axis('created_at); DROP TABLE study; --', 'time')).toThrow('unknown study column');
   expect(() => axis('metric_x); DROP TABLE study; --', 'metric')).toThrow('unknown study column');
   expect(() => binnedSummaryFragments('quarter' as never)).toThrow('invalid granularity');
   expect(() => binnedSummaryFragments(0)).toThrow('invalid bin count');
   expect(continuousAxisExpr(asColumnId('a"b'), 'metric')).toBe('CAST("a""b" AS DOUBLE)');
+});
+
+describe('shared SQL with time y', () => {
+  const holes = () => ({ table: 'study', x: axis('metric_y', 'metric'),
+    y: axis('created_at', 'time'), where: 'TRUE' });
+
+  it('executes density stats, grid and sample with epoch-day y', async () => {
+    const common = { ...holes(), seed: '1', sample_size: '4' };
+    const stats = (await connection.runAndReadAll(sql('density2d', 'stats', common))).getRowObjectsJS();
+    expect(Number(stats[0]!['n'])).toBe(4);
+    expect(Number(stats[0]!['y_min'])).toBe(0);
+    expect(Number(stats[0]!['y_max'])).toBe(3);
+    expect(stats[0]!['pearson']).toBeCloseTo(1, 12);
+    expect(stats[0]!['spearman']).toBeCloseTo(1, 12);
+    const grid = (await connection.runAndReadAll(sql('density2d', 'histogram', common),
+      [1, 7, 2, 2, 1, 3, 0, 3, 2, 2, 0, 1.5])).getRowObjectsJS();
+    expect(grid.map(r => [Number(r['bx']), Number(r['by']), Number(r['n'])]).sort()).toEqual([[0, 0, 2], [1, 1, 2]]);
+    const sample = (await connection.runAndReadAll(sql('density2d', 'sample', common), [1, 7, 0, 3])).getRowObjectsJS();
+    expect(sample.map(r => [Number(r['x']), Number(r['y'])])).toEqual([[1, 0], [3, 1], [5, 2], [7, 3]]);
+  });
+
+  it('computes time-y means and quantiles over metric x bins', async () => {
+    const common = { ...holes(), ...binnedSummaryFragments(2),
+      group_expr: 'NULL::VARCHAR', group_numeric: 'FALSE', group_bins: '10', max_groups: '50' };
+    const stats = (await connection.runAndReadAll(sql('binned_summary', 'stats', common))).getRowObjectsJS();
+    expect(Number(stats[0]!['n'])).toBe(4);
+    const buckets = (await connection.runAndReadAll(sql('binned_summary', 'buckets', common), [1, 7, 2])).getRowObjectsJS();
+    expect(buckets.map(r => Number(r['n']))).toEqual([2, 2]);
+    expect(buckets.map(r => Number(r['mean']))).toEqual([0.5, 2.5]);
+    const expected = [[0.05, 0.25, 0.5, 0.75, 0.95], [2.05, 2.25, 2.5, 2.75, 2.95]];
+    buckets.forEach((row, i) => (row['qs'] as number[]).forEach((q, j) =>
+      expect(q).toBeCloseTo(expected[i]![j]!, 12)));
+  });
 });

@@ -274,7 +274,7 @@ export class MockApi implements Api {
     const n = Math.round(100 * scaleFor(query));
     const time = query.x === 'created_at';
     const range: [number, number] = query.range ?? (time ? [9132, 9497] : [0, 1]);
-    return of({ xKind: time ? 'time' as const : 'metric' as const, range, buckets: Array.from({ length: 12 }, (_, month) => ({
+    return of({ xKind: time ? 'time' as const : 'metric' as const, yKind: query.y === 'created_at' ? 'time' as const : 'metric' as const, range, buckets: Array.from({ length: 12 }, (_, month) => ({
       lo: time ? (Date.UTC(2025, month, 1) - Date.UTC(2000, 0, 1)) / 86400000 : range[0] + (range[1] - range[0]) * month / 12,
       hi: time ? (Date.UTC(2025, month + 1, 1) - Date.UTC(2000, 0, 1)) / 86400000 : range[0] + (range[1] - range[0]) * (month + 1) / 12,
       ...(time ? { start: `2025-${String(month + 1).padStart(2, '0')}-01` } : {}), group: query.groups ? 'Siemens' : null,
@@ -296,7 +296,7 @@ export class MockApi implements Api {
       counts[Math.min(bins - 1, Math.floor(y * bins)) * bins + Math.min(bins - 1, Math.floor(x * bins))]++;
       sample.push([xr[0] + x * (xr[1] - xr[0]), yr[0] + y * (yr[1] - yr[0])]);
     }
-    return of({ xKind: query.x === 'created_at' ? 'time' as const : 'metric' as const, x: { lo: xr[0], width: (xr[1] - xr[0]) / bins, bins, underflow: 0, overflow: 0 },
+    return of({ xKind: query.x === 'created_at' ? 'time' as const : 'metric' as const, yKind: query.y === 'created_at' ? 'time' as const : 'metric' as const, x: { lo: xr[0], width: (xr[1] - xr[0]) / bins, bins, underflow: 0, overflow: 0 },
       y: { lo: yr[0], width: (yr[1] - yr[0]) / bins, bins, underflow: 0, overflow: 0 },
       counts, n, pearson: 0, spearman: 0, sample }).pipe(delay(MOCK_LATENCY_MS));
   }

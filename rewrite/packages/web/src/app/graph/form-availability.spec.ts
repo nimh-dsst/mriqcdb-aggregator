@@ -15,7 +15,7 @@ function expected(enabled: readonly Form[], disabled: readonly Form[] = []) {
     enabled.includes(form)
       ? { form, state: 'enabled' as const }
       : disabled.includes(form)
-        ? { form, state: 'disabled' as const, reason: 'add a second metric' }
+        ? { form, state: 'disabled' as const, reason: 'add a second column' }
         : { form, state: 'hidden' as const },
   );
 }

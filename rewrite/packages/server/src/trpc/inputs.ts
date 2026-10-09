@@ -88,12 +88,13 @@ function checkAnalysis(
   }
 }
 
-/** Only the catalog's time field or a catalog metric can be a continuous x. */
-function checkContinuousX(input: { modality: Modality; view: View; x: string }, ctx: z.RefinementCtx): void {
-  if (input.x === 'created_at' && fieldsFor(input.modality, input.view, 'filter')
-    .some(field => field.id === input.x && field.kind === 'date')) return;
-  if (!isValidMetric(input.modality, input.x)) {
-    ctx.addIssue({ code: 'custom', path: ['x'], message: `unknown continuous x "${input.x}"` });
+/** Only the catalog's time field or a catalog metric can be a continuous axis. */
+function checkContinuousAxis(input: { modality: Modality; view: View; x: string; y: string }, axis: 'x' | 'y', ctx: z.RefinementCtx): void {
+  const column = input[axis];
+  if (column === 'created_at' && fieldsFor(input.modality, input.view, 'filter')
+    .some(field => field.id === column && field.kind === 'date')) return;
+  if (!isValidMetric(input.modality, column)) {
+    ctx.addIssue({ code: 'custom', path: [axis], message: `unknown continuous ${axis} "${column}"` });
   }
 }
 
@@ -112,8 +113,9 @@ export const binnedSummaryInput = z.object({
     .optional(),
 }).superRefine((input, ctx) => {
   checkSelections(input, ctx);
-  checkAnalysis(input, [input.y], ctx);
-  checkContinuousX(input, ctx);
+  checkAnalysis(input, [], ctx);
+  checkContinuousAxis(input, 'x', ctx);
+  checkContinuousAxis(input, 'y', ctx);
   if ((input.x === 'created_at') !== (typeof input.bins === 'string')) {
     ctx.addIssue({ code: 'custom', path: ['bins'], message: 'time x needs calendar bins; metric x needs a bin count' });
   }
@@ -126,7 +128,7 @@ export const binnedSummaryInput = z.object({
   }
 });
 
-/** Two finite metrics on a shared grid, with a capped reproducible scatter sample. */
+/** Two finite continuous columns on a shared grid, with a capped reproducible scatter sample. */
 export const density2dInput = z.object({
   ...analysisScope,
   x: z.string(),
@@ -138,10 +140,11 @@ export const density2dInput = z.object({
   seed: z.number().int().min(0).max(2_147_483_647).default(1),
 }).superRefine((input, ctx) => {
   checkSelections(input, ctx);
-  checkAnalysis(input, [input.y], ctx);
-  checkContinuousX(input, ctx);
+  checkAnalysis(input, [], ctx);
+  checkContinuousAxis(input, 'x', ctx);
+  checkContinuousAxis(input, 'y', ctx);
   if (input.x === input.y) {
-    ctx.addIssue({ code: 'custom', path: ['y'], message: 'x and y must be different metrics' });
+    ctx.addIssue({ code: 'custom', path: ['y'], message: 'x and y must be different columns' });
   }
   if (input.range !== undefined) {
     for (const axis of ['x', 'y'] as const) {

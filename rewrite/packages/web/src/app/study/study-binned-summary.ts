@@ -55,7 +55,7 @@ function groupHoles(
   group_bins: string;
   max_groups: string;
 } {
-  const groupBins = kind === "metric" ? numericBins(query.bins) : 10;
+  const groupBins = 10;
   if (!query.groups) {
     return {
       group_expr: "NULL",
@@ -108,7 +108,12 @@ export function compileStudyBinnedSummary(
   const x = kind === "time"
     ? continuousAxisExpr(asColumnId("created_at"), "time")
     : metricExpression(query.modality, query.x, columns);
-  const y = metricExpression(query.modality, query.y, columns);
+  if (query.y === "created_at" && !columns.has("created_at")) {
+    throw new Error("Time binned summaries require a created_at column");
+  }
+  const y = query.y === "created_at"
+    ? continuousAxisExpr(asColumnId("created_at"), "time")
+    : metricExpression(query.modality, query.y, columns);
   const baseHoles = {
     table: quoteIdent("study"),
     where,
@@ -130,7 +135,7 @@ export function compileStudyBinnedSummary(
         "binned_summary",
         "buckets",
         { ...baseHoles, ...group, ...fragments },
-        [...params, range[0], range[1]],
+        [...params, range[0], range[1], kind === "metric" ? numericBins(query.bins) : 1],
       );
     },
   };
@@ -252,7 +257,7 @@ export function shapeBinnedSummary(
       ...(kind === "time"
         ? { start: new Date(EPOCH_2000_MS + lo * DAY_MS).toISOString().slice(0, 10) }
         : {}),
-      group: groupValue(row),
+      group: groupValue({ ...row, group_lo: row['group_lo'] == null ? null : Number(row['group_lo']) + Number(row['value']) * Number(row['group_width']) }),
       ...(cohort === null || cohort === undefined ? {} : { cohort: String(cohort) }),
       n: requiredNumber(row["n"], "count"),
       isOther: booleanValue(row["is_other"]),
@@ -262,5 +267,5 @@ export function shapeBinnedSummary(
     };
   });
 
-  return { xKind: kind, range, buckets } as BinnedSummaryResult;
+  return { xKind: kind, yKind: query.y === 'created_at' ? 'time' : 'metric', range, buckets };
 }

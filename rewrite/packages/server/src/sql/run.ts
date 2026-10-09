@@ -97,7 +97,7 @@ export function metricExpr(modality: Modality, metricId: string): string {
   return continuousAxisExpr(metric.id, 'metric');
 }
 
-/** Resolve the identifier from the catalog before building either x expression. */
+/** Resolve a continuous axis identifier from the catalog; also used for y. */
 export function continuousXExpr(modality: Modality, view: View, column: string): string {
   if (column !== 'created_at') return metricExpr(modality, column);
   const time = fieldsFor(modality, view, 'filter').find(field => field.id === column && field.kind === 'date');

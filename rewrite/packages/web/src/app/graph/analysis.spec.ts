@@ -1,4 +1,5 @@
-import { asColumnId, getAuthoredCatalog, queryKey, type CompletedCatalog } from '@mriqc/shared';
+import { queryKey } from '../api/api';
+import { asColumnId, getAuthoredCatalog, type CompletedCatalog } from '@mriqc/shared';
 import { initialState, reduce } from './reducer';
 import { formsFor } from './panel-shapes';
 import { panelQueries } from './queries';

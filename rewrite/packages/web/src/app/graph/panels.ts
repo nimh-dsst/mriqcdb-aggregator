@@ -100,6 +100,7 @@ export function normalizedOptions(panel: Panel, patch: Partial<PanelOptions>, mo
       ? [Math.min(...range), Math.max(...range)] : 'auto';
   }
   if (!['count', 'share', 'logCount'].includes(options.yMode)) options.yMode = 'count';
+  options.quantiles = options.quantiles === 'tails' ? 'tails' : 'quartiles';
   if (!canStack(panel) || !['stacked', 'stacked100'].includes(options.layout)) options.layout = 'overlaid';
   if (options.coefficient !== undefined) options.coefficient = options.coefficient === 'pearson' ? 'pearson' : 'spearman';
   options.bins = clampBins(options.bins);
@@ -129,8 +130,12 @@ export function patchPanel(state: State, id: PanelId, patch: PanelPatch): State 
       if (x !== panel.x && panel.form === 'matrix') current = { ...current, form: formsFor(x, current.y)[0] };
     }
     if (patch.y !== undefined && axisType(current.x) !== 'categorical' &&
-        (patch.y === null || isValidMetric(state.global.modality, patch.y))) current = { ...current, y: patch.y };
-    if (current.x === current.y) { notice = 'Choose two different metrics.'; return panel; }
+        (patch.y === null || patch.y === 'created_at' || isValidMetric(state.global.modality, patch.y))) current = { ...current, y: patch.y };
+    if (current.x === current.y) { notice = 'Choose two different columns.'; return panel; }
+    // A one-slot pick uses the default orientation; explicit axes (including swap) are kept.
+    if (x === undefined && patch.y === 'created_at' && current.y === 'created_at' && panel.y !== 'created_at') {
+      current = { ...current, x: 'created_at', y: current.x as Panel['y'] };
+    }
     const group = patch.split !== undefined ? patch.split : patch.group;
     const requestedSeries = patch.series ?? (group !== undefined ? [
       ...current.series.filter(series => !('field' in series)),

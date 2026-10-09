@@ -191,7 +191,7 @@ export function validateUrlState(url: UrlState): UrlState {
         axisType(x) !== 'categorical' &&
         panel.y !== x &&
         panel.y &&
-        isValidMetric(modality, panel.y)
+        (panel.y === 'created_at' || isValidMetric(modality, panel.y))
           ? panel.y
           : null;
       const series = normalizeSeries(panel.series, {

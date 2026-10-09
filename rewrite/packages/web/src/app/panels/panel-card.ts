@@ -165,6 +165,7 @@ export class PanelCard {
 
   readonly columnPickerOpen = signal(false);
   readonly focusSecondMetric = signal(false);
+  readonly pendingForm = signal<Form | null>(null);
   private readonly formPickerElement = viewChild<unknown, ElementRef<HTMLElement>>('formPicker', { read: ElementRef });
   private clearFormLinkListeners = () => {};
   readonly optionsOpen = signal(false);
@@ -194,6 +195,7 @@ export class PanelCard {
   readonly modality = computed(() => this.state().global.modality);
   readonly selectedView = computed(() => this.state().global.view);
   readonly metrics = computed(() => metricsFor(this.modality()));
+  readonly yUnit = computed(() => this.metrics().find(metric => metric.id === this.panel()?.y)?.unit);
   readonly fields = computed(() =>
     fieldsFor(this.modality(), this.selectedView(), 'group'),
   );
@@ -214,7 +216,7 @@ export class PanelCard {
     return typeof study === 'object' && study !== null && study.status === 'ready';
   });
   readonly formWidth = computed(() => Math.max(130, 66 + Math.max(0, ...this.forms().map(entry => FORM_INFO[entry.form].label.length)) * 8));
-  readonly studyCapabilityReason = computed(() => this.panel() ? studyFormReason(this.panel()!) : null);
+  readonly studyCapabilityReason = computed(() => this.panel() ? studyFormReason(this.panel()!, this.state()) : null);
   readonly dateRange = computed<readonly [string, string] | null>(() => {
     const date = this.state().global.filters.find(filter => filter.field === 'created_at' && filter.op === 'between');
     return date?.op === 'between' && typeof date.lo === 'string' && typeof date.hi === 'string' ? [date.lo, date.hi] : null;
@@ -238,15 +240,33 @@ export class PanelCard {
 
   toggleColumnPicker(): void {
     this.focusSecondMetric.set(false);
+    this.pendingForm.set(null);
     this.columnPickerOpen.update((open) => !open);
   }
 
-  addSecondMetric(event: Event, picker: MatSelect): void {
+  addSecondMetric(event: Event, picker: MatSelect, form?: Form): void {
     event.preventDefault();
     event.stopPropagation();
     picker.close();
     this.focusSecondMetric.set(true);
+    const linkedForm = event.target instanceof Element
+      ? event.target.closest<HTMLElement>('.form-reason')?.dataset['form']
+      : undefined;
+    this.pendingForm.set(form ?? (linkedForm as Form | undefined) ?? null);
     this.columnPickerOpen.set(true);
+  }
+
+  closeColumnPicker(): void {
+    this.columnPickerOpen.set(false);
+    this.pendingForm.set(null);
+  }
+
+  setAxisRange(event: { axis: 'x' | 'y'; range: [number, number] | 'auto' }): void {
+    this.graph.dispatch({ t: 'setPanelRange', id: this.panelId(), ...event });
+  }
+
+  resetPanelRanges(): void {
+    this.graph.dispatch({ t: 'resetPanelRanges', id: this.panelId() });
   }
 
   prepareFormLinks(open: boolean, picker: MatSelect): void {

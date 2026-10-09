@@ -33,10 +33,10 @@ describe("analysis chart specifications", () => {
       form: "heatmap",
       showPoints: true,
     });
-    const spec = chart.spec as unknown as { params: { name: string; select: { encodings: string[] } }[] };
+    const spec = chart.spec as unknown as { layer: { params: { name: string; select: { encodings: string[] } }[] }[] };
 
     expect(chart.datasets["density-grid"]).toHaveLength(4);
-    expect(spec.params[0]).toEqual({ name: "brush2d", select: { type: "interval", encodings: ["x", "y"] } });
+    expect(spec.layer[0].params[0]).toEqual({ name: "brush2d", select: { type: "interval", encodings: ["x", "y"] } });
   });
 
   it("hex-bins retained samples instead of treating density counts as samples", () => {

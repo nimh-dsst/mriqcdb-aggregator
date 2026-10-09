@@ -10,9 +10,11 @@ exploratory clustering.
 1. **One chart list everywhere.** There is one fixed, ordered list of forms;
    every card's picker is a view of that same list, never a different list.
    A form that physically cannot draw the card's axes is hidden (occluded);
-   a form that would work after one step (adding a second metric) stays
-   visible but disabled, with that step as the reason. The order never
-   changes.
+   a form that would work after one step (adding a second column) stays
+   visible but disabled, with "add a second column" as the reason and link.
+   Time is a column like any other: the Y slot lists Upload time first; the
+   only convention is that when one of the two columns is time it goes on x
+   by default (swap is one click). The order never changes.
 2. **A form is a drawing, named by its geometry.** Never a description of the
    data. Forms apply to scale types (continuous, categorical, metric set), not
    to columns; time is a continuous scale with month bins.
@@ -23,12 +25,25 @@ exploratory clustering.
    multiple.
 5. **Nothing retiles unless the user drags it.** Explicit geometry per panel;
    compaction only moves panels up and left into free space, never reorders.
+   A card's geometry is fixed when it is created (from the preferred size of
+   the form chosen then) and changes only by the user; changing the form or
+   adding series later never changes size or position (owner, 2026-10-09:
+   "why does changing the graph type change the panel size?").
 6. **State changes are never page navigations.** Scroll position survives
    every change; URL mirrors state with the push/replace rule.
 7. **No per-case UI.** A complaint is answered by the general rule that makes
    it impossible, written here first, then built once.
 8. **Greenfield.** No legacy decoders, aliases or compatibility shims until
    something has shipped.
+
+9. **Quantity is set in one place, in one go.** The column drawer has an X
+   slot and a Y slot; the first pick fills X, the second Y; Create makes the
+   card. Opening the drawer from a title pre-fills both, with swap. Choosing
+   a two-metric form on a one-metric card opens the drawer on the Y slot.
+10. **Axes are direct manipulation.** Drag along an axis to set its range,
+   double-click the axis to reset to auto, "Zoom to brush" on the brush
+   chip. The options menu shows the same numbers for exact entry. A custom
+   range re-bins on the server (shared-range path), never a client crop.
 
 ## The one scheme (owner, 2026-10-09: "a solid continuous scheme to show data how I want to see it so that I can think of what I see")
 
@@ -54,7 +69,7 @@ describes the data ("counts over time", "uploads") is a quantity, not a form.
 | x scale | y | forms (glyph · name · use when) |
 |---|---|---|
 | continuous (metric or time) | none | Histogram (counts per bin) · Line (counts per bin as a line) · Area (counts per bin filled; stacked share with series) · Density (smoothed shape) · ECDF (cumulative share, read percentiles or cumulative uploads) · Box (spread per series) · Table (the records) |
-| continuous (metric or time) | numeric metric | Heatmap (2D density) · Scatter (sample points) · Hexbin (sample, binned) · Clusters (k-means on the sample) · Band (median with p25–p75 per x bin) · Lines (p05/p50/p95 per x bin) |
+| continuous (metric or time) | numeric metric | Heatmap (2D density) · Scatter (sample points) · Hexbin (sample, binned) · Clusters (k-means on the sample) · Band (median with a filled quantile band per x bin) · Lines (three quantile lines per x bin) — which quantiles is the option `quantiles`: Quartiles (Q1, median, Q3; default, the old quartile-lines chart) or Tails (p05, median, p95) |
 | categorical field | none | Bars (count per category) · Share (100% bar) · Table |
 | set of metrics | — | Matrix (pairwise coefficient) |
 

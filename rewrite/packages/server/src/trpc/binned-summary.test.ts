@@ -51,6 +51,24 @@ afterAll(async () => {
 });
 
 describe('binnedSummary', () => {
+  it('summarizes time y in epoch days over metric bins, including empty cohorts', async () => {
+    const query = { ...input, x: 'fd_mean', y: 'created_at', bins: 2, range: [0, 10] as [number, number] };
+    const result = await caller.binnedSummary(query);
+    expect(result).toMatchObject({ xKind: 'metric', yKind: 'time', range: [0, 10] });
+    for (const [bin, bucket] of result.buckets.entries()) {
+      const values = indices.filter(i => bin === 0 ? i < 10 : i >= 10 && i <= 20).map(epochDay);
+      expect(bucket.n).toBe(values.length);
+      expect(bucket.mean).toBeCloseTo(values.reduce((sum, value) => sum + value, 0) / values.length, 10);
+      for (const [key, q] of [['p05', .05], ['p25', .25], ['p50', .5], ['p75', .75], ['p95', .95]] as const) {
+        expect(bucket.quantiles[key]).toBeCloseTo(quantileCont(values, q), 10);
+      }
+    }
+    const empty = await caller.binnedSummary({ ...query, filters: [{ field: 'manufacturer', op: 'in', values: ['absent'] }] });
+    expect(empty).toEqual({ xKind: 'metric', yKind: 'time', range: [0, 10], buckets: [] });
+    expect((await caller.binnedSummary(input)).yKind).toBe('metric');
+    expect((await caller.binnedSummary({ ...input, y: 'created_at' })).yKind).toBe('time');
+  });
+
   it('bins metric x over p01–p99 and computes independent finite y quantiles', async () => {
     const result = await caller.binnedSummary({ ...input, x: 'fd_mean', bins: 8 });
     const values = indices.map(i => i * 0.5);
@@ -86,7 +104,7 @@ describe('binnedSummary', () => {
     expectStats(result.buckets[0]!, indices.filter(i => i < 10));
     expectStats(result.buckets[1]!, indices.filter(i => i >= 10 && i <= 20));
     const empty = await caller.binnedSummary({ ...query, filters: [{ field: 'manufacturer', op: 'in', values: ['absent'] }] });
-    expect(empty).toEqual({ xKind: 'metric', range: [0, 10], buckets: [] });
+    expect(empty).toEqual({ xKind: 'metric', yKind: 'metric', range: [0, 10], buckets: [] });
     const single = await caller.binnedSummary({ ...input, x: 'fd_mean', bins: 20,
       selections: [{ metric: 'fd_mean', range: [0, 0] }] });
     expect(single.range).toEqual([0, 0]);
@@ -245,7 +263,8 @@ describe('binnedSummary', () => {
   });
 
   it.each([
-    { y: 'bad' }, { x: 'bad' }, { x: 'fd_mean); DROP TABLE raw_bold; --', bins: 10 }, { modality: 'T1w' }, { view: 'k3pp' }, { groups: 'created_at' },
+    { y: 'bad' }, { y: 'manufacturer' }, { y: 'created_at); DROP TABLE raw_bold; --' },
+    { x: 'bad' }, { x: 'fd_mean); DROP TABLE raw_bold; --', bins: 10 }, { modality: 'T1w' }, { view: 'k3pp' }, { groups: 'created_at' },
     { groups: 'id' }, { groups: 'fd_mean' }, { bins: 'quarter' }, { bins: 10 }, { x: 'fd_mean', bins: 'month' },
     { range: ['bad', 1] }, { range: [2, 1] }, { range: [0] }, { range: [0, 0] },
     { selections: [{ metric: 'fd_mean', range: [2, 1] }] },

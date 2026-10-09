@@ -425,6 +425,7 @@
        carries its own way out. -->
   <ng-template #brushChip>
     @for (b of brushes(); track b.metric) {
+      <span class="inline-flex items-center gap-1">
       <button
         type="button"
         class="chip chip-amber"
@@ -443,102 +444,13 @@
           aria-hidden="true"
         />
       </button>
+      <button type="button" class="btn btn-quiet" (click)="zoomToBrush(b)">Zoom to brush</button>
+      </span>
     }
   </ng-template>
 
   @if (studyUpload && studyDialogOpen()) {
-    <div
-      class="fixed inset-0 z-50 flex items-center justify-center bg-ink/40 p-4"
-      (click)="closeStudyDialog()"
-      (keydown.escape)="closeStudyDialog()"
-      data-testid="study-backdrop"
-    >
-      <div
-        class="flex max-h-full w-full max-w-sm flex-col gap-4 overflow-auto rounded-card border border-border bg-surface p-6"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="study-title"
-        aria-describedby="study-explanation"
-        tabindex="-1"
-        (click)="$event.stopPropagation()"
-        data-testid="study-dialog"
-      >
-        <div class="flex items-start justify-between gap-3">
-          <h2 id="study-title" class="text-title font-semibold text-ink">Add my study</h2>
-          <button
-            type="button"
-            class="icon-btn"
-            (click)="closeStudyDialog()"
-            aria-label="Close study upload"
-            data-testid="study-close"
-          >
-            <lucide-icon
-              class="icon-16"
-              name="x"
-              color="currentColor"
-              [size]="16"
-              [strokeWidth]="1.75"
-              aria-hidden="true"
-            />
-          </button>
-        </div>
-
-        <p id="study-explanation" class="text-caption text-ink-2">
-          Choose an MRIQC group CSV or TSV table, or a zip of per-scan MRIQC JSON files. Metric
-          columns are matched to the metrics on this dashboard. The file stays in this browser.
-        </p>
-
-        <label class="btn w-fit cursor-pointer" data-testid="study-file-label">
-          Choose file
-          <input
-            class="sr-only"
-            type="file"
-            accept=".csv,.tsv,.zip,text/csv,text/tab-separated-values,application/zip"
-            (change)="chooseStudy($event)"
-            data-testid="study-file"
-          />
-        </label>
-
-        @if (study(); as study) {
-          @if (study !== 'none' && study.status === 'loading') {
-            <p class="text-caption text-ink-2" role="status" data-testid="study-loading">
-              Loading {{ selectedStudyName() ?? 'study file' }}&hellip;
-            </p>
-          } @else if (study !== 'none' && study.status === 'error') {
-            <div
-              class="rounded-card border border-danger p-3"
-              role="alert"
-              data-testid="study-error"
-            >
-              @if (selectedStudyName(); as name) {
-                <p class="font-semibold text-ink">{{ name }}</p>
-              }
-              <p class="text-caption text-danger">{{ study.error }}</p>
-            </div>
-          } @else if (study !== 'none' && study.status === 'ready') {
-            <div class="rounded-card border border-border p-3" data-testid="study-ready">
-              <p class="font-semibold text-ink">{{ study.name }}</p>
-              <p class="text-caption text-ink-2">
-                {{ study.rows | number }} scans &middot; {{ studyMetricSummary(study) }}
-              </p>
-              @if (study.ignoredColumns.length > 0) {
-                <details class="mt-2 text-caption text-ink-2" data-testid="study-ignored">
-                  <summary class="cursor-pointer">
-                    {{ study.ignoredColumns.length | number }} ignored
-                    {{ study.ignoredColumns.length === 1 ? 'column' : 'columns' }}
-                  </summary>
-                  <ul class="mt-1 list-disc pl-5">
-                    @for (column of study.ignoredColumns; track column) {
-                      <li>{{ column }}</li>
-                    }
-                  </ul>
-                </details>
-              }
-            </div>
-          }
-        }
-      </div>
-    </div>
+    <app-upload-dialog [study]="study()" (chosen)="chooseStudy($event)" (closed)="closeStudyDialog()" />
   }
 </header>
 @if (exportOpen()) { <app-export-dialog (closed)="exportOpen.set(false)" /> }

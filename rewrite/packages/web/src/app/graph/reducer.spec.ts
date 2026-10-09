@@ -1,6 +1,6 @@
 import { asColumnId, isValidMetric, queryKey, type Filter } from '@mriqc/shared';
 import type { Command } from './commands';
-import { CATALOG_KEY, needed, referencedKeys } from './queries';
+import { CATALOG_KEY, needed, neededQueries, referencedKeys } from './queries';
 import { nextCohortColor } from './cohorts';
 import { defaultDashboard, initialState, reduce } from './reducer';
 import {
@@ -15,6 +15,29 @@ import {
 } from './state';
 
 /* ---------------------------------------------------------------- fixtures */
+
+describe('axis range commands', () => {
+  it('sets and resets ranges without changing quantity, count mode or layout', () => {
+    const state = fixture({ panels: [panel({ options: { ...defaultPanelOptions(), yMode: 'logCount' } })] });
+    const ranged = run(state,
+      { t: 'setPanelRange', id: 'p1', axis: 'x', range: [0.6, 0.1] },
+      { t: 'setPanelRange', id: 'p1', axis: 'y', range: [10, 100] });
+    expect(ranged.panels[0].options).toMatchObject({ xRange: [0.1, 0.6], yRange: [10, 100], yMode: 'logCount' });
+    expect(ranged.layout).toEqual(state.layout);
+    expect(ranged.panels[0].x).toBe('fd_mean');
+    const reset = reduce(ranged, { t: 'resetPanelRanges', id: 'p1' });
+    expect(reset.panels[0].options).toMatchObject({ xRange: 'auto', yRange: 'auto', yMode: 'logCount' });
+    expect(reduce(ranged, { t: 'setPanelRange', id: 'p1', axis: 'x', range: 'auto' }).panels[0].options.yRange).toEqual([10, 100]);
+  });
+
+  it('zooms the brushing panel and clears its brush atomically', () => {
+    const brushed = reduce(fixture(), { t: 'brush', from: 'p1', metric: asColumnId('fd_mean'), range: [0.1, 0.6] });
+    const zoomed = reduce(brushed, { t: 'zoomToBrush', from: 'p1' });
+    expect(zoomed.selections).toEqual([]);
+    expect(zoomed.panels[0].options.xRange).toEqual([0.1, 0.6]);
+    expect([...neededQueries(zoomed).values()].find(query => query.proc === 'distribution')).toMatchObject({ range: [0.1, 0.6] });
+  });
+});
 
 function panel(overrides: Partial<Panel> = {}): Panel {
   return {

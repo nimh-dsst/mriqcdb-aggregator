@@ -1,4 +1,5 @@
-import { asColumnId, queryKey } from '@mriqc/shared';
+import { queryKey } from '../api/api';
+import { asColumnId } from '@mriqc/shared';
 import { defaultDashboard, reduce } from './reducer';
 import { panelQueries } from './queries';
 import { INITIAL_STATE, type Panel } from './state';

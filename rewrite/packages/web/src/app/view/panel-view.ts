@@ -1,8 +1,10 @@
-import { asColumnId, fieldValueLabel, queryKey, fieldsFor, type ColumnId, type CoverageResult, type GroupedSummaryResult, type QueryKey, type SampleResult, type SampleRow } from '@mriqc/shared';
+import { asColumnId, fieldValueLabel, fieldsFor, type ColumnId, type CoverageResult, type GroupedSummaryResult, type QueryKey, type SampleResult, type SampleRow } from '@mriqc/shared';
+import { queryKey } from '../api/api';
 import type { TopLevelSpec } from 'vega-lite';
 import { axisType, panelForms } from '../graph/panel-shapes';
 import { axisEvidence } from '../graph/axis-options';
 import { withChipLegend } from '../panels/specs/chip-legend';
+import { withCountRange } from '../panels/specs/axis-ranges';
 import { LIGHT_THEME, OTHER_COLOR, type ChartTheme, type CohortResult, type MetricAxis } from '../panels/specs';
 import { type ChartInput, type ChartOutput } from '../panels/specs/select';
 import { stackedHistogram, COHORTS_DATA } from '../panels/specs/comparison';
@@ -257,7 +259,9 @@ function panelSubtitle(
  */
 function tableFor(state: State, panel: Panel, keys: readonly QueryKey[]): PanelTable {
   const view = panelCohort(state, panel).view;
-  const columns = [...(panel.series.length ? [asColumnId('__series')] : []), ...sampleColumns(state, view)];
+  const studyColumns = panelCohorts(state, panel).some(cohort => cohort.source === 'study') && typeof state.study === 'object' && state.study.status === 'ready'
+    ? (state.study.columns ?? state.study.metrics).map(asColumnId) : [];
+  const columns = [...new Set([...(panel.series.length ? [asColumnId('__series')] : []), ...sampleColumns(state, view), ...studyColumns])];
   const fields = fieldsFor(state.global.modality, view, 'export');
   const rows: SampleRow[] = [];
   let nextCursor: string | null = null;
@@ -304,10 +308,10 @@ function sameDeps(a: readonly unknown[], b: readonly unknown[]): boolean {
 
 function titleFor(state: State, panel: Panel): string {
   if (panel.form === 'matrix') return 'Metric correlations';
-  if (panel.x === 'created_at') return panel.y ? `${metricDef(state, panel.y)?.label ?? panel.y} over upload time` : 'Uploads over time';
+  if (panel.x === 'created_at') return panel.y ? `${metricDef(state, panel.y)?.shortLabel ?? metricDef(state, panel.y)?.label ?? panel.y} over time` : 'Uploads over time';
   if (axisType(panel.x) === 'categorical') return 'Scans per ' + (fieldDef(state, panel.x)?.label ?? panel.x);
   const x = metricDef(state, panel.x), y = metricDef(state, panel.y);
-  return panel.y ? (y?.shortLabel ?? y?.label ?? panel.y) + ' vs ' + (x?.shortLabel ?? x?.label ?? panel.x) : x?.label ?? String(panel.x);
+  return panel.y ? (panel.y === 'created_at' ? 'Upload time' : y?.shortLabel ?? y?.label ?? panel.y) + ' vs ' + (x?.shortLabel ?? x?.label ?? panel.x) : x?.label ?? String(panel.x);
 }
 
 /** A card is one quantity, its resolved series, and a valid form. */
@@ -323,6 +327,7 @@ export function panelView(state: State, id: PanelId, theme: ChartTheme = LIGHT_T
     const quantityKey = queryKey(cohortQuery(state, panel, panelCohort(state, panel)));
     const numericStats = axisType(panel.x) === 'numeric' && panel.form !== 'matrix' ? panelStats(state, panel, [quantityKey]) : null;
     const derived = { ...view, title: titleFor(state, panel), stats: numericStats ?? view.stats,
+      notes: [...view.notes, ...(panel.series.some(series => series.kind === 'study') && studyFormReason(panel, state) ? [studyFormReason(panel, state)!] : [])],
       spec: view.spec ? withChipLegend(view.spec) : null };
     if (panel.form !== 'clusters') memos.set(id, { deps, view: derived });
     return derived;
@@ -409,10 +414,10 @@ export function panelView(state: State, id: PanelId, theme: ChartTheme = LIGHT_T
       view: activeView(state), metricLabel: metric?.label ?? null, metricDescription: metric?.description ?? null, metricUnit: metric?.unit ?? null,
       groupLabel: category?.label ?? null, granularity: panel.options.granularity, cohortCount: cohorts.length }),
     subtitle: panelSubtitle(state, panel, table, total), notes: [...panelNotes(state, panel), ...chart.degenerateNote ? [chart.degenerateNote] : [],
-      ...(cohorts.some(cohort => cohort.source === 'study') && studyFormReason(panel) ? [studyFormReason(panel)!] : [])],
+      ...(panel.series.some(series => series.kind === 'study') && studyFormReason(panel, state) ? [studyFormReason(panel, state)!] : [])],
     clipChip: clipChip(panel.options.clip, metric, panel), metricHelp: metric ? { label: metric.label, taxonomy: [metric.family, metric.subfamily].filter(Boolean).join(' / '), description: metric.description ?? null, unit: metric.unit ?? null } : null,
     specKey: JSON.stringify([theme.mode, panel.x, panel.y, panel.form, panel.options, series, chart.spec]),
-    spec: chart.spec ? withChipLegend(chart.spec) : null, datasets: chart.datasets, table, status, brushable: chart.brushable,
+    spec: chart.spec ? withChipLegend(withCountRange(chart.spec, panel)) : null, datasets: chart.datasets, table, status, brushable: chart.brushable,
     hasRows: table ? table.rows.length > 0 : Object.values(chart.datasets).some(rows => rows.length > 0), live: status.kind === 'ready',
     n: chart.n, countLabel: countLabel(state, panel), stats, xPositive: axisEvidence(state,panel).positive,
     cohorts: panel.series.length ? cohorts.map((cohort, index) => ({ id: cohort.id, name: cohort.name, color: colors[index], n: counts[index] ?? null, editable: false, descriptorKey: cohort.descriptorKey })) : null,

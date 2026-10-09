@@ -16,13 +16,13 @@ import {
   type Quantiles,
   type TemplateName,
 } from '@mriqc/shared';
-import type { StudyDistributionQuery, StudyGroupedSummaryQuery, StudyDensity2dQuery, StudyCorrelationQuery } from '../api/api';
+import type { StudyDistributionQuery, StudyGroupedSummaryQuery, StudyDensity2dQuery, StudyCorrelationQuery, StudyCoverageQuery, StudySampleQuery } from '../api/api';
 
 export type StudyParam = FilterValue;
 export type StudyRow = Readonly<Record<string, unknown>>;
 
 export interface BoundStatement {
-  template: 'distribution' | 'grouped_summary' | 'density2d' | 'correlation' | 'binned_summary';
+  template: TemplateName;
   statement: string;
   sql: string;
   params: readonly StudyParam[];
@@ -118,7 +118,7 @@ function findField(
 }
 
 export function predicate(
-  query: BinnedSummaryQuery | StudyDistributionQuery | StudyGroupedSummaryQuery | StudyDensity2dQuery | StudyCorrelationQuery,
+  query: BinnedSummaryQuery | StudyDistributionQuery | StudyGroupedSummaryQuery | StudyDensity2dQuery | StudyCorrelationQuery | StudyCoverageQuery | StudySampleQuery,
   columns: ReadonlySet<string>,
 ): { where: string; params: readonly StudyParam[] } {
   return compileFiltersCore(query.filters, normalizeSelections(query), {

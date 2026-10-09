@@ -17,6 +17,8 @@ import type {
   StudyLoadResult,
   StudyDensity2dQuery,
   StudyCorrelationQuery,
+  StudyCoverageQuery,
+  StudySampleQuery,
 } from '../api/api';
 import type { ParsedStudy } from './study-parser';
 import type { BoundStatement, StudyRow } from './study-sql';
@@ -73,6 +75,35 @@ async function execute(
 /** Browser-local implementation of the study half of the API seam. */
 @Injectable({ providedIn: 'root' })
 export class StudyRunner implements StudyApi {
+  coverage(query: StudyCoverageQuery) {
+    return defer(() => from(this.runCoverage(query)));
+  }
+
+  sample(query: StudySampleQuery) {
+    return defer(() => from(this.runSample(query)));
+  }
+
+  private async runCoverage(query: StudyCoverageQuery) {
+    const { database, schema } = this.loaded();
+    const { compileStudyCoverage, shapeStudyCoverage } = await import('./study-records');
+    const plan = compileStudyCoverage(query, schema.columns);
+    const connection = await database.connect();
+    try {
+      const range = plan.range ? (await execute(connection, plan.range))[0] : null;
+      const lo = Number(range?.['lo']), hi = Number(range?.['hi']);
+      const bounds = range && range['lo'] != null && hi > lo ? { lo, width: (hi - lo) / 10 } : null;
+      const bucket = plan.buckets(bounds);
+      return shapeStudyCoverage(await execute(connection, bucket.statement), bucket.group.label);
+    } finally { await connection.close(); }
+  }
+
+  private async runSample(query: StudySampleQuery) {
+    const { database, schema } = this.loaded();
+    const { compileStudySample, shapeStudySample } = await import('./study-records');
+    const connection = await database.connect();
+    try { return shapeStudySample(await execute(connection, compileStudySample(query, schema.columns))); }
+    finally { await connection.close(); }
+  }
   binnedSummary(query: BinnedSummaryQuery): Observable<BinnedSummaryResult> {
     return defer(() => from(this.runBinnedSummary(query)));
   }
@@ -191,6 +222,8 @@ export class StudyRunner implements StudyApi {
       totalMetrics: parsed.totalMetrics,
       ignoredColumns: parsed.ignoredColumns,
       missingMetrics: parsed.missingMetrics,
+      columns: parsed.columns,
+      columnMapping: parsed.columnMapping,
     };
   }
 

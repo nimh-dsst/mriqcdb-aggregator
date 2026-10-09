@@ -1,7 +1,7 @@
+import { queryKey } from '../api/api';
 import { EMPTY, Observable, Subject, of, throwError } from 'rxjs';
 import {
   asColumnId,
-  queryKey,
   type DistributionResult,
   type GroupedSummaryResult,
   type Query,
@@ -80,6 +80,8 @@ class FakeApi implements Api {
 }
 
 class FakeStudyApi implements StudyApi {
+  coverage(query: import('../api/api').StudyCoverageQuery) { this.started.push(queryKey(query)); return EMPTY; }
+  sample(query: import('../api/api').StudySampleQuery) { this.started.push(queryKey(query)); return EMPTY; }
   binnedSummary(query: import('@mriqc/shared').BinnedSummaryQuery): Observable<never> {
     this.started.push(queryKey(query)); return EMPTY;
   }

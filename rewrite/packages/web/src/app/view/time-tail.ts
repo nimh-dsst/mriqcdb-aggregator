@@ -10,7 +10,7 @@ const probabilities = [0.05, 0.25, 0.5, 0.75, 0.95];
 export function approximateTimeTail(buckets: readonly Bucket[]): BinnedSummaryResult {
   const dates = new Map<string, Bucket[]>();
   for (const bucket of buckets) dates.set(String(bucket.lo), [...(dates.get(String(bucket.lo)) ?? []), bucket]);
-  return { xKind: 'time', range: [Math.min(...buckets.map(b => b.lo)), Math.max(...buckets.map(b => b.hi))], buckets: [...dates].sort(([a], [b]) => Number(a) - Number(b)).map(([, entries]) => {
+  return { xKind: 'time', yKind: 'metric', range: [Math.min(...buckets.map(b => b.lo)), Math.max(...buckets.map(b => b.hi))], buckets: [...dates].sort(([a], [b]) => Number(a) - Number(b)).map(([, entries]) => {
     const n = entries.reduce((sum, entry) => sum + entry.n, 0);
     const knots = entries.map(entry => [entry.quantiles.p05, entry.quantiles.p25, entry.quantiles.p50, entry.quantiles.p75, entry.quantiles.p95]);
     const cdf = (values: number[], x: number) => {

@@ -371,7 +371,6 @@ function densityChartData(
       },
       spec: {
         $schema: VL_SCHEMA,
-        params,
         data: { name: "density-panels" },
         facet: { field: "seriesId", type: "nominal", sort: series.map((item) => item.id), title: null,
           header: { labelExpr: `(${JSON.stringify(Object.fromEntries(series.map(item => [item.id,item.name])))})[datum.value]` } },
@@ -382,6 +381,7 @@ function densityChartData(
           resolve: { scale: { color: 'independent' } },
           layer: [
             {
+              params,
               transform: [{ filter: "datum.kind === 'grid'" }],
               mark: { type: "rect", clip: true },
               encoding: densityEncoding,
@@ -412,9 +412,10 @@ function densityChartData(
     spec: {
       $schema: VL_SCHEMA,
       ...FILLS_CONTAINER,
-      params,
       layer: [
-        { data: { name: "density-grid" }, mark: { type: "rect", clip: true }, encoding: densityEncoding },
+        // One interaction owner: inheriting the interval in every overlay layer
+        // produces duplicate brush2d signals when Vega parses the compiled spec.
+        { params, data: { name: "density-grid" }, mark: { type: "rect", clip: true }, encoding: densityEncoding },
         ...(series.length > 1 ? [contourLayer] : []),
         ...(opts.showPoints ? [pointLayer] : []),
       ],

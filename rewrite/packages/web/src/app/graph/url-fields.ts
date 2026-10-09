@@ -369,6 +369,7 @@ const series = list(
 
 const optionDefault = (key: keyof PanelOptions) => () => defaultPanelOptions()[key];
 export const EXTRA_OPTION_FIELDS: Schema = [
+  { field: 'quantiles', codec: enumeration(['quartiles', 'tails'], 1), default: optionDefault('quantiles') },
   {
     field: 'bins',
     codec: {
@@ -451,7 +452,7 @@ const defaultPanel = (ctx: Context) =>
 export const PANEL_FIELDS: Schema = [
   { field: 'id', codec: textCodec(MAX_ID_LENGTH), default: (ctx: Context) => defaultPanel(ctx).id },
   { field: 'x', codec: columnToken, default: (ctx: Context) => defaultPanel(ctx).x },
-  { field: 'y', codec: metricToken, default: null },
+  { field: 'y', codec: columnToken, default: null },
   {
     field: 'form',
     codec: tokenCodec(CHART_TOKENS),

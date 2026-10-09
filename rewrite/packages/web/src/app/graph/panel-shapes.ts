@@ -24,7 +24,7 @@ export type FormAvailability = {
   reason?: string;
 };
 
-const SECOND_METRIC_REASON = 'add a second metric';
+const SECOND_COLUMN_REASON = 'add a second column';
 
 /** The one axis-to-form rule used by the reducer, dropdown and dispatcher. */
 export function formAvailability(
@@ -49,7 +49,7 @@ export function formAvailability(
     enabled.has(form)
       ? { form, state: 'enabled' }
       : disabled.has(form)
-        ? { form, state: 'disabled', reason: SECOND_METRIC_REASON }
+        ? { form, state: 'disabled', reason: SECOND_COLUMN_REASON }
         : { form, state: 'hidden' },
   );
 }
@@ -100,8 +100,8 @@ export const FORM_INFO: Record<Form, FormInfo> = {
   box: { label: 'Box', icon: 'chart-candlestick', hint: 'Median and spread' },
   table: { label: 'Table', icon: 'table-2', hint: 'Individual records behind the chart' },
   bars: { label: 'Bars', icon: 'chart-column', hint: 'Counts per bucket; stacked with series' },
-  band: { label: 'Band', icon: 'chart-area', hint: 'Median and middle half per x bin' },
-  lines: { label: 'Lines', icon: 'chart-line', hint: '5th, 50th and 95th percentiles per x bin' },
+  band: { label: 'Band', icon: 'chart-area', hint: 'Median with a quantile band per x bin' },
+  lines: { label: 'Lines', icon: 'chart-line', hint: 'Three quantile lines per x bin' },
   heatmap: { label: 'Heatmap', icon: 'grid-2x2', hint: 'Density across paired values' },
   share: { label: 'Share', icon: 'chart-column', hint: 'Proportion in each category' },
   matrix: { label: 'Matrix', icon: 'grid-2x2', hint: 'Relationships within a metric set' },

@@ -43,7 +43,7 @@ import {
   retargetPanels,
   revertToDistribution,
 } from './panels';
-import { CATALOG_KEY } from './queries';
+import { CATALOG_KEY, studyFormReason } from './queries';
 import {
   CURRENT_COHORT,
   FIRST_PAGE,
@@ -244,6 +244,8 @@ export function reduce(state: State, command: Command): State {
     case 'setPanelSplit':
     case 'setPanelChart':
     case 'setPanelForm':
+    case 'setPanelRange':
+    case 'resetPanelRanges':
     case 'setPanelGroup':
     case 'setPanelOptions':
     case 'setPanelCohort':
@@ -342,6 +344,13 @@ export function reduce(state: State, command: Command): State {
 
     case 'clearSelections':
       return state.selections.length ? evict({ ...state, selections: [] }) : state;
+    case 'zoomToBrush': {
+      const panel = state.panels.find(panel => panel.id === command.from);
+      const selection = state.selections.find(selection => selection.from === command.from && selection.metric === panel?.x);
+      if (!panel || !selection || selection.range[0] === selection.range[1]) return state;
+      return patchPanel({ ...state, selections: state.selections.filter(selection => selection.from !== command.from) }, panel.id,
+        { options: { xRange: [...selection.range] as [number, number] } });
+    }
     case 'brush2d':
     case 'brush': {
       const origin = state.panels.find(panel => panel.id === command.from);
@@ -437,8 +446,8 @@ export function reduce(state: State, command: Command): State {
     case 'studyChosen':
       return withoutStudyDatasets({ ...state, study: { status: 'loading' } });
 
-    case 'studyLoaded':
-      return evict({
+    case 'studyLoaded': {
+      let loaded: State = {
         ...state,
         study: {
           status: 'ready',
@@ -448,8 +457,19 @@ export function reduce(state: State, command: Command): State {
           totalMetrics: command.totalMetrics,
           ignoredColumns: command.ignoredColumns,
           missingMetrics: command.missingMetrics,
+          ...(command.columns ? { columns: command.columns } : {}),
+          ...(command.columnMapping ? { columnMapping: command.columnMapping } : {}),
         },
-      });
+      };
+      if (command.addToAll) {
+        for (const panel of loaded.panels) {
+          if (!panel.series.some(series => series.kind === 'study') && !studyFormReason(panel, loaded)) {
+            loaded = addSeries(loaded, panel.id, { kind: 'study' });
+          }
+        }
+      }
+      return evict(loaded);
+    }
 
     case 'studyFailed':
       return withoutStudyDatasets({ ...state, study: { status: 'error', error: command.error } });

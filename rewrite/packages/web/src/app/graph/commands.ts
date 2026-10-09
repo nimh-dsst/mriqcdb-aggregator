@@ -40,6 +40,9 @@ export type Command =
   | { t: 'addPanelSeries'; id: PanelId; series: Series }
   | { t: 'removePanelSeries'; id: PanelId; key: string }
   | { t: 'setPanelForm'; id: PanelId; form: PanelChart }
+  | { t: 'setPanelRange'; id: PanelId; axis: 'x' | 'y'; range: [number, number] | 'auto' }
+  | { t: 'resetPanelRanges'; id: PanelId }
+  | { t: 'zoomToBrush'; from: PanelId }
   | { t: 'addGroupToPanels'; id: CohortId; panelIds?: readonly PanelId[] }
   | { t: 'removePanel'; id: PanelId }
   /**
@@ -153,7 +156,7 @@ export type Command =
   | { t: 'retryKey'; key: QueryKey }
   | { t: 'dataVersionChanged'; version: string }
   // study
-  | { t: 'studyChosen'; file: File }
+  | { t: 'studyChosen'; file: File; addToAll?: boolean }
   | {
       t: 'studyLoaded';
       name: string;
@@ -162,6 +165,9 @@ export type Command =
       totalMetrics: number;
       ignoredColumns: readonly string[];
       missingMetrics: readonly MetricId[];
+      columns?: readonly string[];
+      columnMapping?: readonly { source: string; target: string }[];
+      addToAll?: boolean;
     }
   | { t: 'studyFailed'; error: string }
   | { t: 'clearStudy' }
@@ -222,6 +228,10 @@ export function panelPatch(command: Command): { id: PanelId; patch: PanelPatch }
       return { id: command.id, patch: { form: command.form } };
     case 'setPanelForm':
       return { id: command.id, patch: { form: command.form } };
+    case 'setPanelRange':
+      return { id: command.id, patch: { options: { [command.axis === 'x' ? 'xRange' : 'yRange']: command.range } } };
+    case 'resetPanelRanges':
+      return { id: command.id, patch: { options: { xRange: 'auto', yRange: 'auto' } } };
     case 'setPanelGroup':
       return { id: command.id, patch: { group: command.group } };
     case 'setPanelOptions':
