@@ -10,6 +10,7 @@ import { seriesKey, seriesLabel, type Series } from './series';
 import { CURRENT_COHORT, DENSITY_BINS, groupCohortId, type Cohort, type Panel, type State } from './state';
 import { correlationMetrics } from './correlation-options';
 import { timeGroups } from './time-groups';
+import { fineGranularity } from './count-band';
 
 export const CATALOG_KEY: QueryKey = queryKey({ source: 'population', proc: 'catalog' });
 export function effectiveSelection(state: State, panel: Panel): readonly Selection[] {
@@ -260,10 +261,23 @@ export function scopedQuery(state: State, panel: Panel, cohort: Cohort, proc: Qu
   }
 }
 
+/** Coverage counted per fine period, for a count band (see count-band.ts). */
+export function countBandQuery(state: State, panel: Panel, cohort: Cohort): Query | null {
+  const query = scopedQuery(state, panel, cohort, 'coverage');
+  return query?.proc === 'coverage' ? { ...query, granularity: fineGranularity(panel.options.granularity) } : null;
+}
+export function isCountBand(panel: Panel): boolean {
+  return panel.form === 'band' && panel.y === null && axisType(panel.x) === 'time';
+}
+
 export function panelQueries(state: State, panel: Panel): readonly Query[] {
   if (!panelForms(panel).includes(panel.form)) return [];
   const cohorts = panelCohorts(state, panel);
   const query = (cohort: Cohort, proc: Query['proc']) => scopedQuery(state, panel, cohort, proc);
+  if (isCountBand(panel)) {
+    return [...cohorts, ...(groupingSeries(panel) ? [panelCohort(state, panel)] : [])]
+      .flatMap(cohort => { const q = countBandQuery(state, panel, cohort); return q ? [q] : []; });
+  }
   if (panel.form === 'table') {
     return [
       ...samplePages(state, panel).map(page => page.query),

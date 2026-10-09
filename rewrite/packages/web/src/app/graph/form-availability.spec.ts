@@ -48,7 +48,8 @@ describe('formAvailability', () => {
   });
 
   it('applies the same one-axis availability to time fields', () => {
-    assertAvailability('created_at', null, numericForms, pairForms);
+    // Plus band: counts over time can show the spread of daily counts per bin.
+    assertAvailability('created_at', null, [...numericForms, 'band'], pairForms.filter(form => form !== 'band'));
   });
 
   it('enables time paired forms when a second metric is selected', () => {

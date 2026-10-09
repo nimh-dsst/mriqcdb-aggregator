@@ -234,7 +234,8 @@ describe('PanelCard', () => {
     const options = Array.from(TestBed.inject(OverlayContainer).getContainerElement().querySelectorAll('mat-option'));
     const singleContinuous = panel.y === null && (panel.x === 'snr' || panel.x === 'created_at') && panel.form !== 'matrix';
     options.forEach((option, index) => {
-      const disabled = singleContinuous && index >= 7;
+      // Band (index 11) stays enabled for counts over time.
+      const disabled = singleContinuous && index >= 7 && !(panel.x === 'created_at' && index === 11);
       expect(option.getAttribute('aria-disabled')).toBe(String(disabled));
       expect(option.querySelector('.form-option-hint')?.textContent?.trim() === 'add a second column').toBe(disabled);
       if (disabled) expect(option.getAttribute('aria-label')).toContain('add a second column');

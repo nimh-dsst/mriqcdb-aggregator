@@ -1,6 +1,6 @@
 /** Scalar codecs for the schema-positional, six-bit URL stream. */
 import { MODALITIES, VIEWS, getAuthoredCatalog } from '@mriqc/shared';
-import { formsFor } from './panel-shapes';
+import { FORM_ORDER } from './panel-shapes';
 import { MAX_BINS, MIN_BINS, defaultPanelOptions } from './state';
 
 export const URL_VERSION = '1';
@@ -158,14 +158,9 @@ export const COLUMN_TOKENS = tokenTable([
 ]);
 export const MODALITY_TOKENS = tokenTable(MODALITIES);
 export const VIEW_TOKENS = tokenTable(VIEWS);
-export const CHART_TOKENS = tokenTable([
-  ...formsFor(METRIC_TOKENS.values[0] as import('./state').MetricId, null),
-  ...formsFor('created_at', null),
-  ...formsFor('created_at', METRIC_TOKENS.values[0] as import('./state').MetricId),
-  ...formsFor(METRIC_TOKENS.values[0] as import('./state').MetricId, METRIC_TOKENS.values[1] as import('./state').MetricId),
-  ...formsFor(authored.fields.find(field => field.kind === 'categorical')!.id, null),
-  ...formsFor([], null),
-]);
+// Pinned to the fixed form order, not to whichever axis shape lists a form
+// first: a link's form character must not move when availability changes.
+export const CHART_TOKENS = tokenTable(FORM_ORDER);
 export const CLIP_TOKENS = tokenTable(['p01p99', 'p05p95', 'none']);
 export const GRANULARITY_TOKENS = tokenTable(['day', 'week', 'month', 'year']);
 export const OP_TOKENS = tokenTable(['in', 'between', 'isNull', 'notNull']);

@@ -12,7 +12,7 @@ import {
   tokenTable,
   type Codec,
 } from './url-tokens';
-import { formsFor } from './panel-shapes';
+import { FORM_ORDER, formsFor } from './panel-shapes';
 import { asColumnId } from '@mriqc/shared';
 
 function roundTrip<T>(codec: Codec<T>, value: T): T {
@@ -29,11 +29,13 @@ describe('six-bit URL scalars', () => {
     expect(CHART_TOKENS.values).toEqual(['histogram', 'line', 'area', 'density', 'ecdf', 'box', 'table',
       'heatmap', 'scatter', 'hexbin', 'clusters', 'band', 'lines', 'bars', 'share', 'matrix']);
     const metric = asColumnId('snr');
-    const forms = [...new Set([
+    // Union of every axis shape's row, in canonical order: the token table
+    // must name each form once, wherever it first appears.
+    const forms = FORM_ORDER.filter(form => new Set([
       ...formsFor(metric, null), ...formsFor('created_at', null),
       ...formsFor('created_at', metric), ...formsFor(metric, asColumnId('fd_mean')),
       ...formsFor(asColumnId('manufacturer'), null), ...formsFor([], null),
-    ])];
+    ]).has(form));
     expect(CHART_TOKENS.values).toEqual(forms);
     forms.forEach((form, index) => {
       expect(CHART_TOKENS.code.get(form)).toBe(ALPHABET[index]);

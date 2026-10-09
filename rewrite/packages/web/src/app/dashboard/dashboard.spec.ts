@@ -140,7 +140,7 @@ describe('Dashboard with MockApi', () => {
     const card=(fixture.nativeElement as HTMLElement).querySelector('[data-panel-id="p5"]')!;
     card.querySelector<HTMLElement>('[aria-label="Form"] .mat-mdc-select-trigger')!.click();await fixture.whenStable();
     const options=[...document.querySelectorAll<HTMLElement>('mat-option')];
-    expect(options).toHaveLength(13);expect(options.filter(o=>o.getAttribute('aria-disabled')==='false').map(o=>o.querySelector(".font-medium")?.textContent?.trim())).toEqual(["Histogram","Line","Area","Density","ECDF","Box","Table"]);
+    expect(options).toHaveLength(13);expect(options.filter(o=>o.getAttribute('aria-disabled')==='false').map(o=>o.querySelector(".font-medium")?.textContent?.trim())).toEqual(["Histogram","Line","Area","Density","ECDF","Box","Table","Band"]);
     options[2].click();await fixture.whenStable();
     TestBed.inject(Graph).dispatch({t:'setPanelAxis',id:'p5',axis:'y',value:asColumnId('fd_mean')});
     await fixture.whenStable();

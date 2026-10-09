@@ -1,7 +1,9 @@
 import { queryKey } from '../api/api';
 import { type BinnedSummaryResult } from '@mriqc/shared';
 import { withChipLegend } from '../panels/specs/chip-legend';
-import { binnedQueries, panelCohort, panelCohorts, panelQueries, resultOf, scopedQuery } from '../graph/queries';
+import { binnedQueries, countBandQuery, isCountBand, panelCohort, panelCohorts, panelQueries, resultOf, scopedQuery } from '../graph/queries';
+import { countBand, fineGranularity } from '../graph/count-band';
+import type { CoverageResult } from '@mriqc/shared';
 import type { Panel, State } from '../graph/state';
 import { bandChart, type BinnedSeries } from '../panels/specs/band';
 import { axisEvidence } from '../graph/axis-options';
@@ -22,7 +24,13 @@ export function timeSeriesStats(series: BinnedSeries) {
 export function timePanelView(state: State, panel: Panel, theme: ChartTheme): PanelView {
   const cohorts = panelCohorts(state, panel);
   const keys = panelQueries(state, panel).map(queryKey);
+  const countBandOf = (cohort: typeof cohorts[number]) => {
+    const query = countBandQuery(state, panel, cohort);
+    const coverage = query ? resultOf<CoverageResult>(state, queryKey(query)) : null;
+    return coverage ? countBand(coverage, panel.options.granularity) : null;
+  };
   const resultFor = (cohort: typeof cohorts[number]) => {
+    if (isCountBand(panel)) return countBandOf(cohort);
     const base = scopedQuery(state, panel, cohort, 'binnedSummary');
     const query = base && binnedQueries(state, panel).filter(query => queryKey({ ...query, range: undefined }) === queryKey({ ...base, range: undefined } as typeof query)).at(-1);
     return query ? resultOf<BinnedSummaryResult>(state, queryKey(query)) : null;
@@ -32,7 +40,9 @@ export function timePanelView(state: State, panel: Panel, theme: ChartTheme): Pa
   const status: PanelStatus = failures.length ? { kind: 'error', message: (state.datasets[failures[0]] as { error: string }).error, retryKeys: failures }
     : keys.some(key => state.datasets[key]?.status !== 'ready') ? { kind: 'loading' }
     : { kind: 'ready', stale: keys.some(key => state.datasets[key]?.version !== state.dataVersion) };
-  const metric = metricDef(state, panel.y), label = panel.y === 'created_at' ? 'Upload time' : metric?.shortLabel ?? metric?.label ?? String(panel.y);
+  const metric = metricDef(state, panel.y);
+  const label = isCountBand(panel) ? `Scans per ${fineGranularity(panel.options.granularity)}`
+    : panel.y === 'created_at' ? 'Upload time' : metric?.shortLabel ?? metric?.label ?? String(panel.y);
   const color = (index: number) => cohorts[index]?.name === 'Other' ? OTHER_COLOR : theme.categories[index % 6];
   const series: BinnedSeries[] = cohorts.flatMap((cohort,index) => results[index] ? [{
     id: cohort.id, name: cohort.name, color: color(index), result: results[index]!,

@@ -322,7 +322,7 @@ export function panelView(state: State, id: PanelId, theme: ChartTheme = LIGHT_T
   const deps = [theme, panel, state.global, state.catalog, state.dataVersion, state.selections, state.cohorts, state.study, total, ...keys.map(key => state.datasets[key])];
   const memo = memos.get(id);
   if (memo && sameDeps(memo.deps, deps)) return memo.view;
-  if ((axisType(panel.x) === 'time' && panel.y !== null) || (axisType(panel.x) === 'numeric' && panel.y !== null) || panel.form === 'matrix') {
+  if ((axisType(panel.x) === 'time' && (panel.y !== null || panel.form === 'band')) || (axisType(panel.x) === 'numeric' && panel.y !== null) || panel.form === 'matrix') {
     const view = (panel.form === 'band' || panel.form === 'lines') ? timePanelView(state, panel, theme) : analysisPanelView(state, panel, theme);
     const quantityKey = queryKey(cohortQuery(state, panel, panelCohort(state, panel)));
     const numericStats = axisType(panel.x) === 'numeric' && panel.form !== 'matrix' ? panelStats(state, panel, [quantityKey]) : null;

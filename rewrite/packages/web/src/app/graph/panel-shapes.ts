@@ -38,11 +38,12 @@ export function formAvailability(
       : type === 'categorical'
         ? new Set<Form>(['bars', 'share'])
         : y === null
-          ? new Set<Form>(FORM_ORDER.slice(0, 7))
+          // Counts over time can also be a band: the spread of daily counts in each bin.
+          ? new Set<Form>([...FORM_ORDER.slice(0, 7), ...(type === 'time' ? ['band' as const] : [])])
           : new Set<Form>(FORM_ORDER.slice(7, 13));
   const disabled =
     (type === 'numeric' || type === 'time') && y === null
-      ? new Set<Form>(FORM_ORDER.slice(7, 13))
+      ? new Set<Form>(FORM_ORDER.slice(7, 13).filter(form => !enabled.has(form)))
       : new Set<Form>();
 
   return FORM_ORDER.map((form): FormAvailability =>
