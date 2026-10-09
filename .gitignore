@@ -13,3 +13,7 @@ data/
 .env
 # written by build:db when it adopts the test dumps
 packages/server/test/fixtures/dumps/manifest.json
+
+# tool state (not project content)
+.codex/
+uv.lock
