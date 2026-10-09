@@ -247,7 +247,7 @@ export class PanelCard {
   );
   readonly forms = computed(() => {
     const panel = this.panel();
-    return panel ? panelFormAvailability(panel).filter(entry => entry.state !== 'hidden') : [];
+    return panel ? panelFormAvailability(panel, panelCohorts(this.state(), panel).length).filter(entry => entry.state !== 'hidden') : [];
   });
   readonly formInfo = computed(() => {
     const panel = this.panel();
@@ -439,7 +439,7 @@ export class PanelCard {
   formDetails(form: Form) {
     const panel = this.panel();
     if (form === 'band' && panel && (panel.y === 'count' || panel.y === 'share') && panelCohorts(this.state(), panel).length < 2) {
-      return { ...FORM_INFO.band, hint: 'Band needs series' };
+      return { ...FORM_INFO.band, hint: 'One series: Band draws its counts as a line' };
     }
     if (form === 'bars' && this.panel() && axisType(this.panel()!.x) === 'categorical') {
       return { ...FORM_INFO.bars, hint: 'Counts in each category' };

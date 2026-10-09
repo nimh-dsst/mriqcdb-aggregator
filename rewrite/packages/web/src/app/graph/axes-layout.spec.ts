@@ -83,10 +83,10 @@ describe('axes, layout and size state', () => {
       { field: 'created_at', op: 'between', lo: '2024-01-01T00:00:00.000Z', hi: '2024-05-01T00:00:00.000Z' },
     ] });
   });
-  it('uses the count range while preserving a logarithmic count scale', () => {
+  it('uses the count range while keeping log counts zero-safe', () => {
     const p = panel(); p.options.yRange = [5, 100]; p.options.yMode = 'logCount';
     const spec = { data: { name: 'counts' }, mark: 'bar' as const, encoding: { y: { field: 'count', type: 'quantitative' as const, scale: { type: 'log' as const } } } };
-    expect(withCountRange(spec, p)).toMatchObject({ encoding: { y: { scale: { type: 'log', domain: [5, 100], nice: false } } } });
+    expect(withCountRange(spec, p)).toMatchObject({ encoding: { y: { scale: { type: 'symlog', constant: 1, domain: [5, 100], nice: false } } } });
     expect(spec.encoding.y.scale).toEqual({ type: 'log' });
   });
   it('allows log only when the known minimum is positive', () => {

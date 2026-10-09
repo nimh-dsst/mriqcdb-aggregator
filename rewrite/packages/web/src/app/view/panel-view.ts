@@ -375,7 +375,7 @@ export function panelView(state: State, id: PanelId, theme: ChartTheme = LIGHT_T
   const numeric = axisType(panel.x) === 'numeric';
   const results = numeric ? cohortResults(state, panel, cohorts) : [];
   const required = numeric && panel.form !== 'table' ? cohorts.map(cohort => queryKey(cohortQuery(state, panel, cohort))) : keys;
-  const status: PanelStatus = keys.length && panelForms(panel).includes(panel.form) ? statusOf(state, keys, required) : { kind: 'empty', message: 'Choose a column and an available form.' };
+  const status: PanelStatus = keys.length && panelForms(panel, cohorts.length).includes(panel.form) ? statusOf(state, keys, required) : { kind: 'empty', message: 'Choose a column and an available form.' };
   const aggregateKey = numeric ? queryKey(cohortQuery(state, panel, panelCohort(state, panel))) : undefined;
   const aggregate = distributionResult(state, aggregateKey);
   const table = panel.form === 'table' ? tableFor(state, panel, keys) : null;
@@ -388,7 +388,7 @@ export function panelView(state: State, id: PanelId, theme: ChartTheme = LIGHT_T
       groupOrdered: false, cohortLabel: 'This dashboard', granularity: panel.options.granularity, options: panel.options,
       result: aggregate, cohorts: series, cohortResults: results };
     chart = continuousChart(input);
-    if (panel.options.layout !== 'overlaid' && panel.series.length && !['histogram', 'line', 'area'].includes(panel.form)) {
+    if (panel.options.layout !== 'overlaid' && panel.series.length && !['histogram', 'line', 'area', 'band'].includes(panel.form)) {
       const stacked = stackedHistogram(axis, series, results, panel.options.layout === 'stacked100');
       chart = { ...chart, spec: stacked.spec, datasets: { [COHORTS_DATA]: stacked.rows } };
     }

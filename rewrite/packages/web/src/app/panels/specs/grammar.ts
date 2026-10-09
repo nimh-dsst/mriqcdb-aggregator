@@ -438,7 +438,7 @@ export function countBandChart(
         encoding: { x, y: valueEncoding("p50", yLabel) },
       } as TopLevelSpec,
       datasets: { [dataName]: rows },
-      degenerateNote: "Band needs series",
+      degenerateNote: "One series: Band draws its counts as a line",
     };
   }
 

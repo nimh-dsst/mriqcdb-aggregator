@@ -3,6 +3,7 @@ import { compile } from "vega-lite";
 import { describe, expect, it } from "vitest";
 
 import { withValueAxes } from "./value-axis";
+import { valueScale } from "./palette";
 
 const logCounts = {
   label: "Intensity",
@@ -37,11 +38,18 @@ function histogram() {
 }
 
 describe("withValueAxes", () => {
+  it("uses symlog constant 1 for log domains touching zero", () => {
+    expect(valueScale("log", [0, 10], 0.01)).toMatchObject({ type: "symlog", constant: 1 });
+    expect(valueScale("log", [-10, 10], 0.01)).toMatchObject({ type: "symlog", constant: 1 });
+    expect(valueScale("log", [1, 10])).toMatchObject({ type: "log" });
+    const output = withValueAxes(chart("line", [{ value: 1, count: 2 }]), { ...logCounts, yRange: [1, 10], constant: 0.01 });
+    expect(output.encoding.y).toMatchObject({ scale: { type: "symlog", constant: 1 }, axis: { title: "Count (log)" } });
+  });
   it.each([
     ["histogram", histogram(), "symlog"],
     ["density", chart("line", [{ value: 1, count: 0 }, { value: 2, count: 1 }]), "symlog"],
     ["ECDF", chart("line", [{ value: 1, count: 0 }, { value: 2, count: 1 }]), "symlog"],
-    ["line", chart("line", [{ value: 1, count: 1 }, { value: 2, count: 2 }]), "log"],
+    ["line", chart("line", [{ value: 1, count: 1 }, { value: 2, count: 2 }]), "symlog"],
     ["area", chart("area", [{ value: 1, count: 1 }]), "symlog"],
     ["bars", chart("bar", [{ value: 1, count: 1 }]), "symlog"],
   ] as const)("uses %s y scale for %s", async (_name, input, expected) => {
@@ -52,7 +60,7 @@ describe("withValueAxes", () => {
     };
 
     expect(y.scale.type).toBe(expected);
-    expect(y.axis.title).toBe(`Count (${expected})`);
+    expect(y.axis.title).toBe("Count (log)");
 
     const compiled = compile(output as never).spec;
     await new View(parse(compiled), { renderer: "none" }).runAsync();
@@ -131,7 +139,7 @@ describe("withValueAxes", () => {
 
     expect(
       (output.encoding.y as unknown as { axis: { title: string } }).axis.title,
-    ).toBe("Observed count (symlog)");
+    ).toBe("Observed count (log)");
   });
 
   it("replaces a previous log type when the selected scale is linear", () => {

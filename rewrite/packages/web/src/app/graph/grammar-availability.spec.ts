@@ -18,6 +18,14 @@ function availabilityFor(
 }
 
 describe('graph form grammar', () => {
+  it.each([x, 'created_at'] as const)('enables count Band on %s with one or more series', column => {
+    expect(availabilityFor(formAvailability(column, 'count', 0), 'band')).toMatchObject({ state: 'disabled', reason: 'add a series' });
+    for (const count of [1, 6]) {
+      const forms = formAvailability(column, 'count', count);
+      expect(availabilityFor(forms, 'band')).toMatchObject({ state: 'enabled' });
+      expect(forms.map(entry => entry.form)).not.toContain('lines');
+    }
+  });
   it('requires a column y value for two-dimensional continuous forms', () => {
     const countAvailability = formAvailability(x, 'count');
     expect(availabilityFor(countAvailability, 'histogram')).toMatchObject({ state: 'enabled' });

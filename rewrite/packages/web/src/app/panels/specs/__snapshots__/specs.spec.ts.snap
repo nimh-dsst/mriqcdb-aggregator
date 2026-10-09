@@ -574,7 +574,7 @@ exports[`chart specs > density > matches its snapshot 1`] = `
       "scale": {
         "nice": true,
         "type": "linear",
-        "zero": false,
+        "zero": true,
       },
       "title": "Share of scans (smoothed)",
       "type": "quantitative",
@@ -979,7 +979,7 @@ exports[`chart specs > facetedHistogram > matches its snapshot 1`] = `
         "scale": {
           "nice": true,
           "type": "linear",
-          "zero": false,
+          "zero": true,
         },
         "title": "Scans",
         "type": "quantitative",
@@ -1081,7 +1081,7 @@ exports[`chart specs > histogram > matches its snapshot 1`] = `
       "scale": {
         "nice": true,
         "type": "linear",
-        "zero": false,
+        "zero": true,
       },
       "title": "Scans",
       "type": "quantitative",

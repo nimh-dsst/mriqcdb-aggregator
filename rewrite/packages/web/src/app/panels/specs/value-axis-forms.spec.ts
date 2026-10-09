@@ -33,6 +33,36 @@ const counts = [
 const datasets = { population, counts };
 
 describe("value axes on chart builders", () => {
+  it.each([{ rows: population }, { rows: population.map(row => ({ ...row, count: row.count + 1 })) }])(
+    "renders every log-count histogram bin against scale zero", async ({ rows }) => {
+      const spec = histogramSpec({ ...axis, countTitle: "Scans", constant: 0.01 });
+      expect(spec).toMatchObject({ encoding: { y: {
+        scale: { type: "symlog", constant: 1, zero: true }, axis: { title: "Scans (log)" },
+      } } });
+      const compiled = compile({ ...spec, width: 320, height: 180, datasets: { population: rows } } as never).spec;
+      const view = new View(parse(compiled), { renderer: "none" });
+      try {
+        await view.runAsync();
+        const bars: any[] = [];
+        const visit = (item: any) => {
+          if (item.mark?.marktype === "rect" && typeof item.datum?.count === "number") bars.push(item);
+          item.items?.forEach(visit);
+        };
+        visit((view.scenegraph() as unknown as { root: unknown }).root);
+        expect(bars).toHaveLength(rows.length);
+        const zero = view.scale("y")(0);
+        for (const bar of bars) {
+          expect(Number.isFinite(bar.x)).toBe(true);
+          expect(Number.isFinite(bar.y)).toBe(true);
+          expect(bar.width).toBeGreaterThan(0);
+          expect(bar.y + bar.height).toBeCloseTo(zero);
+          if (bar.datum.count > 0) expect(bar.height).toBeGreaterThan(0);
+        }
+      } finally {
+        view.finalize();
+      }
+    },
+  );
   it("keeps histogram x logarithmic and its quantitative y scales valid", async () => {
     const spec = transformed(histogramSpec(axis));
 

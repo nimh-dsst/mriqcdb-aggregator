@@ -56,6 +56,15 @@ const summary: BinnedSummaryResult = {
 };
 
 describe("count grammar", () => {
+  it("includes Other as a series in per-bin quantiles", () => {
+    const other = { ...counts[0], id: "other", name: "Other", bins: [{ lo: 0, hi: 1, count: 20 }] };
+    const chart = countBandChart([...counts, other], "Scans", axis);
+    expect(chart.datasets["countBand"]).toEqual([
+      expect.objectContaining({ p25: 5, p50: 10, p75: 15 }),
+      expect.objectContaining({ p25: 0, p50: 0, p75: 5 }),
+    ]);
+    expect(chart.spec).toHaveProperty("layer");
+  });
   it("uses cross-series quantiles and zero-fills an absent aligned bin", () => {
     const rows = countBandRows(counts);
 
@@ -66,7 +75,7 @@ describe("count grammar", () => {
   it("uses a single series as a line and returns the band hint", () => {
     const chart = countBandChart([counts[0]], "Count", axis);
 
-    expect(chart.degenerateNote).toBe("Band needs series");
+    expect(chart.degenerateNote).toBe("One series: Band draws its counts as a line");
     expect(chart.spec).toMatchObject({ mark: { type: "line" } });
   });
 

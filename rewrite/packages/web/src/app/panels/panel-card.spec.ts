@@ -204,7 +204,21 @@ describe('PanelCard', () => {
       expect(TestBed.inject(Graph).dispatch).toHaveBeenCalledWith(expect.objectContaining({ patch: { options: expect.objectContaining({ cells: 120 }) } }));
     }
   });
-  it.each(['band', 'histogram'] as const)('offers Quantiles only for Band/Lines: %s', async form => {
+  it('enables count Band with six Manufacturer series and exposes lines only as fill', async () => {
+    const panel = makePanel({ x: 'created_at', form: 'band', series: [{ kind: 'values', field: asColumnId('manufacturer'), values: ['A', 'B', 'C', 'D', 'E', 'other:["F","G"]'] }] });
+    const fixture = create(panel);
+    expect(panelCohorts(makeState(panel), panel).map(series => series.name)).toHaveLength(6);
+    expect(fixture.componentInstance.forms().find(entry => entry.form === 'band')?.state).toBe('enabled');
+    expect(fixture.componentInstance.forms().map(entry => entry.form)).not.toContain('lines');
+    fixture.nativeElement.querySelector('[aria-label="Panel options"]').click();
+    fixture.detectChanges(); await fixture.whenStable();
+    const fill = TestBed.inject(OverlayContainer).getContainerElement().querySelector<HTMLSelectElement>('[aria-label="Band fill"]')!;
+    expect(Array.from(fill.options, option => option.value)).toEqual(['band', 'lines']);
+    fill.value = 'lines'; fill.dispatchEvent(new Event('change'));
+    expect(TestBed.inject(Graph).dispatch).toHaveBeenCalledWith(expect.objectContaining({ t: 'patchPanel', patch: { options: expect.objectContaining({ fill: 'lines' }) } }));
+  });
+
+  it.each(['band', 'histogram'] as const)('offers Quantiles only for Band: %s', async form => {
     const fixture = create(makePanel({ form, y: form === 'histogram' ? 'count' as const : asColumnId('fd_mean') }));
     fixture.nativeElement.querySelector('[aria-label="Panel options"]').click();
     fixture.detectChanges();

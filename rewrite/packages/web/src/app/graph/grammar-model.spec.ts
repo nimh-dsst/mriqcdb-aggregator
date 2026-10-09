@@ -31,7 +31,7 @@ describe('x, y and aggregate grammar', () => {
       result: query.proc === 'coverage' ? { buckets: [{ start: '2024-01-01', group: 'A', n: 10 }, { start: '2024-01-01', group: 'B', n: 0 }] } : { groups: [] } }])) };
     const spec = panelView(state, 'p1')!.spec as any;
     expect(spec.encoding.y.scale.type).toBe('symlog');
-    expect(spec.encoding.y.axis.title).toContain('symlog');
+    expect(spec.encoding.y.axis.title).toContain('(log)');
     expect(spec.encoding.x.type).toBe('nominal');
   });
   it('defaults every card to Count and median', () => {

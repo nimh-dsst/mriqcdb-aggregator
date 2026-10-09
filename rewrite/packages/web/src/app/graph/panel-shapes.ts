@@ -125,7 +125,10 @@ export function formAvailability(
         disabled.set(form, 'add a second column');
       }
     }
-
+    if (y === 'count' && seriesCount < 1) {
+      enabled.delete('band');
+      disabled.set('band', 'add a series');
+    }
 
     if (isColumnY(y) && aggregate && UNSUPPORTED_BINNED_AGGREGATES.has(aggregate)) {
       for (const form of BINNED_FORMS) {

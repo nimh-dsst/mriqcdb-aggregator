@@ -66,7 +66,7 @@ function visitSpec(
   const next: Spec = { ...spec };
 
   if (isRecord(spec["encoding"])) {
-    next["encoding"] = withEncodingAxes(spec["encoding"], axis, resolved);
+    next["encoding"] = withEncodingAxes(spec["encoding"], axis, resolved, spec["mark"]);
   }
 
   for (const key of CHILD_SPEC_KEYS) {
@@ -87,6 +87,7 @@ function withEncodingAxes(
   encoding: Spec,
   axis: ValueAxisDescriptor,
   resolved: ResolvedValueAxes,
+  mark: unknown,
 ): Spec {
   const next: Spec = { ...encoding };
 
@@ -98,6 +99,7 @@ function withEncodingAxes(
         dimension,
         axis,
         resolved[dimension],
+        dimension === "y" && requiresZeroBaseline(definition, encoding, mark),
       );
     }
   }
@@ -110,6 +112,7 @@ function withChannelAxis(
   dimension: Dimension,
   axis: ValueAxisDescriptor,
   resolved: ValueScale,
+  zeroBaseline: boolean,
 ): Spec {
   const temporal = definition["type"] === "temporal";
   if (definition["type"] !== "quantitative" && !temporal) {
@@ -122,11 +125,14 @@ function withChannelAxis(
 
   const range = dimension === "x" ? axis.xRange : axis.yRange;
   const existingScale = isRecord(definition["scale"]) ? definition["scale"] : undefined;
-  const base = valueScale(resolved, range, axis.constant);
+  const base = valueScale(resolved, range, resolved === "symlog" ? 1 : axis.constant);
   const scale: Spec = {
     ...(existingScale ?? {}),
     ...base,
   };
+  if (zeroBaseline || (dimension === "y" && axis.yMode === "logCount")) {
+    scale["zero"] = true;
+  }
 
   if (resolved === "linear") {
     scale["type"] = "linear";
@@ -148,7 +154,7 @@ function withChannelAxis(
     next['axis'] = withScaleTitle(
       definition["axis"],
       titleFallback(dimension, axis),
-      resolved,
+      dimension === "y" && axis.yMode === "logCount" ? "log" : resolved,
       typeof definition["title"] === "string" ? definition["title"] : undefined,
     );
   }
@@ -157,7 +163,7 @@ function withChannelAxis(
 
 function requestedScale(dimension: Dimension, axis: ValueAxisDescriptor): ValueScale {
   if (dimension === "y" && axis.yMode === "logCount") {
-    return "log";
+    return "symlog";
   }
   const selected = dimension === "x" ? axis.xScale : axis.yScale;
   if (selected !== undefined) {
