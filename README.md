@@ -15,7 +15,7 @@ Everything below runs in Terminal. The steps assume nothing is installed yet; sk
 you already have.
 
 **1. Install Homebrew** (the Mac package manager), if `brew --version` says "command not
-found":
+found". This step is optional; step 2 has a route without it.
 
 ```sh
 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
@@ -28,6 +28,14 @@ itself, so Node does not need installing separately.
 
 ```sh
 brew install git pnpm
+```
+
+**Without Homebrew**, get git from Apple's command-line tools and pnpm from its own
+installer, then close and reopen Terminal so `pnpm` is found:
+
+```sh
+xcode-select --install
+curl -fsSL https://get.pnpm.io/install.sh | sh -
 ```
 
 **3. Get the code** and switch to this branch:
