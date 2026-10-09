@@ -209,6 +209,7 @@ describe('PanelCard', () => {
     const fixture = create(panel);
     expect(panelCohorts(makeState(panel), panel).map(series => series.name)).toHaveLength(6);
     expect(fixture.componentInstance.forms().find(entry => entry.form === 'band')?.state).toBe('enabled');
+    expect(fixture.nativeElement.querySelector('[aria-label="Second column"]')).toBeNull();
     expect(fixture.componentInstance.forms().map(entry => entry.form)).not.toContain('lines');
     fixture.nativeElement.querySelector('[aria-label="Panel options"]').click();
     fixture.detectChanges(); await fixture.whenStable();

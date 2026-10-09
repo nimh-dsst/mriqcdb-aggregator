@@ -424,14 +424,6 @@ export function panelView(state: State, id: PanelId, theme: ChartTheme = LIGHT_T
         groupOrdered: false, cohortLabel: cohorts[0]?.name ?? 'This dashboard', granularity: panel.options.granularity,
         options: panel.options, result: null, cohorts: series, cohortResults: [] }, cohorts.map(coverage)), n };
     }
-    if (panel.series.length) {
-      const dashboard = panelCohort(state, panel);
-      analysisHeaders = ['n', 'Difference from dashboard'];
-      analysisRows = [{ id: dashboard.id, name: 'This dashboard', color: colors[cohorts.findIndex(cohort => cohort.id === dashboard.id)] ?? OTHER_COLOR,
-        cells: [n?.toLocaleString('en-US') ?? '—', '—'] },
-        ...cohorts.flatMap((cohort, index) => cohort.id === dashboard.id ? [] : [{ id: cohort.id, name: cohort.name, color: colors[index],
-          cells: [counts[index]?.toLocaleString('en-US') ?? '—', counts[index] !== null && n !== null ? (counts[index]! - n).toLocaleString('en-US') : '—'] }])];
-    }
   }
   const dashboard = { ...panelCohort(state, panel), name: 'This dashboard' };
   const statsCohorts = [dashboard, ...cohorts.filter(cohort => cohort.id !== dashboard.id)];
@@ -443,12 +435,12 @@ export function panelView(state: State, id: PanelId, theme: ChartTheme = LIGHT_T
   const comparison = null;
   if (numeric) {
     stats = aggregate ? [{ label: axis.countTitle.toUpperCase(), value: aggregate.n.toLocaleString('en-US'), title: 'Total count in this dashboard.' }] : null;
-    if (cohorts.length > 1) {
-      const reference = counts[cohorts.findIndex(cohort => cohort.id === panel.reference)] ?? counts[0];
-      analysisHeaders = ['Total', 'Difference'];
-      analysisRows = cohorts.map((cohort, index) => ({ id: cohort.id, name: cohort.name, color: colors[index],
-        cells: [counts[index]?.toLocaleString('en-US') ?? '—', counts[index] !== null && reference != null ? (counts[index]! - reference).toLocaleString('en-US') : '—'] }));
-    }
+  }
+  if (panel.series.length) {
+    const reference = counts[cohorts.findIndex(cohort => cohort.id === panel.reference)] ?? counts[0];
+    analysisHeaders = ['Total', 'Difference'];
+    analysisRows = cohorts.map((cohort, index) => ({ id: cohort.id, name: cohort.name, color: colors[index],
+      cells: [counts[index]?.toLocaleString('en-US') ?? '—', counts[index] != null && reference != null ? (counts[index]! - reference).toLocaleString('en-US') : '—'] }));
   }
   const view: PanelView = {
     id, panel, title: titleFor(state, panel), meaning: panelMeaning({ x: panel.x, form: panel.form, modality: state.global.modality,

@@ -21,8 +21,12 @@ The frontend's module map and the URL format are in `dashboard-graph.md`,
   `packages/server/src/sql/canonical/`, and `scripts/copy-sql.mjs` copies just that.
 - A change to `packages/shared`'s public surface is **not** picked up by a
   running `ng serve`: the Angular compiler caches the dependency's `.d.ts` and
-  Vite pre-bundles its JS. Rebuild shared, stop the dev server, delete
-  `packages/web/.angular/cache`, and start it again.
+  Vite pre-bundles its JS. Run `pnpm dev restart web --fresh` after any shared
+  change. A type error in the web code makes the dev server keep serving the
+  previous bundle while the port stays healthy, so the page goes stale
+  silently; `pnpm dev status` reports `STALE BUNDLE: N compile error(s)` when
+  `.dev/web.log` has errors after the last successful build — check it before
+  trusting anything seen on port 4300.
 - Database: `pnpm --filter @mriqc/server build:db -- --from-dumps data/dumps`
   bootstraps `data/mriqc.duckdb` from mongoexport JSON alone, automatically adopting
   files into the manifest and using frozen `packages/server/policies/columns.csv`.

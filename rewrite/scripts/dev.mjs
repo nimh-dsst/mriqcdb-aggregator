@@ -114,6 +114,17 @@ function recorded(name) {
   }
 }
 
+/** Compile errors the Angular dev server logged after its last successful
+ *  rebuild. A healthy port says nothing about the bundle: on a type error the
+ *  server keeps serving the previous build, so the page silently goes stale. */
+function compileErrors() {
+  let text = '';
+  try { text = readFileSync(join(stateDir, 'web.log'), 'utf8'); } catch { return 0; }
+  const lastOk = Math.max(text.lastIndexOf('Application bundle generation complete'), text.lastIndexOf('bundle generation complete'));
+  const since = lastOk >= 0 ? text.slice(lastOk) : text;
+  return (since.match(/\[ERROR\]/g) ?? []).length;
+}
+
 async function healthy(name) {
   const server = servers[name];
   for (const host of ['localhost', '127.0.0.1', '[::1]']) {
@@ -198,7 +209,8 @@ async function status(names) {
       saved = pid;
     }
     const health = pid ? (await healthy(name) ? 'healthy' : 'unhealthy') : 'down';
-    console.log(`${name} :${port} ${pid ? `LISTENING PID ${pid}` : 'not listening'} RSS ${rss(pid)} pidfile ${saved ?? '-'} ${pid ? (saved === pid ? 'match' : 'mismatch') : '-'} health ${health}`);
+    const compile = name === 'web' && pid ? compileErrors() : 0;
+    console.log(`${name} :${port} ${pid ? `LISTENING PID ${pid}` : 'not listening'} RSS ${rss(pid)} pidfile ${saved ?? '-'} ${pid ? (saved === pid ? 'match' : 'mismatch') : '-'} health ${health}${compile ? ` STALE BUNDLE: ${compile} compile error(s) since the last successful build — see .dev/web.log; fix or \`pnpm dev restart web --fresh\`` : ''}`);
   }
   const others = strays(live);
   console.log(others.length ? `strays: ${others.map(({ pid }) => pid).join(', ')}` : 'strays: none');

@@ -151,12 +151,25 @@ function withChannelAxis(
 
   const next: Spec = { ...definition, scale };
   if (resolved === "log" || resolved === "symlog") {
-    next['axis'] = withScaleTitle(
+    const titledAxis = withScaleTitle(
       definition["axis"],
       titleFallback(dimension, axis),
       dimension === "y" && axis.yMode === "logCount" ? "log" : resolved,
       typeof definition["title"] === "string" ? definition["title"] : undefined,
     );
+    const isCountAxis =
+      dimension === "y" &&
+      (axis.yMode === "logCount" ||
+        definition["field"] === "count" ||
+        definition["field"] === "plotCount");
+    next["axis"] =
+      isCountAxis && titledAxis !== null && titledAxis !== false
+        ? {
+            ...(isRecord(titledAxis) ? titledAxis : {}),
+            tickCount: { expr: "max(2, floor(height / 40))" },
+            format: "~s",
+          }
+        : titledAxis;
   }
   return next;
 }

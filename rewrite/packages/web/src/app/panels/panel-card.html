@@ -161,25 +161,6 @@
       </div>
     </div>
 
-    @if (panel.form === 'band') {
-      <div class="flex items-center gap-2 border-b border-border p-2">
-        <label class="text-caption text-ink-2" for="median-band-metric-{{ panel.id }}">
-          Second column
-        </label>
-        <mat-select
-          class="min-w-40 rounded border border-border px-2 py-1 text-control text-ink"
-          aria-label="Second column"
-          [value]="panel.y"
-          (selectionChange)="changeY($event.value)"
-        >
-          <mat-option value="created_at" [disabled]="panel.x === 'created_at'">Upload time</mat-option>
-          @for (metric of metrics(); track metric.id) {
-            <mat-option [value]="metric.id" [disabled]="panel.x === metric.id">{{ metric.shortLabel || metric.label }}</mat-option>
-          }
-        </mat-select>
-      </div>
-    }
-
     @if (panel.form === 'matrix') {
       <section class="space-y-2 border-b border-border p-2" title="Metric correlations">
         <div class="flex items-center gap-2">

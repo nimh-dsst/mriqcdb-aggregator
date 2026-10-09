@@ -37,7 +37,8 @@ describe("value axes on chart builders", () => {
     "renders every log-count histogram bin against scale zero", async ({ rows }) => {
       const spec = histogramSpec({ ...axis, countTitle: "Scans", constant: 0.01 });
       expect(spec).toMatchObject({ encoding: { y: {
-        scale: { type: "symlog", constant: 1, zero: true }, axis: { title: "Scans (log)" },
+        scale: { type: "symlog", constant: 1, zero: true },
+        axis: { title: "Scans (log)", tickCount: { expr: "max(2, floor(height / 40))" }, format: "~s" },
       } } });
       const compiled = compile({ ...spec, width: 320, height: 180, datasets: { population: rows } } as never).spec;
       const view = new View(parse(compiled), { renderer: "none" });
