@@ -469,10 +469,16 @@ function histogramTotal(result: DistributionResult): number {
  */
 export function cohortBinRows(cohorts: readonly CohortResult[]): CohortBinRow[] {
   const rows: CohortBinRow[] = [];
+  // Share is of the WHOLE, not of each series: a group's share is its count
+  // over every series' total, so a split's shares sum to 1 across groups and a
+  // small vendor stays visibly small. Per-series shares flattened every group
+  // to the same height (owner, 2026-10-09: "percent of group should really be
+  // percent of whole").
+  const grand = cohorts.reduce((sum, cohort) => sum + (cohort.ranged ? histogramTotal(cohort.ranged) : 0), 0);
   for (const cohort of cohorts) {
     const result = cohort.ranged;
     if (!result) continue;
-    const total = histogramTotal(result);
+    const total = grand > 0 ? grand : histogramTotal(result);
     if (total <= 0) continue;
     const bins = binRows(result.histogram);
     if (bins.length === 0) continue;
@@ -511,17 +517,21 @@ export function cohortBinRows(cohorts: readonly CohortResult[]): CohortBinRow[] 
  * straight line.
  */
 export function cohortDensityRows(cohorts: readonly CohortResult[]): CohortDensityRow[] {
-  return cohorts.flatMap((cohort) =>
-    cohort.ranged === null
-      ? []
-      : densityPoints(cohort.ranged).map((point) => ({
-          cohort: cohort.id,
-          label: cohort.name,
-          value: point.value,
-          share: point.share,
-          count: point.share * histogramTotal(cohort.ranged!),
-        })),
-  );
+  // Share of the whole (see cohortBinRows): each curve is scaled by its series'
+  // fraction of all rows, so the curves add up to the overall density.
+  const grand = cohorts.reduce((sum, cohort) => sum + (cohort.ranged ? histogramTotal(cohort.ranged) : 0), 0);
+  return cohorts.flatMap((cohort) => {
+    if (cohort.ranged === null) return [];
+    const total = histogramTotal(cohort.ranged);
+    const fraction = grand > 0 ? total / grand : 1;
+    return densityPoints(cohort.ranged).map((point) => ({
+      cohort: cohort.id,
+      label: cohort.name,
+      value: point.value,
+      share: point.share * fraction,
+      count: point.share * total,
+    }));
+  });
 }
 
 /** One cohort's smoothed curve, for a single-series distribution panel. */

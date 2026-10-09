@@ -1536,7 +1536,8 @@ describe('the two-step fetch', () => {
     // Two cohorts x (two bins + the closing point that draws the last bin full
     // width and shuts the area against the baseline).
     expect(rows).toHaveLength(6);
-    expect(rows.map((row) => row.share)).toEqual([0.25, 0.75, 0.75, 0.25, 0.75, 0.75]);
+    // Share of the whole: both cohorts have 4 scans, so each bin is over 8.
+    expect(rows.map((row) => row.share)).toEqual([0.125, 0.375, 0.375, 0.125, 0.375, 0.375]);
     // Keyed by id, because two cohorts can share a name.
     expect(new Set(rows.map((row) => row.cohort))).toEqual(new Set(['current', 'c1']));
   });

@@ -30,6 +30,12 @@ export interface MetricAxis {
   xScale?: 'linear' | 'log' | 'symlog' | 'time';
   granularity?: import('@mriqc/shared').Granularity;
   xRange?: 'auto' | readonly [number, number];
+  /**
+   * For a time axis: the first bucket's start and the last bucket's end, in
+   * epoch milliseconds. Declared on the scale so bars never run past the plot
+   * and the axis ends where the last bucket ends, not at its start.
+   */
+  timeDomain?: readonly [number, number];
   constant?: number;
   yMode?: 'count' | 'share' | 'logCount';
   /**

@@ -321,16 +321,16 @@ describe('cohortBinRows', () => {
     expect(new Set(rows.map((row) => row.label))).toEqual(new Set(['Cohort']));
   });
 
-  it('normalizes to a share of each cohort\u2019s own scans, whatever its size', () => {
-    // 4 scans against 4000 with the same shape: the two cohorts have the same
-    // shares, which is the only axis on which they are comparable at all.
+  it('normalizes to a share of the whole, so a small series stays small', () => {
+    // 4 scans against 4000: shares are of all 4004 scans, so the two series
+    // sum to 1 together and the small one is drawn at its true weight.
+    // (Owner, 2026-10-09: "percent of group should really be percent of whole".)
     const rows = cohortBinRows([series('A', [1, 3]), series('B', [1000, 3000])]);
-    expect(rows.filter((row) => row.cohort === 'a').map((row) => row.share)).toEqual([
-      0.25, 0.75, 0.75,
-    ]);
-    expect(rows.filter((row) => row.cohort === 'b').map((row) => row.share)).toEqual([
-      0.25, 0.75, 0.75,
-    ]);
+    const a = rows.filter((row) => row.cohort === 'a').map((row) => row.share);
+    const b = rows.filter((row) => row.cohort === 'b').map((row) => row.share);
+    expect(a.map((v) => +v.toFixed(6))).toEqual([1 / 4004, 3 / 4004, 3 / 4004].map((v) => +v.toFixed(6)));
+    expect(b.map((v) => +v.toFixed(6))).toEqual([1000 / 4004, 3000 / 4004, 3000 / 4004].map((v) => +v.toFixed(6)));
+    expect(a[0] + a[1] + b[0] + b[1]).toBeCloseTo(1, 9);
   });
 
   it('divides by the tails too, so a long tail is not drawn as concentrated', () => {

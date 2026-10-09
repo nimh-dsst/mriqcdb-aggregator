@@ -26,12 +26,17 @@ export function continuousChart(input: ChartInput, coverage?: readonly (Coverage
   } : input;
   let chart: ChartOutput;
   if (['line', 'area'].includes(input.form)) {
+    // Share of the whole: every series divides by the total over all series.
+    const totals = resolved.cohortResults.map(cohort => {
+      const result = input.cohorts.length > 1 ? cohort.ranged : cohort.ranged ?? cohort.base;
+      return result ? result.histogram.counts.reduce((sum, n) => sum + n, 0) : 0;
+    });
+    const grand = totals.reduce((sum, n) => sum + n, 0);
     const rows = resolved.cohortResults.flatMap(cohort => {
       const result = input.cohorts.length > 1 ? cohort.ranged : cohort.ranged ?? cohort.base;
       if (!result) return [];
-      const total = result.histogram.counts.reduce((sum, n) => sum + n, 0);
       return distributionBins(result).map(bin => ({ ...bin, cohort: cohort.id, label: cohort.name,
-        value: (bin.lo + bin.hi) / 2, share: total ? bin.count / total : 0 }));
+        value: (bin.lo + bin.hi) / 2, share: grand ? bin.count / grand : 0 }));
     });
     chart = { spec: (input.form === 'area' ? areaSpec : lineSpec)(input.axis, input.cohorts, input.options.layout),
       datasets: { counts: rows }, brushable: false, n: distributions?.[0]?.n ?? (input.result as { n?: number } | null)?.n ?? null };
@@ -66,7 +71,12 @@ export function continuousChart(input: ChartInput, coverage?: readonly (Coverage
     if (input.form === 'box') row['note'] = note;
     return row;
   })]));
-  let spec = chart.spec ? continuousAxisSpec(chart.spec, input.axis, value => timeBinValue(bins[0] ?? [], value)) : null;
+  // The axis spans the first bucket's start to the last bucket's END across
+  // every series; a domain inferred from bucket starts stopped one bucket
+  // short and let the last bar run off the plot.
+  const edges = bins.flatMap(own => own.length ? [own[0].lo, own[own.length - 1].hi] : []);
+  const timeDomain = edges.length ? ([Math.min(...edges), Math.max(...edges)] as const) : undefined;
+  let spec = chart.spec ? continuousAxisSpec(chart.spec, { ...input.axis, timeDomain }, value => timeBinValue(bins[0] ?? [], value)) : null;
   if (spec && input.form === 'box') {
     spec = { ...spec, encoding: { ...('encoding' in spec ? spec.encoding : {}), tooltip: [
       { field: 'p50', type: 'temporal', title: 'Median upload date', format: '%d %b %Y' },
