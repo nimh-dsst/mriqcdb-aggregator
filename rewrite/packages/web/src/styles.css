@@ -1,0 +1,697 @@
+@import 'tailwindcss';
+
+.panel-grid { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); grid-auto-rows: 40px; gap: 16px; }
+.panel-grid-narrow { display: flex; flex-direction: column; gap: 16px; }
+.panel-grid-maximized { display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(600px, calc(100dvh - 220px)); grid-auto-rows: auto; }
+.panel-box > div > .flex.flex-col.gap-3 { flex: none; }
+.panel-chart-slot { overflow: hidden; order: 2; flex: 1; min-height: 160px; }
+.panel-chip-legend { order: 3; }
+.panel-box[data-panel-kind="correlation"] [data-testid="analysis-note"], .panel-box .correlation-pairs { order: 3; flex: none; }
+.panel-box .stat-row-container { order: 1; flex: none; margin-top: 0; margin-bottom: 12px; }
+.metric-title { text-align: left; cursor: pointer; }
+.metric-pencil { display: inline-block; margin-left: 8px; vertical-align: middle; opacity: 0; }
+.metric-title:hover .metric-pencil, .metric-title:focus-visible .metric-pencil { opacity: 1; }
+.metric-popover { display: flex; flex-direction: column; gap: 8px; width: 420px; max-width: calc(100vw - 32px); max-height: 85dvh; overflow-y: auto; padding: 16px; border: 1px solid var(--border); border-radius: 6px; background: var(--surface); color: var(--ink); }
+.chart-form-toggle { display: flex; align-self: end; margin-bottom: 4px; border-radius: 6px; }
+.chart-form-toggle button { display: flex; align-items: center; justify-content: center; width: 28px; height: 28px; padding: 0; border: 1px solid var(--border); background: var(--surface); color: var(--ink-2); cursor: pointer; }
+.chart-form-toggle button:first-child { border-radius: 6px 0 0 6px; }
+.chart-form-toggle button:last-child { border-radius: 0 6px 6px 0; }
+.chart-form-toggle button:hover { background: var(--surface-2); }
+.chart-form-toggle button:disabled { opacity: 0.5; cursor: default; }
+.chart-form-toggle button[aria-pressed="true"] { outline: 2px solid var(--highlight); outline-offset: -2px; color: var(--ink); }
+.panel-drag-title { cursor: grab; touch-action: none; }
+.icon-btn.panel-move-handle { cursor: grab; touch-action: none; }
+.panel-grid-dragging [data-grid-drag] { cursor: grabbing; }
+@media (max-width: 899.98px), (pointer: coarse), (hover: none) {
+  .panel-move-handle { display: none; }
+}
+.panel-grid-narrow .panel-drag-title, .panel-grid-maximized .panel-drag-title { cursor: default; touch-action: auto; }
+.panel-resize-handle { position: absolute; right: 0; bottom: 0; z-index: 1; width: 16px; height: 16px; cursor: nwse-resize; touch-action: none; opacity: 0.35; color: var(--ink-2); background: var(--surface); }
+app-panel-card:hover .panel-resize-handle, app-panel-card:focus-within .panel-resize-handle { opacity: 1; }
+
+/* ===========================================================================
+   Tokens  (docs/ui-style.md, "Tokens")
+   ===========================================================================
+   Short-name tokens are defined in the light and dark root blocks. `@theme
+   inline` exposes them as Tailwind utilities (`bg-surface`, `text-ink-2`,
+   `border-border`), so utilities and the Material restyle use the same values.
+
+   Vega is deliberately not on this list: the charts render to canvas, where a
+   CSS variable has no meaning, so `panels/specs/palette.ts` carries the same
+   hexes as literals and names this file as their source.                      */
+
+@theme inline {
+  /* Surfaces and rules */
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-border: var(--border);
+
+  /* Ink */
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  /* Captions and placeholders. #8a93a3 before: 3.09:1 on white, which failed
+     WCAG AA for the 11px and 12px text it was used for -- 37 serious axe
+     violations, every one of them this colour. #6e7787 is 4.51:1 on white and
+     keeps the same hue, so nothing above it had to move. It is still only
+     4.06:1 on `--surface-2`, so text on that ground uses `--ink-2` instead. */
+  --color-ink-3: var(--ink-3);
+
+  /* State. Amber marks what the user did; it never encodes data. */
+  --color-highlight: var(--highlight);
+  --color-highlight-soft: var(--highlight-soft);
+  --color-highlight-ink: var(--highlight-ink);
+
+  /* The single-series mark colour, so a swatch in the chrome can match a bar */
+  --color-series-1: var(--series-1);
+
+  /* Errors are the one status colour the chrome needs. */
+  --color-danger: var(--danger);
+
+  /* One radius on cards and controls, one on chips. Nothing else. */
+  --radius-card: 6px;
+  --radius-chip: 999px;
+
+  /* Type scale: 12 / 13 / 14 / 16 / 20, plus the 11px uppercase stat label. */
+  --text-label: 11px;
+  --text-label--line-height: 14px;
+  --text-caption: 12px;
+  --text-caption--line-height: 16px;
+  --text-control: 13px;
+  --text-control--line-height: 18px;
+  --text-body: 14px;
+  --text-body--line-height: 20px;
+  --text-title: 16px;
+  --text-title--line-height: 22px;
+  --text-page: 20px;
+  --text-page--line-height: 26px;
+
+  --font-sans: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+}
+
+:root {
+  color-scheme: light;
+  --danger: #c0392b;
+  --action-ink: #5c4300;
+  --focus-edge: #5c4300;
+  --bg: #f7f8fa;
+  --surface: #ffffff;
+  --surface-2: #f1f3f6;
+  --border: #e2e5ea;
+  --ink: #1f2430;
+  --ink-2: #5c6675;
+  --ink-3: #6e7787;
+  --highlight: #ffca28;
+  --highlight-soft: #fff6d9;
+  --highlight-ink: #5c4300;
+  --series-1: #0072b2;
+  --radius: var(--radius-card);
+
+  /* One control height everywhere: selects, inputs, buttons, chips. */
+  --control-h: 36px;
+}
+
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --bg: #141820;
+    --surface: #1c222c;
+    --surface-2: #252d3a;
+    --border: #2d3645;
+    --ink: #e8ecf2;
+    --ink-2: #9aa5b8;
+    --ink-3: #939fb2;
+    --highlight: #ffd54f;
+    --highlight-soft: #ffd54f;
+    --highlight-ink: #2b2000;
+    --series-1: #009aed;
+    --danger: #ff998a;
+    --action-ink: #ffd54f;
+    --focus-edge: #ffd54f;
+  }
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #141820;
+  --surface: #1c222c;
+  --surface-2: #252d3a;
+  --border: #2d3645;
+  --ink: #e8ecf2;
+  --ink-2: #9aa5b8;
+  --ink-3: #939fb2;
+  --highlight: #ffd54f;
+  --highlight-soft: #ffd54f;
+  --highlight-ink: #2b2000;
+  --series-1: #009aed;
+  --danger: #ff998a;
+  --action-ink: #ffd54f;
+  --focus-edge: #ffd54f;
+}
+
+/* ============================================================== base layer */
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  font-size: 14px;
+  line-height: 20px;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Flat: nothing in this app is separated by elevation. */
+* {
+  box-shadow: none;
+}
+
+/* Amber focus rings, per the token table.
+
+   Amber on white is 1.53:1 on its own, well under the 3:1 a non-text indicator
+   owes, so the ring is amber *plus* a `--highlight-ink` edge on the control
+   itself (9.30:1 on white). The amber says "this is where you are" in the same
+   language as every other piece of user state; the dark edge is what makes it
+   visible. Both halves are applied to `mat-select` too, further down, so the
+   two control families have one indicator and not two. */
+:where(button, input, select, textarea, a, [tabindex]):focus-visible {
+  outline: 2px solid var(--highlight);
+  outline-offset: 1px;
+  border-radius: var(--radius);
+}
+
+.btn:focus-visible,
+.icon-btn:focus-visible {
+  border: 1px solid var(--focus-edge);
+}
+
+/* Columns of numbers align; standalone figures keep proportional digits. */
+.tnum {
+  font-variant-numeric: tabular-nums;
+}
+
+/* ======================================================= chrome components
+   The four shapes the chrome repeats a dozen times each. They are here rather
+   than as utility strings in the templates so that "one control height" and
+   "icon buttons are 32px with a hover tone" are each stated once; everything
+   else in the markup is Tailwind utilities on the 4/8/12/16/24/32 scale.     */
+
+@layer components {
+  /* A 36px bordered button. The only button shape in the app -- Material's are
+     not used (docs/ui-style.md, "Material restyle"). */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    height: var(--control-h);
+    padding: 0 12px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--surface);
+    color: var(--ink);
+    font-size: var(--text-control);
+    line-height: 18px;
+    white-space: nowrap;
+    cursor: pointer;
+  }
+
+  .btn:hover:not(:disabled) {
+    background: var(--surface-2);
+  }
+
+  .btn:disabled {
+    color: var(--ink-3);
+    cursor: default;
+  }
+
+  /* The same button with no frame, for secondary actions in a crowded row. */
+  .btn-quiet {
+    border-color: transparent;
+    background: transparent;
+    color: var(--ink-2);
+  }
+
+  /*
+   * The one amber-outlined button on the page: "Save as cohort".
+   *
+   * Outlined and not filled. Amber means "state you created" everywhere else
+   * (the brush, the active-filter chips), and this is the control that turns
+   * the state you created into something you can keep -- but a filled amber
+   * button would outrank Modality and "Scans shown", which decide what every
+   * figure on the page means. The text is `--highlight-ink` (9.30:1) because
+   * amber on white is 1.53:1 and unreadable.
+   */
+  .btn-amber {
+    border-color: var(--highlight);
+    color: var(--action-ink);
+    background: var(--surface);
+  }
+
+  .btn-amber:hover:not(:disabled) {
+    /* 12% amber: enough to read as the same control lighting up, not enough to
+       become the filled button this deliberately is not. */
+    background: color-mix(in srgb, var(--highlight) 12%, var(--surface));
+  }
+
+  .btn-amber:disabled {
+    border-color: var(--border);
+    color: var(--ink-3);
+  }
+
+  /* A 32px square icon button with a visible hover tone. */
+  .icon-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    flex: none;
+    border: 0;
+    border-radius: var(--radius);
+    background: transparent;
+    color: var(--ink-2);
+    font-size: 14px;
+    line-height: 1;
+    cursor: pointer;
+  }
+
+  .icon-btn:hover:not(:disabled) {
+    background: var(--surface-2);
+    color: var(--ink);
+  }
+
+  .icon-btn:disabled {
+    color: #c7ccd4;
+    cursor: default;
+  }
+
+  /* A pill. Amber for state the user created or must act on, quiet otherwise. */
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    border-radius: var(--radius-chip);
+    padding: 2px 8px;
+    font-size: var(--text-caption);
+    line-height: 16px;
+    white-space: nowrap;
+  }
+
+  .chip-amber {
+    background: var(--highlight);
+    color: var(--highlight-ink);
+    font-weight: 600;
+  }
+
+  .chip-quiet {
+    background: var(--surface-2);
+    color: var(--ink-2);
+  }
+
+  /* Counts that sit inside a caption never get to change the caption's
+     measured height.  Keep the badge on the caption's baseline while the
+     surrounding chip styles remain available for the larger cohort/brush
+     chips. */
+  .caption-badge {
+    display: inline-flex;
+    min-width: 16px;
+    height: 16px;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    vertical-align: middle;
+    font-size: 11px;
+    line-height: 16px;
+  }
+
+  /* The chart area. 260px for every chart that fills its box; for the three
+     whose height is one row per group -- the box plot and the two small-
+     multiple grids -- 260px is a floor and the card grows, because clipping
+     them at 260px scrolls their own value axis out of sight. */
+  .chart-box {
+    position: relative;
+    height: 100%;
+    min-height: 0;
+  }
+
+  /* The stat row under the chart: label-over-value pairs on a grid, not a
+     wrapping flex row. At the mandated three columns a card is about 506px and
+     the eight pairs do not fit on one line; flex-wrap stranded MIN and MAX on a
+     ragged second line and left neighbouring cards at different heights. Even
+     `auto-fit` tracks put every card's wrap in the same place, so the row is one
+     height across the grid. The wrapper is the query container -- the card
+     itself cannot be, because size containment on a `1fr` grid child would feed
+     back into the column widths. */
+  .stat-row-container {
+    container-type: inline-size;
+  }
+
+  .stat-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(60px, 1fr));
+    gap: 12px 16px;
+  }
+
+  .stat-cell {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  /* The label is the quieter of the pair -- the number is what the reader came
+     for -- and it never wraps: a two-line label in one cell is what made the
+     row ragged in the first place. */
+  .stat-label {
+    font-size: 10px;
+    font-weight: 500;
+    line-height: 14px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: var(--ink-2);
+  }
+
+  .stat-value {
+    font-size: 15px;
+    font-weight: 600;
+    line-height: 20px;
+    font-variant-numeric: tabular-nums;
+    color: var(--ink);
+  }
+
+  /* `auto-fit` only lays the pairs out evenly when the card is wide enough for
+     all eight on one line, which takes about 700px. Below that it fits six or
+     seven tracks and leaves the tail -- MIN and MAX -- stranded on a short
+     second line, which is the ragged row this replaced. Eight pairs divide
+     evenly by four, so under 700px (the mandated three-column grid puts a card
+     at ~507px, and the 420px phone card is the same case) the row is an exact
+     4x2 block. Four equal tracks now that every label is an abbreviation: the
+     wider first track was for "records with a value", a phrase that is now
+     "SCANS" with its sentence in a tooltip, and "95TH PCT" is the longest
+     label left. */
+  @container (max-width: 700px) {
+    .stat-row {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+  }
+
+  /* The caption above a control. Material's floating label is suppressed: at
+     36px it has nowhere to float to. */
+  .field-label {
+    display: block;
+    height: 16px;
+    min-height: 16px;
+    margin-bottom: 4px;
+    font-size: var(--text-caption);
+    line-height: 16px;
+    color: var(--ink-2);
+    white-space: nowrap;
+  }
+
+  .icon-16 {
+    display: block;
+    width: 16px;
+    height: 16px;
+    flex: none;
+    align-self: center;
+  }
+
+  /* Split and Compare share the space beside the 28px chart buttons equally.
+     The query measures the card less its 32px padding and 2px border. */
+  .card-controls-container {
+    container-type: inline-size;
+  }
+
+  .card-controls {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+    align-items: end;
+    gap: 8px;
+  }
+
+  .card-control {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  /* Below 480px of card width, the chart toggle gets a line of its own. */
+  @container (max-width: 445.98px) {
+    .card-controls {
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    }
+    .chart-form-toggle {
+      grid-column: 1 / -1;
+      justify-self: end;
+    }
+  }
+}
+
+/* ===================================================== Material restyle
+   docs/ui-style.md, "Material restyle". Material is here for behaviour we are
+   not rewriting -- select panels, the date picker, menus, tooltips, the slide
+   toggle -- and is given the flat look of everything around it: outline
+   appearance with no fill, the border token as the outline, amber on focus and
+   on a selected option, and a 36px box.                                      */
+
+/* No elevation anywhere, including the overlay surfaces Material shadows. */
+.mat-mdc-card,
+.mat-mdc-menu-panel,
+.mat-mdc-select-panel,
+.mat-mdc-autocomplete-panel,
+.mat-datepicker-content,
+.mat-mdc-tooltip-surface,
+.cdk-overlay-pane > * {
+  box-shadow: none !important;
+}
+
+/* Overlay surfaces are separated by a 1px rule instead. */
+.mat-mdc-menu-panel,
+.mat-mdc-select-panel,
+.mat-mdc-autocomplete-panel,
+.mat-datepicker-content {
+  border: 1px solid var(--border) !important;
+  border-radius: var(--radius) !important;
+  background: var(--surface) !important;
+}
+
+/* --- form fields: 36px, outlined, zero fill ------------------------------ */
+
+/* In `components` so a `w-36` utility on the same element still wins. */
+@layer components {
+  .mat-mdc-form-field {
+    --mat-form-field-container-height: var(--control-h);
+    --mat-form-field-container-vertical-padding: 7px;
+    --mat-form-field-filled-with-label-container-padding-top: 7px;
+    --mat-form-field-filled-with-label-container-padding-bottom: 7px;
+    --mat-form-field-outlined-label-text-populated-size: 12px;
+    font-size: var(--text-control);
+    letter-spacing: normal;
+    width: 100%;
+  }
+}
+
+.mat-mdc-text-field-wrapper {
+  background: transparent !important;
+}
+
+.mat-mdc-form-field-infix {
+  min-height: var(--control-h);
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+  display: flex;
+  align-items: center;
+}
+
+.mat-mdc-form-field-subscript-wrapper {
+  display: none;
+}
+
+.mdc-notched-outline__leading,
+.mdc-notched-outline__notch,
+.mdc-notched-outline__trailing {
+  border-color: var(--border) !important;
+  border-width: 1px !important;
+}
+
+.mdc-notched-outline__leading {
+  border-radius: var(--radius) 0 0 var(--radius) !important;
+}
+
+.mdc-notched-outline__trailing {
+  border-radius: 0 var(--radius) var(--radius) 0 !important;
+}
+
+.mat-mdc-form-field:hover .mdc-notched-outline__leading,
+.mat-mdc-form-field:hover .mdc-notched-outline__notch,
+.mat-mdc-form-field:hover .mdc-notched-outline__trailing {
+  border-color: var(--ink-3) !important;
+}
+
+/* A focused select used to be a 1px amber hairline -- 1.53:1 on white, a
+   quarter of the indicator a focused button got. It now gets the button's own
+   ring: 2px amber outside the control, and the control's own 1px outline
+   switched from the border token to `--highlight-ink` (9.30:1 on white) so the
+   indicator clears the 3:1 non-text minimum. The outline sits *outside* the
+   box, so nothing in the row moves a pixel. */
+.mat-mdc-form-field.mat-focused .mdc-notched-outline__leading,
+.mat-mdc-form-field.mat-focused .mdc-notched-outline__notch,
+.mat-mdc-form-field.mat-focused .mdc-notched-outline__trailing {
+  border-color: var(--focus-edge) !important;
+  border-width: 1px !important;
+}
+
+.mat-mdc-form-field.mat-focused .mat-mdc-text-field-wrapper {
+  outline: 2px solid var(--highlight);
+  outline-offset: 1px;
+  border-radius: var(--radius);
+}
+
+.mat-mdc-form-field .mdc-floating-label,
+.mat-mdc-form-field.mat-focused .mdc-floating-label {
+  color: var(--ink-3) !important;
+  font-size: var(--text-caption);
+}
+
+.mat-mdc-select-value,
+.mat-mdc-input-element {
+  color: var(--ink) !important;
+  font-size: var(--text-control) !important;
+}
+
+.mat-mdc-input-element::placeholder {
+  color: var(--ink-3) !important;
+}
+
+.mat-mdc-select-arrow {
+  color: var(--ink-3) !important;
+}
+
+/* --- options, menus, tooltips -------------------------------------------- */
+
+.mat-mdc-option {
+  font-size: var(--text-control) !important;
+  min-height: 32px !important;
+  color: var(--ink);
+}
+
+.mat-mdc-option:hover:not(.mdc-list-item--disabled),
+.mat-mdc-option.mat-mdc-option-active {
+  background: var(--surface-2) !important;
+}
+
+/* A chosen value wears the highlight, like every other "this is what you did". */
+.mat-mdc-option.mdc-list-item--selected:not(.mat-mdc-option-multiple),
+.mat-mdc-option .mdc-list-item__primary-text .mat-pseudo-checkbox-checked {
+  background-color: transparent;
+}
+
+.mat-mdc-option.mdc-list-item--selected {
+  background: var(--highlight-soft) !important;
+  color: var(--highlight-ink) !important;
+}
+
+.mat-pseudo-checkbox-checked,
+.mat-pseudo-checkbox-indeterminate {
+  --mat-option-selected-state-layer-color: var(--highlight);
+}
+
+.mat-mdc-optgroup-label {
+  font-size: var(--text-caption) !important;
+  color: var(--ink-3) !important;
+  min-height: 28px !important;
+}
+
+.mat-mdc-menu-item {
+  font-size: var(--text-control) !important;
+  min-height: 32px !important;
+  color: var(--ink);
+}
+
+.mat-mdc-menu-item:hover:not([disabled]) {
+  background: var(--surface-2) !important;
+}
+
+.mat-mdc-menu-panel .mat-mdc-menu-content {
+  padding: 0 !important;
+}
+
+.mat-mdc-tooltip-surface {
+  background: var(--ink) !important;
+  color: var(--surface) !important;
+  font-size: var(--text-caption) !important;
+  border-radius: var(--radius) !important;
+  padding: 6px 8px !important;
+  max-width: 280px !important;
+}
+
+/* --- datepicker ---------------------------------------------------------- */
+
+.mat-calendar-body-selected {
+  background: var(--highlight) !important;
+  color: var(--highlight-ink) !important;
+}
+
+.mat-calendar-body-in-range::before {
+  background: color-mix(in srgb, var(--highlight) 35%, transparent) !important;
+}
+
+.mat-datepicker-toggle .mat-mdc-icon-button {
+  --mdc-icon-button-state-layer-size: 28px;
+  width: 28px;
+  height: 28px;
+  padding: 2px;
+  color: var(--ink-3);
+}
+
+/* --- slide toggle -------------------------------------------------------- */
+
+.mat-mdc-slide-toggle {
+  --mdc-switch-selected-track-color: var(--highlight);
+  --mdc-switch-selected-handle-color: var(--highlight-ink);
+  --mdc-switch-selected-hover-track-color: var(--highlight);
+  --mdc-switch-selected-focus-track-color: var(--highlight);
+  --mdc-switch-selected-pressed-track-color: var(--highlight);
+  --mdc-switch-selected-hover-handle-color: var(--highlight-ink);
+  --mdc-switch-selected-focus-handle-color: var(--highlight-ink);
+  --mdc-switch-selected-pressed-handle-color: var(--highlight-ink);
+  font-size: var(--text-control);
+}
+
+.mat-mdc-slide-toggle .mdc-form-field > label {
+  font-size: var(--text-control);
+  color: var(--ink);
+}
+
+/* --- spinner ------------------------------------------------------------- */
+
+.mat-mdc-progress-spinner {
+  --mdc-circular-progress-active-indicator-color: var(--series-1);
+}
+
+/* --- Vega ---------------------------------------------------------------- */
+
+/* The embed wrapper is a flex child of a fixed-height chart area; without this
+   the canvas drives the card's height instead of the other way round. The
+   canvas is intentionally not given a max-width: Vega owns its CSS pixel
+   dimensions and scaling it after render makes labels unreadable. */
+.vega-embed,
+.vega-embed svg {
+  display: block;
+  max-width: 100%;
+}
+
+.vega-embed canvas {
+  display: block;
+}

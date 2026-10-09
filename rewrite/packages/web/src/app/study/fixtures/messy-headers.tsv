@@ -1,0 +1,2 @@
+BIDS_NAME	 bids_meta.EchoTime 	echo_time	bids_meta.Modality__altcase1	provenance.version	Unknown Column
+sub-01_bold	0.03	99	bold	24.0.0	ignored value

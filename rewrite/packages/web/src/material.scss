@@ -1,0 +1,116 @@
+// The Material theme, replacing the prebuilt `azure-blue.css`.
+//
+// Only tokens: Angular Material 22's component styles read `--mat-sys-*`, so a
+// theme is a variable block and nothing else. Kept in its own file because
+// `styles.css` is Tailwind's entry and `@import 'tailwindcss'` is a PostCSS
+// directive Sass would try to resolve as a stylesheet.
+//
+// The flat restyle -- zero fill, no shadows, border-token outlines, 36px
+// controls -- lives in `styles.css`, after this file in `angular.json`, so the
+// tokens below are the defaults it overrides rather than a second opinion.
+// Values mirror the tokens in `styles.css`; see `docs/ui-style.md`.
+
+@use '@angular/material' as mat;
+
+@mixin dark-theme {
+  color-scheme: dark;
+  @include mat.theme((color: (primary: mat.$blue-palette, theme-type: dark)));
+  @include mat.theme-overrides((
+    primary: #009aed, on-primary: #141820,
+    primary-container: #ffd54f, on-primary-container: #2b2000,
+    secondary: #009aed, on-secondary: #141820,
+    secondary-container: #ffd54f, on-secondary-container: #2b2000,
+    tertiary: #009aed, on-tertiary: #141820,
+    tertiary-container: #ffd54f, on-tertiary-container: #2b2000,
+    surface: #1c222c, surface-container: #1c222c,
+    surface-container-low: #1c222c, surface-container-lowest: #141820,
+    surface-container-high: #252d3a, surface-container-highest: #252d3a,
+    surface-variant: #252d3a, on-surface: #e8ecf2,
+    on-surface-variant: #9aa5b8, outline: #2d3645, outline-variant: #2d3645,
+    background: #141820, on-background: #e8ecf2,
+    inverse-surface: #e8ecf2, inverse-on-surface: #1c222c,
+  ));
+}
+
+html {
+  color-scheme: light;
+  // `mat.$blue-palette` is only the generator the M3 token set needs; every
+  // colour the UI actually shows is pinned by the overrides below.
+  @include mat.theme(
+    (
+      color: (
+        primary: mat.$blue-palette,
+        theme-type: light,
+      ),
+      typography: (
+        plain-family: (
+          ui-sans-serif,
+          system-ui,
+          -apple-system,
+          'Segoe UI',
+          Roboto,
+          sans-serif,
+        ),
+        brand-family: (
+          ui-sans-serif,
+          system-ui,
+          -apple-system,
+          'Segoe UI',
+          Roboto,
+          sans-serif,
+        ),
+        bold-weight: 600,
+        medium-weight: 600,
+        regular-weight: 400,
+      ),
+      // -2 is what makes a `mat-icon-button` a 32px square and takes the form
+      // fields off their 56px default; `styles.css` pins the remaining 12px.
+      density: -2,
+    )
+  );
+
+  // Primary is the Okabe–Ito blue; the amber highlight is wired to the container
+  // and focus roles, which is what `mat-option`'s selected state, the ripple
+  // and the datepicker's selected day read.
+  @include mat.theme-overrides(
+    (
+      primary: #0072b2,
+      on-primary: #ffffff,
+      primary-container: #ffca28,
+      on-primary-container: #5c4300,
+      secondary: #0072b2,
+      on-secondary: #ffffff,
+      secondary-container: #ffca28,
+      on-secondary-container: #5c4300,
+      tertiary: #0072b2,
+      on-tertiary: #ffffff,
+      tertiary-container: #ffca28,
+      on-tertiary-container: #5c4300,
+      surface: #ffffff,
+      surface-container: #ffffff,
+      surface-container-low: #ffffff,
+      surface-container-lowest: #ffffff,
+      surface-container-high: #ffffff,
+      surface-container-highest: #f1f3f6,
+      surface-variant: #f1f3f6,
+      on-surface: #1f2430,
+      on-surface-variant: #5c6675,
+      outline: #e2e5ea,
+      outline-variant: #e2e5ea,
+      background: #f7f8fa,
+      on-background: #1f2430,
+      inverse-surface: #1f2430,
+      inverse-on-surface: #ffffff,
+      corner-extra-small: 6px,
+      corner-small: 6px,
+      corner-medium: 6px,
+      corner-large: 6px,
+    )
+  );
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) { @include dark-theme; }
+}
+
+:root[data-theme='dark'] { @include dark-theme; }

@@ -1,0 +1,34 @@
+# mriqc-dump -- nightly MRIQC Web-API dump, for /etc/cron.d/mriqc-dump
+#
+# Runs at 02:30 local, half an hour before the server's own ingest window
+# (INGEST_HOUR, default 03:00), so the files are complete and fsynced before the
+# server looks at the directory. The server never connects to MongoDB; it only
+# ever reads what this job wrote.
+#
+# Install:
+#   install -m 0644 cron.example /etc/cron.d/mriqc-dump
+#   install -m 0600 /dev/null /etc/mriqc/dump.env   # then put MRIQC_MONGO_URI in it
+#   install -d -o mriqc -g mriqc /srv/mriqc/dumps
+#
+# The URI carries a password, so it lives in a 0600 file owned by root and is
+# never written on a cron line, where `ps` and cron's own mail would show it.
+# mriqc-dump redacts it from everything it prints.
+
+SHELL=/bin/sh
+PATH=/usr/local/bin:/usr/bin:/bin
+MAILTO=root
+
+# m  h  dom mon dow  user   command
+ 30  2   *   *   *   mriqc  . /etc/mriqc/dump.env && /usr/bin/node /opt/mriqc-dump/bin/mriqc-dump.mjs --out /srv/mriqc/dumps >> /var/log/mriqc/dump.log 2>&1
+
+# One-off, to take the existing full dumps in a directory as the first files:
+#   node /opt/mriqc-dump/bin/mriqc-dump.mjs --adopt --out /srv/mriqc/dumps
+#
+# One-off, to see what tonight would run without running it:
+#   . /etc/mriqc/dump.env && node /opt/mriqc-dump/bin/mriqc-dump.mjs \
+#       --out /srv/mriqc/dumps --dry-run
+#
+# Housekeeping: nothing here deletes old dump files. Once the server's
+# ingest_log holds a file's sha256 the file itself is only history, so a
+# separate `find /srv/mriqc/dumps -name 'mriqc_api.*.json' -mtime +30 -delete`
+# is safe -- but leave manifest.json alone, it is the watermark.

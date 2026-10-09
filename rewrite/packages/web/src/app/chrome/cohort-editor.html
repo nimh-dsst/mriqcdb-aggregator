@@ -1,0 +1,410 @@
+<!-- 640px on a desktop, the viewport less a 16px gutter each side below that,
+     and a full-screen sheet on a phone. `min-w-0` on every nesting level and
+     `overflow-x-hidden` on the body, because the thing that broke this dialog
+     was a 672px grid inside a 560px surface: the third filter column, three
+     swatches and the Create button were off the edge and reachable only by a
+     horizontal scrollbar nobody looks for. -->
+<!-- No width here: the surface's geometry comes from the dialog config
+     (`cohortDialogSize`), because a width declared inside the component can
+     only ever be clipped by the surface around it. This fills whatever it is
+     given, and never exceeds it -- `min-w-0` at every level and
+     `overflow-x-hidden` on the body. -->
+<div class="flex h-full min-w-0 flex-col" data-testid="cohort-editor">
+  <div class="flex-none px-6 pt-6">
+    <h2 class="text-title font-semibold text-ink" data-testid="cohort-editor-title">
+      {{ title() }}
+    </h2>
+    <p class="pt-1 text-caption text-ink-2">
+      @if (mode() === 'timespans') {
+        Two copies of one cohort, one per date range, on one chart.
+      } @else {
+        A named selection of scans you can compare any metric across.
+      }
+    </p>
+  </div>
+
+  <div class="flex min-h-0 min-w-0 flex-1 flex-col gap-4 overflow-y-auto overflow-x-hidden px-6 py-4">
+    <!-- (1) Where the fields come from. First, because it overwrites every
+         control below it, and a control that silently discards what you typed
+         belongs above what it discards, not beneath it. -->
+    <div class="min-w-0">
+      <span class="field-label" id="cohort-start-label">Start from</span>
+      <div
+        class="flex flex-wrap items-center gap-1"
+        role="radiogroup"
+        aria-labelledby="cohort-start-label"
+        data-testid="cohort-start"
+      >
+        @for (option of [
+          { id: 'current', label: 'This dashboard' },
+          { id: 'blank', label: 'Blank' },
+          { id: 'cohort', label: 'Saved cohort' }
+        ]; track option.id) {
+          <button
+            type="button"
+            role="radio"
+            class="btn"
+            [class.border-highlight]="startFrom() === option.id"
+            [class.btn-quiet]="startFrom() !== option.id"
+            [attr.aria-checked]="startFrom() === option.id"
+            [attr.data-testid]="'start-' + option.id"
+            (click)="applyStart($any(option.id))"
+          >
+            {{ option.label }}
+          </button>
+        }
+      </div>
+
+      @if (startFrom() === 'cohort') {
+        <!-- Only once that option is chosen: an always-visible select for a
+             branch nobody took is a control with nothing to do. -->
+        <mat-form-field appearance="outline" subscriptSizing="dynamic" class="mt-2 w-full">
+          <mat-select
+            aria-label="Which saved cohort"
+            placeholder="Pick a cohort"
+            [value]="startCohort()"
+            (valueChange)="pickStart($event)"
+            data-testid="cohort-duplicate"
+          >
+            @for (entry of savedCohorts(); track entry.cohort.id) {
+              <mat-option [value]="entry.cohort.id">{{ entry.cohort.name }}</mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+      }
+    </div>
+
+    <!-- (2) The name, full width. It tracks the fields until the reader types,
+         so a cohort assembled by changing filters is named after the filters it
+         ended on -- and then it is theirs and nothing overwrites it. -->
+    <div class="min-w-0">
+      <span class="field-label" id="cohort-name-label">Name</span>
+      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="w-full">
+        <input
+          matInput
+          type="text"
+          aria-labelledby="cohort-name-label"
+          [value]="name()"
+          (input)="setName($event)"
+          data-testid="cohort-name"
+          placeholder="Siemens 3T, 2019"
+        />
+      </mat-form-field>
+    </div>
+
+    <form [formGroup]="form" class="flex min-w-0 flex-col gap-4">
+      <!-- (3) The view. -->
+      <div class="min-w-0">
+        <span class="field-label" id="cohort-view-label">Scans shown</span>
+        <mat-form-field appearance="outline" subscriptSizing="dynamic" class="w-full">
+          <mat-select
+            formControlName="view"
+            aria-labelledby="cohort-view-label"
+            data-testid="cohort-view"
+          >
+            @for (view of views(); track view.id) {
+              <mat-option [value]="view.id">{{ view.label }}</mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+      </div>
+
+      <!-- (4) The filters, two columns and one under 480px. `minmax(0, 1fr)`
+           and not `minmax(180px, 1fr)`: a min of 180px is a floor the grid
+           cannot go below, which is how the track total came to exceed the
+           dialog. -->
+      <div class="min-w-0 border-t border-border pt-3">
+        <ng-container formGroupName="filters">
+          <div
+            class="grid min-w-0 gap-x-4 gap-y-3"
+            [class]="phone() ? 'grid-cols-1' : 'grid-cols-[repeat(2,minmax(0,1fr))]'"
+            data-testid="cohort-filters"
+          >
+            @for (entry of filterFields(); track entry.field.id) {
+              <app-filter-select
+                class="min-w-0"
+                [entry]="entry"
+                [tip]="fieldTip()"
+                [formControlName]="entry.field.id"
+              />
+            }
+          </div>
+
+          @if (secondaryFields().length > 0) {
+            <button
+              type="button"
+              class="btn btn-quiet mt-3"
+              (click)="toggleMore()"
+              [attr.aria-expanded]="moreOpen()"
+              data-testid="cohort-more-filters"
+            >
+              <lucide-icon
+                class="icon-16 text-ink-3 transition-transform"
+                name="chevron-down"
+                color="currentColor"
+                [size]="16"
+                [strokeWidth]="1.75"
+                [class.rotate-180]="moreOpen()"
+                aria-hidden="true"
+              />
+              More filters
+            </button>
+
+            @if (moreOpen()) {
+              <!-- The same `secondary` split the top bar makes, so a reader who
+                   knows where Institution lives up there finds it here too. -->
+              <div
+                class="mt-3 grid min-w-0 gap-x-4 gap-y-3 border-t border-border pt-3"
+                [class]="phone() ? 'grid-cols-1' : 'grid-cols-[repeat(2,minmax(0,1fr))]'"
+                data-testid="cohort-more-filter-grid"
+              >
+                @for (entry of secondaryFields(); track entry.field.id) {
+                  <app-filter-select
+                    class="min-w-0"
+                    [entry]="entry"
+                    [tip]="fieldTip()"
+                    [formControlName]="entry.field.id"
+                  />
+                }
+              </div>
+            }
+          }
+        </ng-container>
+      </div>
+
+      <!-- (5) The upload-date range. -->
+      @if (mode() !== 'timespans') {
+        <div class="min-w-0 border-t border-border pt-3">
+          <span class="field-label">Uploaded between</span>
+          <mat-form-field appearance="outline" subscriptSizing="dynamic" class="w-full">
+            <mat-date-range-input [rangePicker]="picker">
+              <input matStartDate formControlName="createdFrom" placeholder="start" />
+              <input matEndDate formControlName="createdTo" placeholder="end" />
+            </mat-date-range-input>
+            <mat-datepicker-toggle matIconSuffix [for]="picker"></mat-datepicker-toggle>
+            <mat-date-range-picker #picker></mat-date-range-picker>
+          </mat-form-field>
+        </div>
+      }
+    </form>
+
+    @if (mode() === 'timespans') {
+      <!-- The two spans and the metric to compare them on. The cohort's own
+           date range is not rendered in this mode: these two replace it. -->
+      <div class="flex min-w-0 flex-col gap-3 border-t border-border pt-3">
+        <div class="min-w-0">
+          <span class="field-label" id="span-metric-label">Compare on</span>
+          <mat-form-field appearance="outline" subscriptSizing="dynamic" class="w-full">
+            <mat-select
+              aria-labelledby="span-metric-label"
+              [value]="span().metric"
+              (valueChange)="setSpan({ metric: $event })"
+              data-testid="span-metric"
+            >
+              @for (metric of metrics(); track metric.id) {
+                <mat-option [value]="metric.id">{{ metric.label }}</mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
+        </div>
+
+        <div
+          class="grid min-w-0 gap-4"
+          [class]="phone() ? 'grid-cols-1' : 'grid-cols-[repeat(2,minmax(0,1fr))]'"
+        >
+          <div class="min-w-0">
+            <span class="field-label">First span</span>
+            <mat-form-field appearance="outline" subscriptSizing="dynamic" class="w-full">
+              <mat-date-range-input [rangePicker]="pickerA">
+                <input
+                  matStartDate
+                  placeholder="start"
+                  data-testid="span-a-start"
+                  [value]="span().fromA"
+                  (dateChange)="setSpan({ fromA: $event.value })"
+                />
+                <input
+                  matEndDate
+                  placeholder="end"
+                  data-testid="span-a-end"
+                  [value]="span().toA"
+                  (dateChange)="setSpan({ toA: $event.value })"
+                />
+              </mat-date-range-input>
+              <mat-datepicker-toggle matIconSuffix [for]="pickerA"></mat-datepicker-toggle>
+              <mat-date-range-picker #pickerA></mat-date-range-picker>
+            </mat-form-field>
+          </div>
+
+          <div class="min-w-0">
+            <span class="field-label">Second span</span>
+            <mat-form-field appearance="outline" subscriptSizing="dynamic" class="w-full">
+              <mat-date-range-input [rangePicker]="pickerB">
+                <input
+                  matStartDate
+                  placeholder="start"
+                  data-testid="span-b-start"
+                  [value]="span().fromB"
+                  (dateChange)="setSpan({ fromB: $event.value })"
+                />
+                <input
+                  matEndDate
+                  placeholder="end"
+                  data-testid="span-b-end"
+                  [value]="span().toB"
+                  (dateChange)="setSpan({ toB: $event.value })"
+                />
+              </mat-date-range-input>
+              <mat-datepicker-toggle matIconSuffix [for]="pickerB"></mat-datepicker-toggle>
+              <mat-date-range-picker #pickerB></mat-date-range-picker>
+            </mat-form-field>
+          </div>
+        </div>
+      </div>
+    } @else {
+      <!-- (6) An optional metric range: the cohort narrowed to part of one
+           metric's axis, which is what a brush carried over becomes. The
+           select shows "No range" when there is none, so the control states
+           its own resting value rather than looking unset. -->
+      <div class="min-w-0 border-t border-border pt-3">
+        <span class="field-label" id="cohort-range-label">Metric range (optional)</span>
+        @for (selection of retainedSelections(); track selection.metric) {
+          <button type="button" class="chip chip-amber mb-2" (click)="removeRetainedRange(selection.metric)"
+            [attr.aria-label]="'Remove range: ' + retainedRangeLabel(selection)">{{ retainedRangeLabel(selection) }} ×</button>
+        }
+        <div
+          class="grid min-w-0 gap-3"
+          [class]="phone() ? 'grid-cols-1' : 'grid-cols-[minmax(0,1fr)_auto]'"
+        >
+          <mat-form-field appearance="outline" subscriptSizing="dynamic" class="min-w-0">
+            <mat-select
+              aria-labelledby="cohort-range-label"
+              [value]="rangeMetric()"
+              (valueChange)="setRangeMetric($event)"
+              data-testid="cohort-range-metric"
+            >
+              <mat-select-trigger>{{ rangeMetricLabel() }}</mat-select-trigger>
+              <mat-option [value]="null">No range</mat-option>
+              @for (metric of metrics(); track metric.id) {
+                <mat-option [value]="metric.id">{{ metric.label }}</mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
+          @if (rangeMetric() !== null) {
+            <div class="flex min-w-0 items-center gap-3">
+              <mat-form-field appearance="outline" subscriptSizing="dynamic" class="w-24 min-w-0">
+                <input
+                  matInput
+                  type="number"
+                  aria-label="Range minimum"
+                  [value]="rangeLo()"
+                  (input)="setRangeBound('lo', $event)"
+                  data-testid="cohort-range-lo"
+                />
+              </mat-form-field>
+              <span class="flex-none text-caption text-ink-3" aria-hidden="true">to</span>
+              <mat-form-field appearance="outline" subscriptSizing="dynamic" class="w-24 min-w-0">
+                <input
+                  matInput
+                  type="number"
+                  aria-label="Range maximum"
+                  [value]="rangeHi()"
+                  (input)="setRangeBound('hi', $event)"
+                  data-testid="cohort-range-hi"
+                />
+              </mat-form-field>
+            </div>
+          }
+        </div>
+      </div>
+    }
+
+    <!-- (7) The colour, on a row of its own. It shared a row with the name
+         box, where eight 24px swatches took 248px of a 311px phone row and
+         left the input 15px wide. -->
+    <div class="min-w-0 border-t border-border pt-3">
+      <span class="field-label">Colour</span>
+      <!-- Radio semantics, because exactly one swatch is chosen; the checked
+           one carries a visible ring rather than only a hue, which is the
+           relief a colour-only indicator owes. -->
+      <div class="flex flex-wrap items-center gap-2" role="radiogroup" aria-label="Cohort colour">
+        @for (hex of palette; track hex; let i = $index) {
+          <button
+            type="button"
+            role="radio"
+            class="h-6 w-6 flex-none rounded-chip border-2"
+            [style.background-color]="hex"
+            [style.border-color]="isSwatch(i) ? 'var(--ink)' : 'transparent'"
+            [attr.aria-checked]="isSwatch(i)"
+            [attr.aria-label]="'Colour ' + (i + 1)"
+            [attr.data-testid]="'cohort-color-' + i"
+            (click)="color.set(i)"
+          ></button>
+        }
+      </div>
+    </div>
+  </div>
+
+  @if (mode() !== 'timespans') {
+    <!-- The two-span comparison, as a mode of this dialog rather than a third
+         button on a 28px chip: it is this cohort, copied across two date
+         ranges, so everything above it is already the right input. -->
+    <div class="flex-none px-6 pb-4">
+      <button
+        type="button"
+        class="btn btn-quiet"
+        (click)="compareTimeSpans()"
+        data-testid="cohort-compare-spans"
+        matTooltip="Copy this cohort across two date ranges and open a comparison panel"
+      >
+        <lucide-icon
+          class="icon-16"
+          name="arrow-left-right"
+          color="currentColor"
+          [size]="16"
+          [strokeWidth]="1.75"
+          aria-hidden="true"
+        />
+        Compare across two date ranges&hellip;
+      </button>
+    </div>
+  }
+
+  <!-- (8) The footer: what this cohort currently matches on the left, the two
+       actions on the right. Sticky, so the actions are reachable on a phone
+       without scrolling to the end of a long filter list. -->
+  <div
+    class="flex flex-none flex-wrap items-center justify-between gap-3 border-t border-border bg-surface px-6 py-4"
+  >
+    <p class="text-caption text-ink-2" data-testid="cohort-preview">
+      @if (matchCount() === null) {
+        <span aria-live="polite">Counting&hellip;</span>
+      } @else {
+        <span class="tnum" aria-live="polite"
+          >&#8776; {{ matchCount() | number }} {{ unitNoun() }}</span
+        >
+      }
+    </p>
+
+    <div class="flex items-center gap-3">
+      <button type="button" class="btn btn-quiet" (click)="cancel()" data-testid="cohort-cancel">
+        Cancel
+      </button>
+      <button
+        type="button"
+        class="btn border-highlight text-ink"
+        [disabled]="!canSave()"
+        (click)="save()"
+        data-testid="cohort-save"
+      >
+        @if (mode() === 'timespans') {
+          Compare
+        } @else if (mode() === 'edit') {
+          Save
+        } @else {
+          Create
+        }
+      </button>
+    </div>
+  </div>
+</div>

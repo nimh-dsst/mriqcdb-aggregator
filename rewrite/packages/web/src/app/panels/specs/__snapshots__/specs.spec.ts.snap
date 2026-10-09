@@ -1,0 +1,1822 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`chart specs > box > matches its snapshot 1`] = `
+{
+  "$schema": "https://vega.github.io/schema/vega-lite/v6.json",
+  "autosize": {
+    "contains": "padding",
+    "type": "fit-x",
+  },
+  "background": "transparent",
+  "config": {
+    "axis": {
+      "domainColor": "#e2e5ea",
+      "gridColor": "#e2e5ea",
+      "gridDash": [],
+      "gridWidth": 1,
+      "labelColor": "#5c6675",
+      "labelFontSize": 12,
+      "labelOverlap": "greedy",
+      "labelPadding": 4,
+      "labelSeparation": 4,
+      "tickColor": "#e2e5ea",
+      "titleColor": "#5c6675",
+      "titleFontSize": 12,
+      "titleFontWeight": 400,
+      "titlePadding": 6,
+    },
+    "axisX": {
+      "grid": false,
+    },
+    "axisY": {
+      "grid": true,
+    },
+    "bar": {
+      "binSpacing": 2,
+    },
+    "font": "ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, sans-serif",
+    "header": {
+      "labelColor": "#5c6675",
+      "labelFontSize": 12,
+      "titleColor": "#5c6675",
+      "titleFontSize": 12,
+    },
+    "legend": {
+      "labelColor": "#5c6675",
+      "labelFontSize": 12,
+      "symbolSize": 56,
+      "symbolType": "square",
+      "titleColor": "#5c6675",
+      "titleFontSize": 12,
+    },
+    "mark": {
+      "tooltip": true,
+    },
+    "scale": {
+      "bandPaddingInner": 0.12,
+    },
+    "text": {
+      "color": "#5c6675",
+    },
+    "view": {
+      "stroke": null,
+    },
+  },
+  "data": {
+    "name": "groups",
+  },
+  "encoding": {
+    "y": {
+      "field": "group",
+      "sort": {
+        "field": "p50",
+        "order": "descending",
+      },
+      "title": "Manufacturer",
+      "type": "nominal",
+    },
+  },
+  "height": {
+    "step": 22,
+  },
+  "layer": [
+    {
+      "encoding": {
+        "x": {
+          "field": "p05",
+          "scale": {
+            "nice": true,
+            "zero": false,
+          },
+          "title": "Mean framewise displacement (mm)",
+          "type": "quantitative",
+        },
+        "x2": {
+          "field": "p95",
+        },
+      },
+      "mark": {
+        "color": "#6e7787",
+        "strokeCap": "round",
+        "strokeWidth": 1,
+        "type": "rule",
+      },
+    },
+    {
+      "encoding": {
+        "color": {
+          "field": "group",
+          "legend": null,
+          "scale": {
+            "range": [
+              "#0072b2",
+              "#009e73",
+              "#56b4e9",
+              "#d55e00",
+              "#cc79a7",
+              "#e69f00",
+              "#8c9196",
+            ],
+          },
+          "type": "nominal",
+        },
+        "x": {
+          "field": "p50",
+          "scale": {
+            "nice": true,
+            "zero": false,
+          },
+          "title": "Mean framewise displacement (mm)",
+          "type": "quantitative",
+        },
+      },
+      "mark": {
+        "height": 12,
+        "thickness": 3,
+        "type": "tick",
+      },
+    },
+    {
+      "encoding": {
+        "color": {
+          "field": "group",
+          "legend": null,
+          "scale": {
+            "range": [
+              "#0072b2",
+              "#009e73",
+              "#56b4e9",
+              "#d55e00",
+              "#cc79a7",
+              "#e69f00",
+              "#8c9196",
+            ],
+          },
+          "type": "nominal",
+        },
+        "x": {
+          "field": "p25",
+          "scale": {
+            "nice": true,
+            "zero": false,
+          },
+          "title": "Mean framewise displacement (mm)",
+          "type": "quantitative",
+        },
+        "x2": {
+          "field": "p75",
+        },
+      },
+      "mark": {
+        "cornerRadius": 2,
+        "height": 12,
+        "type": "bar",
+      },
+    },
+    {
+      "encoding": {
+        "x": {
+          "field": "p50",
+          "scale": {
+            "nice": true,
+            "zero": false,
+          },
+          "title": "Mean framewise displacement (mm)",
+          "type": "quantitative",
+        },
+      },
+      "mark": {
+        "color": "#1f2430",
+        "height": 14,
+        "thickness": 2,
+        "type": "tick",
+      },
+    },
+    {
+      "encoding": {
+        "text": {
+          "field": "n",
+          "format": ",",
+          "type": "quantitative",
+        },
+        "x": {
+          "field": "p95",
+          "scale": {
+            "nice": true,
+            "zero": false,
+          },
+          "title": "Mean framewise displacement (mm)",
+          "type": "quantitative",
+        },
+      },
+      "mark": {
+        "align": "right",
+        "baseline": "middle",
+        "color": "#6e7787",
+        "dx": -3,
+        "fontSize": 12,
+        "type": "text",
+      },
+    },
+  ],
+  "padding": 4,
+  "width": "container",
+}
+`;
+
+exports[`chart specs > cohortBox > matches its snapshot 1`] = `
+{
+  "$schema": "https://vega.github.io/schema/vega-lite/v6.json",
+  "autosize": {
+    "contains": "padding",
+    "type": "fit-x",
+  },
+  "background": "transparent",
+  "config": {
+    "axis": {
+      "domainColor": "#e2e5ea",
+      "gridColor": "#e2e5ea",
+      "gridDash": [],
+      "gridWidth": 1,
+      "labelColor": "#5c6675",
+      "labelFontSize": 12,
+      "labelOverlap": "greedy",
+      "labelPadding": 4,
+      "labelSeparation": 4,
+      "tickColor": "#e2e5ea",
+      "titleColor": "#5c6675",
+      "titleFontSize": 12,
+      "titleFontWeight": 400,
+      "titlePadding": 6,
+    },
+    "axisX": {
+      "grid": false,
+    },
+    "axisY": {
+      "grid": true,
+    },
+    "bar": {
+      "binSpacing": 2,
+    },
+    "font": "ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, sans-serif",
+    "header": {
+      "labelColor": "#5c6675",
+      "labelFontSize": 12,
+      "titleColor": "#5c6675",
+      "titleFontSize": 12,
+    },
+    "legend": {
+      "labelColor": "#5c6675",
+      "labelFontSize": 12,
+      "symbolSize": 56,
+      "symbolType": "square",
+      "titleColor": "#5c6675",
+      "titleFontSize": 12,
+    },
+    "mark": {
+      "tooltip": true,
+    },
+    "scale": {
+      "bandPaddingInner": 0.12,
+    },
+    "text": {
+      "color": "#5c6675",
+    },
+    "view": {
+      "stroke": null,
+    },
+  },
+  "data": {
+    "name": "cohorts",
+  },
+  "encoding": {
+    "tooltip": [
+      {
+        "field": "label",
+        "title": "Cohort",
+        "type": "nominal",
+      },
+      {
+        "field": "p05",
+        "title": "5th pct",
+        "type": "quantitative",
+      },
+      {
+        "field": "p50",
+        "title": "Median",
+        "type": "quantitative",
+      },
+      {
+        "field": "p95",
+        "title": "95th pct",
+        "type": "quantitative",
+      },
+      {
+        "field": "n",
+        "format": ",",
+        "title": "Scans",
+        "type": "quantitative",
+      },
+    ],
+    "y": {
+      "axis": {
+        "labelExpr": "datum.value === "current" ? "This dashboard" : datum.value === "all" ? "Whole population" : datum.value",
+      },
+      "field": "cohort",
+      "sort": {
+        "field": "p50",
+        "order": "descending",
+      },
+      "title": null,
+      "type": "nominal",
+    },
+  },
+  "height": {
+    "step": 34,
+  },
+  "layer": [
+    {
+      "encoding": {
+        "x": {
+          "field": "p05",
+          "scale": {
+            "nice": true,
+            "zero": false,
+          },
+          "title": "Mean framewise displacement (mm)",
+          "type": "quantitative",
+        },
+        "x2": {
+          "field": "p95",
+        },
+      },
+      "mark": {
+        "color": "#6e7787",
+        "strokeCap": "round",
+        "strokeWidth": 1,
+        "type": "rule",
+      },
+    },
+    {
+      "encoding": {
+        "color": {
+          "field": "cohort",
+          "legend": null,
+          "scale": {
+            "domain": [
+              "current",
+              "all",
+            ],
+            "range": [
+              "#2a78d6",
+              "#eb6834",
+            ],
+          },
+          "type": "nominal",
+        },
+        "x": {
+          "field": "p50",
+          "scale": {
+            "nice": true,
+            "zero": false,
+          },
+          "title": "Mean framewise displacement (mm)",
+          "type": "quantitative",
+        },
+      },
+      "mark": {
+        "height": 16,
+        "thickness": 3,
+        "type": "tick",
+      },
+    },
+    {
+      "encoding": {
+        "color": {
+          "field": "cohort",
+          "legend": null,
+          "scale": {
+            "domain": [
+              "current",
+              "all",
+            ],
+            "range": [
+              "#2a78d6",
+              "#eb6834",
+            ],
+          },
+          "type": "nominal",
+        },
+        "x": {
+          "field": "p25",
+          "scale": {
+            "nice": true,
+            "zero": false,
+          },
+          "title": "Mean framewise displacement (mm)",
+          "type": "quantitative",
+        },
+        "x2": {
+          "field": "p75",
+        },
+      },
+      "mark": {
+        "cornerRadius": 2,
+        "height": 16,
+        "type": "bar",
+      },
+    },
+    {
+      "encoding": {
+        "x": {
+          "field": "p50",
+          "scale": {
+            "nice": true,
+            "zero": false,
+          },
+          "title": "Mean framewise displacement (mm)",
+          "type": "quantitative",
+        },
+      },
+      "mark": {
+        "color": "#1f2430",
+        "height": 20,
+        "thickness": 2,
+        "type": "tick",
+      },
+    },
+    {
+      "encoding": {
+        "text": {
+          "field": "n",
+          "format": ",",
+          "type": "quantitative",
+        },
+        "x": {
+          "field": "p95",
+          "scale": {
+            "nice": true,
+            "zero": false,
+          },
+          "title": "Mean framewise displacement (mm)",
+          "type": "quantitative",
+        },
+      },
+      "mark": {
+        "align": "right",
+        "baseline": "middle",
+        "color": "#6e7787",
+        "dx": -3,
+        "fontSize": 12,
+        "type": "text",
+      },
+    },
+  ],
+  "padding": 4,
+  "width": "container",
+}
+`;
+
+exports[`chart specs > coverage area > matches its snapshot 1`] = `
+{
+  "$schema": "https://vega.github.io/schema/vega-lite/v6.json",
+  "autosize": {
+    "contains": "padding",
+    "type": "fit",
+  },
+  "background": "transparent",
+  "config": {
+    "axis": {
+      "domainColor": "#e2e5ea",
+      "gridColor": "#e2e5ea",
+      "gridDash": [],
+      "gridWidth": 1,
+      "labelColor": "#5c6675",
+      "labelFontSize": 12,
+      "labelOverlap": "greedy",
+      "labelPadding": 4,
+      "labelSeparation": 4,
+      "tickColor": "#e2e5ea",
+      "titleColor": "#5c6675",
+      "titleFontSize": 12,
+      "titleFontWeight": 400,
+      "titlePadding": 6,
+    },
+    "axisX": {
+      "grid": false,
+    },
+    "axisY": {
+      "grid": true,
+    },
+    "bar": {
+      "binSpacing": 2,
+    },
+    "font": "ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, sans-serif",
+    "header": {
+      "labelColor": "#5c6675",
+      "labelFontSize": 12,
+      "titleColor": "#5c6675",
+      "titleFontSize": 12,
+    },
+    "legend": {
+      "labelColor": "#5c6675",
+      "labelFontSize": 12,
+      "symbolSize": 56,
+      "symbolType": "square",
+      "titleColor": "#5c6675",
+      "titleFontSize": 12,
+    },
+    "mark": {
+      "tooltip": true,
+    },
+    "scale": {
+      "bandPaddingInner": 0.12,
+    },
+    "text": {
+      "color": "#5c6675",
+    },
+    "view": {
+      "stroke": null,
+    },
+  },
+  "data": {
+    "name": "coverage",
+  },
+  "encoding": {
+    "color": {
+      "field": "group",
+      "legend": {
+        "columnPadding": 12,
+        "columns": 0,
+        "labelFontSize": 12,
+        "labelLimit": 120,
+        "offset": 4,
+        "orient": "bottom",
+        "padding": 12,
+        "rowPadding": 2,
+        "symbolLimit": 7,
+        "symbolSize": 36,
+        "title": null,
+      },
+      "scale": {
+        "domain": [],
+        "range": [],
+      },
+      "title": null,
+      "type": "nominal",
+    },
+    "x": {
+      "field": "start",
+      "timeUnit": "utcyear",
+      "title": "Upload date",
+      "type": "temporal",
+    },
+    "y": {
+      "aggregate": "sum",
+      "axis": undefined,
+      "field": "n",
+      "scale": undefined,
+      "stack": "zero",
+      "title": "Scans",
+      "type": "quantitative",
+    },
+  },
+  "height": "container",
+  "mark": {
+    "interpolate": "monotone",
+    "line": false,
+    "type": "area",
+  },
+  "padding": 4,
+  "width": "container",
+}
+`;
+
+exports[`chart specs > coverage stackedBar > matches its snapshot 1`] = `
+{
+  "$schema": "https://vega.github.io/schema/vega-lite/v6.json",
+  "autosize": {
+    "contains": "padding",
+    "type": "fit",
+  },
+  "background": "transparent",
+  "config": {
+    "axis": {
+      "domainColor": "#e2e5ea",
+      "gridColor": "#e2e5ea",
+      "gridDash": [],
+      "gridWidth": 1,
+      "labelColor": "#5c6675",
+      "labelFontSize": 12,
+      "labelOverlap": "greedy",
+      "labelPadding": 4,
+      "labelSeparation": 4,
+      "tickColor": "#e2e5ea",
+      "titleColor": "#5c6675",
+      "titleFontSize": 12,
+      "titleFontWeight": 400,
+      "titlePadding": 6,
+    },
+    "axisX": {
+      "grid": false,
+    },
+    "axisY": {
+      "grid": true,
+    },
+    "bar": {
+      "binSpacing": 2,
+    },
+    "font": "ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, sans-serif",
+    "header": {
+      "labelColor": "#5c6675",
+      "labelFontSize": 12,
+      "titleColor": "#5c6675",
+      "titleFontSize": 12,
+    },
+    "legend": {
+      "labelColor": "#5c6675",
+      "labelFontSize": 12,
+      "symbolSize": 56,
+      "symbolType": "square",
+      "titleColor": "#5c6675",
+      "titleFontSize": 12,
+    },
+    "mark": {
+      "tooltip": true,
+    },
+    "scale": {
+      "bandPaddingInner": 0.12,
+    },
+    "text": {
+      "color": "#5c6675",
+    },
+    "view": {
+      "stroke": null,
+    },
+  },
+  "data": {
+    "name": "coverage",
+  },
+  "encoding": {
+    "color": {
+      "field": "group",
+      "legend": {
+        "columnPadding": 12,
+        "columns": 0,
+        "labelFontSize": 12,
+        "labelLimit": 120,
+        "offset": 4,
+        "orient": "bottom",
+        "padding": 12,
+        "rowPadding": 2,
+        "symbolLimit": 7,
+        "symbolSize": 36,
+        "title": null,
+      },
+      "scale": {
+        "domain": [],
+        "range": [],
+      },
+      "title": null,
+      "type": "nominal",
+    },
+    "x": {
+      "field": "start",
+      "timeUnit": "utcyearmonth",
+      "title": "Upload date",
+      "type": "temporal",
+    },
+    "y": {
+      "aggregate": "sum",
+      "axis": undefined,
+      "field": "n",
+      "scale": undefined,
+      "stack": "zero",
+      "title": "Scans",
+      "type": "quantitative",
+    },
+  },
+  "height": "container",
+  "mark": {
+    "stroke": "#ffffff",
+    "strokeWidth": 1,
+    "type": "bar",
+  },
+  "padding": 4,
+  "width": "container",
+}
+`;
+
+exports[`chart specs > density > matches its snapshot 1`] = `
+{
+  "$schema": "https://vega.github.io/schema/vega-lite/v6.json",
+  "autosize": {
+    "contains": "padding",
+    "type": "fit",
+  },
+  "background": "transparent",
+  "config": {
+    "axis": {
+      "domainColor": "#e2e5ea",
+      "gridColor": "#e2e5ea",
+      "gridDash": [],
+      "gridWidth": 1,
+      "labelColor": "#5c6675",
+      "labelFontSize": 12,
+      "labelOverlap": "greedy",
+      "labelPadding": 4,
+      "labelSeparation": 4,
+      "tickColor": "#e2e5ea",
+      "titleColor": "#5c6675",
+      "titleFontSize": 12,
+      "titleFontWeight": 400,
+      "titlePadding": 6,
+    },
+    "axisX": {
+      "grid": false,
+    },
+    "axisY": {
+      "grid": true,
+    },
+    "bar": {
+      "binSpacing": 2,
+    },
+    "font": "ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, sans-serif",
+    "header": {
+      "labelColor": "#5c6675",
+      "labelFontSize": 12,
+      "titleColor": "#5c6675",
+      "titleFontSize": 12,
+    },
+    "legend": {
+      "labelColor": "#5c6675",
+      "labelFontSize": 12,
+      "symbolSize": 56,
+      "symbolType": "square",
+      "titleColor": "#5c6675",
+      "titleFontSize": 12,
+    },
+    "mark": {
+      "tooltip": true,
+    },
+    "scale": {
+      "bandPaddingInner": 0.12,
+    },
+    "text": {
+      "color": "#5c6675",
+    },
+    "view": {
+      "stroke": null,
+    },
+  },
+  "data": {
+    "name": "population",
+  },
+  "encoding": {
+    "tooltip": [
+      {
+        "field": "value",
+        "title": "Mean framewise displacement",
+        "type": "quantitative",
+      },
+      {
+        "field": "share",
+        "format": ".2%",
+        "title": "Smoothed share",
+        "type": "quantitative",
+      },
+    ],
+    "x": {
+      "field": "value",
+      "scale": {
+        "nice": true,
+        "zero": false,
+      },
+      "title": "Mean framewise displacement (mm)",
+      "type": "quantitative",
+    },
+    "y": {
+      "axis": {
+        "format": ".0%",
+      },
+      "field": "share",
+      "title": "Share of scans (smoothed)",
+      "type": "quantitative",
+    },
+  },
+  "height": "container",
+  "mark": {
+    "color": "#0072b2",
+    "fillOpacity": 0.25,
+    "interpolate": "monotone",
+    "line": {
+      "strokeCap": "round",
+      "strokeJoin": "round",
+      "strokeWidth": 2,
+    },
+    "type": "area",
+  },
+  "padding": 4,
+  "params": [
+    {
+      "name": "brush",
+      "select": {
+        "encodings": [
+          "x",
+        ],
+        "mark": {
+          "fill": "#ffca28",
+          "fillOpacity": 0.35,
+          "stroke": "#ffca28",
+          "strokeDash": [],
+          "strokeOpacity": 1,
+          "strokeWidth": 1,
+        },
+        "type": "interval",
+      },
+    },
+  ],
+  "width": "container",
+}
+`;
+
+exports[`chart specs > ecdf > matches its snapshot 1`] = `
+{
+  "$schema": "https://vega.github.io/schema/vega-lite/v6.json",
+  "autosize": {
+    "contains": "padding",
+    "type": "fit",
+  },
+  "background": "transparent",
+  "config": {
+    "axis": {
+      "domainColor": "#e2e5ea",
+      "gridColor": "#e2e5ea",
+      "gridDash": [],
+      "gridWidth": 1,
+      "labelColor": "#5c6675",
+      "labelFontSize": 12,
+      "labelOverlap": "greedy",
+      "labelPadding": 4,
+      "labelSeparation": 4,
+      "tickColor": "#e2e5ea",
+      "titleColor": "#5c6675",
+      "titleFontSize": 12,
+      "titleFontWeight": 400,
+      "titlePadding": 6,
+    },
+    "axisX": {
+      "grid": false,
+    },
+    "axisY": {
+      "grid": true,
+    },
+    "bar": {
+      "binSpacing": 2,
+    },
+    "font": "ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, sans-serif",
+    "header": {
+      "labelColor": "#5c6675",
+      "labelFontSize": 12,
+      "titleColor": "#5c6675",
+      "titleFontSize": 12,
+    },
+    "legend": {
+      "labelColor": "#5c6675",
+      "labelFontSize": 12,
+      "symbolSize": 56,
+      "symbolType": "square",
+      "titleColor": "#5c6675",
+      "titleFontSize": 12,
+    },
+    "mark": {
+      "tooltip": true,
+    },
+    "scale": {
+      "bandPaddingInner": 0.12,
+    },
+    "text": {
+      "color": "#5c6675",
+    },
+    "view": {
+      "stroke": null,
+    },
+  },
+  "data": {
+    "name": "population",
+  },
+  "encoding": {
+    "x": {
+      "field": "value",
+      "scale": {
+        "nice": true,
+        "zero": false,
+      },
+      "title": "Mean framewise displacement (mm)",
+      "type": "quantitative",
+    },
+    "y": {
+      "axis": {
+        "format": ".0%",
+      },
+      "field": "p",
+      "scale": {
+        "domain": [
+          0,
+          1,
+        ],
+      },
+      "title": "Cumulative share",
+      "type": "quantitative",
+    },
+  },
+  "height": "container",
+  "mark": {
+    "color": "#0072b2",
+    "interpolate": "step-after",
+    "strokeCap": "round",
+    "strokeJoin": "round",
+    "strokeWidth": 2,
+    "type": "line",
+  },
+  "padding": 4,
+  "params": [
+    {
+      "name": "brush",
+      "select": {
+        "encodings": [
+          "x",
+        ],
+        "mark": {
+          "fill": "#ffca28",
+          "fillOpacity": 0.35,
+          "stroke": "#ffca28",
+          "strokeDash": [],
+          "strokeOpacity": 1,
+          "strokeWidth": 1,
+        },
+        "type": "interval",
+      },
+    },
+  ],
+  "width": "container",
+}
+`;
+
+exports[`chart specs > facetedEcdf > matches its snapshot 1`] = `
+{
+  "$schema": "https://vega.github.io/schema/vega-lite/v6.json",
+  "background": "transparent",
+  "columns": 3,
+  "config": {
+    "axis": {
+      "domainColor": "#e2e5ea",
+      "gridColor": "#e2e5ea",
+      "gridDash": [],
+      "gridWidth": 1,
+      "labelColor": "#5c6675",
+      "labelFontSize": 12,
+      "labelOverlap": "greedy",
+      "labelPadding": 4,
+      "labelSeparation": 4,
+      "tickColor": "#e2e5ea",
+      "titleColor": "#5c6675",
+      "titleFontSize": 12,
+      "titleFontWeight": 400,
+      "titlePadding": 6,
+    },
+    "axisX": {
+      "grid": false,
+    },
+    "axisY": {
+      "grid": true,
+    },
+    "bar": {
+      "binSpacing": 2,
+    },
+    "font": "ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, sans-serif",
+    "header": {
+      "labelColor": "#5c6675",
+      "labelFontSize": 12,
+      "titleColor": "#5c6675",
+      "titleFontSize": 12,
+    },
+    "legend": {
+      "labelColor": "#5c6675",
+      "labelFontSize": 12,
+      "symbolSize": 56,
+      "symbolType": "square",
+      "titleColor": "#5c6675",
+      "titleFontSize": 12,
+    },
+    "mark": {
+      "tooltip": true,
+    },
+    "scale": {
+      "bandPaddingInner": 0.12,
+    },
+    "text": {
+      "color": "#5c6675",
+    },
+    "view": {
+      "stroke": null,
+    },
+  },
+  "data": {
+    "name": "groups",
+  },
+  "facet": {
+    "field": "facet",
+    "sort": null,
+    "title": "Manufacturer",
+    "type": "nominal",
+  },
+  "padding": 4,
+  "spec": {
+    "encoding": {
+      "color": {
+        "field": "group",
+        "legend": null,
+        "scale": {
+          "range": [
+            "#0072b2",
+            "#009e73",
+            "#56b4e9",
+            "#d55e00",
+            "#cc79a7",
+            "#e69f00",
+            "#8c9196",
+          ],
+        },
+        "type": "nominal",
+      },
+      "x": {
+        "field": "value",
+        "scale": {
+          "nice": true,
+          "zero": false,
+        },
+        "title": "Mean framewise displacement (mm)",
+        "type": "quantitative",
+      },
+      "y": {
+        "axis": {
+          "format": ".0%",
+        },
+        "field": "p",
+        "scale": {
+          "domain": [
+            0,
+            1,
+          ],
+        },
+        "title": "Cumulative share",
+        "type": "quantitative",
+      },
+    },
+    "height": 110,
+    "mark": {
+      "interpolate": "step-after",
+      "strokeCap": "round",
+      "strokeJoin": "round",
+      "strokeWidth": 2,
+      "type": "line",
+    },
+    "width": 190,
+  },
+}
+`;
+
+exports[`chart specs > facetedHistogram > matches its snapshot 1`] = `
+{
+  "$schema": "https://vega.github.io/schema/vega-lite/v6.json",
+  "background": "transparent",
+  "columns": 3,
+  "config": {
+    "axis": {
+      "domainColor": "#e2e5ea",
+      "gridColor": "#e2e5ea",
+      "gridDash": [],
+      "gridWidth": 1,
+      "labelColor": "#5c6675",
+      "labelFontSize": 12,
+      "labelOverlap": "greedy",
+      "labelPadding": 4,
+      "labelSeparation": 4,
+      "tickColor": "#e2e5ea",
+      "titleColor": "#5c6675",
+      "titleFontSize": 12,
+      "titleFontWeight": 400,
+      "titlePadding": 6,
+    },
+    "axisX": {
+      "grid": false,
+    },
+    "axisY": {
+      "grid": true,
+    },
+    "bar": {
+      "binSpacing": 2,
+    },
+    "font": "ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, sans-serif",
+    "header": {
+      "labelColor": "#5c6675",
+      "labelFontSize": 12,
+      "titleColor": "#5c6675",
+      "titleFontSize": 12,
+    },
+    "legend": {
+      "labelColor": "#5c6675",
+      "labelFontSize": 12,
+      "symbolSize": 56,
+      "symbolType": "square",
+      "titleColor": "#5c6675",
+      "titleFontSize": 12,
+    },
+    "mark": {
+      "tooltip": true,
+    },
+    "scale": {
+      "bandPaddingInner": 0.12,
+    },
+    "text": {
+      "color": "#5c6675",
+    },
+    "view": {
+      "stroke": null,
+    },
+  },
+  "data": {
+    "name": "groups",
+  },
+  "facet": {
+    "field": "facet",
+    "sort": null,
+    "title": "Manufacturer",
+    "type": "nominal",
+  },
+  "padding": 4,
+  "spec": {
+    "encoding": {
+      "color": {
+        "field": "group",
+        "legend": null,
+        "scale": {
+          "range": [
+            "#0072b2",
+            "#009e73",
+            "#56b4e9",
+            "#d55e00",
+            "#cc79a7",
+            "#e69f00",
+            "#8c9196",
+          ],
+        },
+        "type": "nominal",
+      },
+      "x": {
+        "bin": {
+          "binned": true,
+        },
+        "field": "lo",
+        "scale": {
+          "nice": true,
+          "zero": false,
+        },
+        "title": "Mean framewise displacement (mm)",
+        "type": "quantitative",
+      },
+      "x2": {
+        "field": "hi",
+      },
+      "y": {
+        "field": "count",
+        "title": "Scans",
+        "type": "quantitative",
+      },
+    },
+    "height": 110,
+    "mark": {
+      "type": "bar",
+    },
+    "width": 190,
+  },
+}
+`;
+
+exports[`chart specs > histogram > matches its snapshot 1`] = `
+{
+  "$schema": "https://vega.github.io/schema/vega-lite/v6.json",
+  "autosize": {
+    "contains": "padding",
+    "type": "fit",
+  },
+  "background": "transparent",
+  "config": {
+    "axis": {
+      "domainColor": "#e2e5ea",
+      "gridColor": "#e2e5ea",
+      "gridDash": [],
+      "gridWidth": 1,
+      "labelColor": "#5c6675",
+      "labelFontSize": 12,
+      "labelOverlap": "greedy",
+      "labelPadding": 4,
+      "labelSeparation": 4,
+      "tickColor": "#e2e5ea",
+      "titleColor": "#5c6675",
+      "titleFontSize": 12,
+      "titleFontWeight": 400,
+      "titlePadding": 6,
+    },
+    "axisX": {
+      "grid": false,
+    },
+    "axisY": {
+      "grid": true,
+    },
+    "bar": {
+      "binSpacing": 2,
+    },
+    "font": "ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, sans-serif",
+    "header": {
+      "labelColor": "#5c6675",
+      "labelFontSize": 12,
+      "titleColor": "#5c6675",
+      "titleFontSize": 12,
+    },
+    "legend": {
+      "labelColor": "#5c6675",
+      "labelFontSize": 12,
+      "symbolSize": 56,
+      "symbolType": "square",
+      "titleColor": "#5c6675",
+      "titleFontSize": 12,
+    },
+    "mark": {
+      "tooltip": true,
+    },
+    "scale": {
+      "bandPaddingInner": 0.12,
+    },
+    "text": {
+      "color": "#5c6675",
+    },
+    "view": {
+      "stroke": null,
+    },
+  },
+  "data": {
+    "name": "population",
+  },
+  "encoding": {
+    "x": {
+      "bin": {
+        "binned": true,
+      },
+      "field": "lo",
+      "scale": {
+        "nice": true,
+        "zero": false,
+      },
+      "title": "Mean framewise displacement (mm)",
+      "type": "quantitative",
+    },
+    "x2": {
+      "field": "hi",
+    },
+    "y": {
+      "field": "count",
+      "title": "Scans",
+      "type": "quantitative",
+    },
+  },
+  "height": "container",
+  "mark": {
+    "binSpacing": 2,
+    "color": "#0072b2",
+    "type": "bar",
+  },
+  "padding": 4,
+  "params": [
+    {
+      "name": "brush",
+      "select": {
+        "encodings": [
+          "x",
+        ],
+        "mark": {
+          "fill": "#ffca28",
+          "fillOpacity": 0.35,
+          "stroke": "#ffca28",
+          "strokeDash": [],
+          "strokeOpacity": 1,
+          "strokeWidth": 1,
+        },
+        "type": "interval",
+      },
+    },
+  ],
+  "width": "container",
+}
+`;
+
+exports[`chart specs > overlaidDensity > matches its snapshot 1`] = `
+{
+  "$schema": "https://vega.github.io/schema/vega-lite/v6.json",
+  "autosize": {
+    "contains": "padding",
+    "type": "fit",
+  },
+  "background": "transparent",
+  "config": {
+    "axis": {
+      "domainColor": "#e2e5ea",
+      "gridColor": "#e2e5ea",
+      "gridDash": [],
+      "gridWidth": 1,
+      "labelColor": "#5c6675",
+      "labelFontSize": 12,
+      "labelOverlap": "greedy",
+      "labelPadding": 4,
+      "labelSeparation": 4,
+      "tickColor": "#e2e5ea",
+      "titleColor": "#5c6675",
+      "titleFontSize": 12,
+      "titleFontWeight": 400,
+      "titlePadding": 6,
+    },
+    "axisX": {
+      "grid": false,
+    },
+    "axisY": {
+      "grid": true,
+    },
+    "bar": {
+      "binSpacing": 2,
+    },
+    "font": "ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, sans-serif",
+    "header": {
+      "labelColor": "#5c6675",
+      "labelFontSize": 12,
+      "titleColor": "#5c6675",
+      "titleFontSize": 12,
+    },
+    "legend": {
+      "labelColor": "#5c6675",
+      "labelFontSize": 12,
+      "symbolSize": 56,
+      "symbolType": "square",
+      "titleColor": "#5c6675",
+      "titleFontSize": 12,
+    },
+    "mark": {
+      "tooltip": true,
+    },
+    "scale": {
+      "bandPaddingInner": 0.12,
+    },
+    "text": {
+      "color": "#5c6675",
+    },
+    "view": {
+      "stroke": null,
+    },
+  },
+  "data": {
+    "name": "cohorts",
+  },
+  "encoding": {
+    "color": {
+      "field": "cohort",
+      "legend": {
+        "columns": 3,
+        "labelExpr": "datum.value === "current" ? "This dashboard" : datum.value === "all" ? "Whole population" : datum.value",
+        "labelLimit": 110,
+        "offset": 4,
+        "orient": "bottom",
+        "rowPadding": 2,
+        "symbolLimit": 7,
+        "symbolStrokeWidth": 2,
+        "symbolType": "stroke",
+        "title": null,
+      },
+      "scale": {
+        "domain": [
+          "current",
+          "all",
+        ],
+        "range": [
+          "#2a78d6",
+          "#eb6834",
+        ],
+      },
+      "type": "nominal",
+    },
+    "tooltip": [
+      {
+        "field": "label",
+        "title": "Cohort",
+        "type": "nominal",
+      },
+      {
+        "field": "value",
+        "title": "Mean framewise displacement",
+        "type": "quantitative",
+      },
+      {
+        "field": "share",
+        "format": ".2%",
+        "title": "Smoothed share",
+        "type": "quantitative",
+      },
+    ],
+    "x": {
+      "field": "value",
+      "scale": {
+        "nice": true,
+        "zero": false,
+      },
+      "title": "Mean framewise displacement (mm)",
+      "type": "quantitative",
+    },
+    "y": {
+      "axis": {
+        "format": ".0%",
+      },
+      "field": "share",
+      "stack": null,
+      "title": "Share of scans (smoothed)",
+      "type": "quantitative",
+    },
+  },
+  "height": "container",
+  "mark": {
+    "fillOpacity": 0.25,
+    "interpolate": "monotone",
+    "line": {
+      "strokeCap": "round",
+      "strokeJoin": "round",
+      "strokeWidth": 2,
+    },
+    "type": "area",
+  },
+  "padding": 4,
+  "params": [
+    {
+      "name": "brush",
+      "select": {
+        "encodings": [
+          "x",
+        ],
+        "mark": {
+          "fill": "#ffca28",
+          "fillOpacity": 0.35,
+          "stroke": "#ffca28",
+          "strokeDash": [],
+          "strokeOpacity": 1,
+          "strokeWidth": 1,
+        },
+        "type": "interval",
+      },
+    },
+  ],
+  "width": "container",
+}
+`;
+
+exports[`chart specs > overlaidEcdf > matches its snapshot 1`] = `
+{
+  "$schema": "https://vega.github.io/schema/vega-lite/v6.json",
+  "autosize": {
+    "contains": "padding",
+    "type": "fit",
+  },
+  "background": "transparent",
+  "config": {
+    "axis": {
+      "domainColor": "#e2e5ea",
+      "gridColor": "#e2e5ea",
+      "gridDash": [],
+      "gridWidth": 1,
+      "labelColor": "#5c6675",
+      "labelFontSize": 12,
+      "labelOverlap": "greedy",
+      "labelPadding": 4,
+      "labelSeparation": 4,
+      "tickColor": "#e2e5ea",
+      "titleColor": "#5c6675",
+      "titleFontSize": 12,
+      "titleFontWeight": 400,
+      "titlePadding": 6,
+    },
+    "axisX": {
+      "grid": false,
+    },
+    "axisY": {
+      "grid": true,
+    },
+    "bar": {
+      "binSpacing": 2,
+    },
+    "font": "ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, sans-serif",
+    "header": {
+      "labelColor": "#5c6675",
+      "labelFontSize": 12,
+      "titleColor": "#5c6675",
+      "titleFontSize": 12,
+    },
+    "legend": {
+      "labelColor": "#5c6675",
+      "labelFontSize": 12,
+      "symbolSize": 56,
+      "symbolType": "square",
+      "titleColor": "#5c6675",
+      "titleFontSize": 12,
+    },
+    "mark": {
+      "tooltip": true,
+    },
+    "scale": {
+      "bandPaddingInner": 0.12,
+    },
+    "text": {
+      "color": "#5c6675",
+    },
+    "view": {
+      "stroke": null,
+    },
+  },
+  "data": {
+    "name": "cohorts",
+  },
+  "encoding": {
+    "color": {
+      "field": "cohort",
+      "legend": {
+        "columns": 3,
+        "labelExpr": "datum.value === "current" ? "This dashboard" : datum.value === "all" ? "Whole population" : datum.value",
+        "labelLimit": 110,
+        "offset": 4,
+        "orient": "bottom",
+        "rowPadding": 2,
+        "symbolLimit": 7,
+        "symbolStrokeWidth": 2,
+        "symbolType": "stroke",
+        "title": null,
+      },
+      "scale": {
+        "domain": [
+          "current",
+          "all",
+        ],
+        "range": [
+          "#2a78d6",
+          "#eb6834",
+        ],
+      },
+      "type": "nominal",
+    },
+    "tooltip": [
+      {
+        "field": "label",
+        "title": "Cohort",
+        "type": "nominal",
+      },
+      {
+        "field": "value",
+        "title": "Mean framewise displacement",
+        "type": "quantitative",
+      },
+      {
+        "field": "p",
+        "format": ".1%",
+        "title": "At or below",
+        "type": "quantitative",
+      },
+    ],
+    "x": {
+      "field": "value",
+      "scale": {
+        "nice": true,
+        "zero": false,
+      },
+      "title": "Mean framewise displacement (mm)",
+      "type": "quantitative",
+    },
+    "y": {
+      "axis": {
+        "format": ".0%",
+      },
+      "field": "p",
+      "scale": {
+        "domain": [
+          0,
+          1,
+        ],
+      },
+      "title": "Cumulative share",
+      "type": "quantitative",
+    },
+  },
+  "height": "container",
+  "mark": {
+    "interpolate": "step-after",
+    "strokeCap": "round",
+    "strokeJoin": "round",
+    "strokeWidth": 2,
+    "type": "line",
+  },
+  "padding": 4,
+  "params": [
+    {
+      "name": "brush",
+      "select": {
+        "encodings": [
+          "x",
+        ],
+        "mark": {
+          "fill": "#ffca28",
+          "fillOpacity": 0.35,
+          "stroke": "#ffca28",
+          "strokeDash": [],
+          "strokeOpacity": 1,
+          "strokeWidth": 1,
+        },
+        "type": "interval",
+      },
+    },
+  ],
+  "width": "container",
+}
+`;
+
+exports[`chart specs > overlaidHistogram > matches its snapshot 1`] = `
+{
+  "$schema": "https://vega.github.io/schema/vega-lite/v6.json",
+  "autosize": {
+    "contains": "padding",
+    "type": "fit",
+  },
+  "background": "transparent",
+  "config": {
+    "axis": {
+      "domainColor": "#e2e5ea",
+      "gridColor": "#e2e5ea",
+      "gridDash": [],
+      "gridWidth": 1,
+      "labelColor": "#5c6675",
+      "labelFontSize": 12,
+      "labelOverlap": "greedy",
+      "labelPadding": 4,
+      "labelSeparation": 4,
+      "tickColor": "#e2e5ea",
+      "titleColor": "#5c6675",
+      "titleFontSize": 12,
+      "titleFontWeight": 400,
+      "titlePadding": 6,
+    },
+    "axisX": {
+      "grid": false,
+    },
+    "axisY": {
+      "grid": true,
+    },
+    "bar": {
+      "binSpacing": 2,
+    },
+    "font": "ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, sans-serif",
+    "header": {
+      "labelColor": "#5c6675",
+      "labelFontSize": 12,
+      "titleColor": "#5c6675",
+      "titleFontSize": 12,
+    },
+    "legend": {
+      "labelColor": "#5c6675",
+      "labelFontSize": 12,
+      "symbolSize": 56,
+      "symbolType": "square",
+      "titleColor": "#5c6675",
+      "titleFontSize": 12,
+    },
+    "mark": {
+      "tooltip": true,
+    },
+    "scale": {
+      "bandPaddingInner": 0.12,
+    },
+    "text": {
+      "color": "#5c6675",
+    },
+    "view": {
+      "stroke": null,
+    },
+  },
+  "data": {
+    "name": "cohorts",
+  },
+  "encoding": {
+    "color": {
+      "field": "cohort",
+      "legend": {
+        "columns": 3,
+        "labelExpr": "datum.value === "current" ? "This dashboard" : datum.value === "all" ? "Whole population" : datum.value",
+        "labelLimit": 110,
+        "offset": 4,
+        "orient": "bottom",
+        "rowPadding": 2,
+        "symbolLimit": 7,
+        "symbolStrokeWidth": 2,
+        "symbolType": "stroke",
+        "title": null,
+      },
+      "scale": {
+        "domain": [
+          "current",
+          "all",
+        ],
+        "range": [
+          "#2a78d6",
+          "#eb6834",
+        ],
+      },
+      "type": "nominal",
+    },
+    "tooltip": [
+      {
+        "field": "label",
+        "title": "Cohort",
+        "type": "nominal",
+      },
+      {
+        "field": "range",
+        "title": "Range",
+        "type": "nominal",
+      },
+      {
+        "field": "share",
+        "format": ".2%",
+        "title": "Share",
+        "type": "quantitative",
+      },
+      {
+        "field": "count",
+        "format": ",",
+        "title": "Scans",
+        "type": "quantitative",
+      },
+    ],
+    "x": {
+      "field": "lo",
+      "scale": {
+        "nice": true,
+        "zero": false,
+      },
+      "title": "Mean framewise displacement (mm)",
+      "type": "quantitative",
+    },
+    "y": {
+      "axis": {
+        "format": ".0%",
+      },
+      "field": "share",
+      "stack": null,
+      "title": "Share of scans",
+      "type": "quantitative",
+    },
+  },
+  "height": "container",
+  "mark": {
+    "fillOpacity": 0.25,
+    "interpolate": "step-after",
+    "line": {
+      "strokeCap": "round",
+      "strokeJoin": "round",
+      "strokeWidth": 2,
+    },
+    "type": "area",
+  },
+  "padding": 4,
+  "params": [
+    {
+      "name": "brush",
+      "select": {
+        "encodings": [
+          "x",
+        ],
+        "mark": {
+          "fill": "#ffca28",
+          "fillOpacity": 0.35,
+          "stroke": "#ffca28",
+          "strokeDash": [],
+          "strokeOpacity": 1,
+          "strokeWidth": 1,
+        },
+        "type": "interval",
+      },
+    },
+  ],
+  "width": "container",
+}
+`;

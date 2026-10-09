@@ -1,0 +1,17 @@
+{
+  "name": "@mriqc/dump-tool",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Cron-able mongoexport wrapper that produces the dump files the server ingests",
+  "bin": { "mriqc-dump": "./bin/mriqc-dump.mjs" },
+  "main": "./src/dump.mjs",
+  "exports": { ".": "./src/dump.mjs" },
+  "files": ["bin", "src", "cron.example", "README.md"],
+  "scripts": {
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "vitest": "^5.0.0"
+  }
+}

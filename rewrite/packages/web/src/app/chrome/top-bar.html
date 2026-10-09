@@ -1,0 +1,546 @@
+<header class="sticky top-0 z-20 border-b border-border bg-surface" aria-label="Filters">
+  <div class="flex flex-col gap-3 px-6 py-4 max-[700px]:gap-2 max-[700px]:px-4">
+    <!-- Title and the status line. Under 700px the status line drops to its own
+         line rather than squeezing the title. -->
+    <div class="flex flex-wrap items-baseline gap-x-4 gap-y-2">
+      <!-- The H1 and nothing beside it. The tagline said what the page
+           obviously was; every card now says what it itself shows, and the
+           rest is in "About this data". -->
+      <h1 class="text-page font-semibold text-ink">MRIQC population</h1>
+
+      <div
+        class="ml-auto flex flex-wrap items-center gap-2 text-caption text-ink-2"
+        data-testid="status-line"
+      >
+        <button type="button" class="btn" (click)="graph.dispatch({t: 'openExport'}); exportOpen.set(true)" data-testid="export-open">
+          <lucide-icon name="download" [size]="16" [strokeWidth]="1.75" aria-hidden="true" />Export rows
+        </button>
+        @if (mock) {
+          <span
+            class="chip chip-amber"
+            data-testid="mock-badge"
+            tabindex="0"
+            matTooltip="?mock=1 is in the address bar: every number on this page is fabricated."
+            >Mock data</span
+          >
+        }
+
+        @if (refreshed()) {
+          <!-- The dashboard refetches on its own when the ingest version
+               changes, so this reports what already happened rather than
+               offering a reload. -->
+          <span class="chip chip-amber" data-testid="data-updated">Data updated</span>
+        }
+
+        @if (notice(); as notice) {
+          <span class="chip chip-amber" role="status" data-testid="notice">{{ notice }}</span>
+        }
+
+        @if (study(); as study) {
+          @if (study !== 'none' && study.status === 'ready') {
+            <button
+              type="button"
+              class="chip chip-amber"
+              (click)="clearStudy()"
+              data-testid="study-status"
+              [attr.aria-label]="'Remove my study ' + study.name"
+              matTooltip="Remove this study"
+            >
+              My study: {{ study.name }} &middot; {{ study.rows | number }} scans
+              <lucide-icon
+                class="icon-16"
+                name="x"
+                color="currentColor"
+                [size]="16"
+                [strokeWidth]="1.75"
+                aria-hidden="true"
+              />
+            </button>
+          }
+        }
+
+        @if (busyText(); as busy) {
+          <span class="inline-block h-2 w-2 rounded-chip" [class]="statusClass()"></span>
+          <span>{{ busy }}</span>
+          @if (catalogError(); as failure) {
+            <!-- The only actionable thing on a dashboard with no catalogue. -->
+            <span aria-hidden="true">&middot;</span>
+            <button
+              type="button"
+              class="btn btn-quiet h-auto px-1 py-0 underline decoration-border underline-offset-2"
+              (click)="retryCatalog()"
+              data-testid="retry-catalog"
+              [matTooltip]="failure"
+            >
+              Try again
+            </button>
+          }
+        } @else {
+          <span [matTooltip]="versionTooltip()" tabindex="0" data-testid="data-date">{{
+            dataDateText()
+          }}</span>
+        }
+
+        <app-theme-toggle />
+        <a class="btn btn-quiet px-2 underline decoration-border underline-offset-2 hover:text-ink"
+          routerLink="/about" queryParamsHandling="preserve" data-testid="about-open">
+          About this data
+        </a>
+
+        @if (studyUpload) {
+          <button
+            type="button"
+            class="btn btn-quiet px-2 underline decoration-border underline-offset-2 hover:text-ink"
+            (click)="openStudyDialog()"
+            data-testid="study-open"
+          >
+            <lucide-icon
+              class="icon-16"
+              name="upload"
+              color="currentColor"
+              [size]="16"
+              [strokeWidth]="1.75"
+              aria-hidden="true"
+            />
+            Upload your study
+          </button>
+        }
+      </div>
+    </div>
+
+    <form [formGroup]="graph.form" class="flex flex-col gap-3">
+      <!-- One categorical filter select, declared once and rendered in two
+           places: the primary row, and "More filters" for the long-tail fields
+           ("Manufacturer (as uploaded)", Institution, Protocol name). Which row
+           a field lands in is the `secondary` flag on its `FieldDef`, split in
+           the `chrome` projection, so the two lists here are whatever that rule
+           produced and never a list of ids.
+
+           It is declared inside `formGroupName="filters"` and nowhere else: an
+           embedded view resolves `formControlName`'s parent group from where
+           its template is *declared*, not from where it is rendered, so this
+           one container serves both outlets. -->
+      <ng-container formGroupName="filters">
+        <ng-template #categoricalFilter let-entry let-cls="cls">
+          <app-filter-select
+            [class]="cls"
+            [entry]="entry"
+            [tip]="fieldTip(entry.field.id)"
+            [formControlName]="entry.field.id"
+          />
+        </ng-template>
+      </ng-container>
+
+      <!-- The primary row. Modality and "Scans shown" are the two controls that
+           change what every figure on the page means, so they are their own
+           group behind a 1px rule; the filters narrow whatever they chose.
+
+           A two-column grid, and the rule is a `border-left` on the second
+           column rather than an element of its own: an element would need a
+           height, and the height it wants is the row's.
+
+           `items-stretch`, so both columns are as tall as the row and the
+           border therefore runs the full height of the taller group -- from the
+           caption row down past the quarantine chip when the primary group is
+           taller (filters on one line, wide window), and down past the last
+           filter line when they are not (two filter rows, ~1600px). With
+           `items-start` it was only ever as tall as the filter group's own
+           content, which is why it stopped above the chip. Each group packs its
+           own flex lines at the top (`content-start`), so the stretch moves the
+           border's bottom edge and nothing else. Below 1200px the rule is gone
+           and the two groups stack. -->
+      <div
+        class="grid items-stretch gap-4 min-[1300px]:grid-cols-[auto_minmax(0,1fr)] min-[1300px]:gap-0"
+        data-testid="control-row"
+      >
+        <div class="flex flex-wrap content-start items-start gap-3" data-testid="primary-controls">
+          <div class="w-44 max-[520px]:w-full">
+            <span class="field-label" id="label-modality">Modality</span>
+            <mat-form-field appearance="outline" subscriptSizing="dynamic">
+              <mat-select
+                formControlName="modality"
+                aria-labelledby="label-modality"
+                data-testid="modality-select"
+              >
+                @for (modality of modalities; track modality) {
+                  <mat-option [value]="modality">{{ modalityLabels[modality] }}</mat-option>
+                }
+              </mat-select>
+            </mat-form-field>
+          </div>
+
+          <div class="w-72 max-[520px]:w-full">
+            <span class="field-label flex items-center gap-1" id="label-view">Scans shown
+              <button type="button" class="inline-flex h-4 w-4 items-center justify-center"
+                aria-label="About scans shown" popovertarget="view-info" data-testid="view-info-open">
+                <lucide-icon name="info" [size]="16" [strokeWidth]="1.75" aria-hidden="true" />
+              </button>
+            </span>
+            <div id="view-info" popover class="m-auto max-w-sm rounded-card border border-border bg-surface p-4 text-body text-ink">
+              <p>{{ viewHelpText() }}</p>
+              <a routerLink="/about" fragment="views" queryParamsHandling="preserve"
+                class="mt-3 inline-block text-action-ink underline">Read more →</a>
+            </div>
+            <mat-form-field appearance="outline" subscriptSizing="dynamic">
+              <mat-select
+                formControlName="view"
+                aria-labelledby="label-view"
+                [matTooltip]="viewHelpText()"
+                data-testid="view-select"
+              >
+                @for (view of chrome()?.views ?? []; track view.id) {
+                  <mat-option [value]="view.id">{{ view.label }}</mat-option>
+                }
+              </mat-select>
+            </mat-form-field>
+
+            <!-- One short fact, and only when there is one: what this view
+                 leaves out. The sentence explaining deduplication moved to the
+                 select's own tooltip and to "About this data", because it is an
+                 explanation and those are the two places explanations live. -->
+            @if (quarantine(); as q) {
+              <p class="mt-1 text-caption text-ink-2" data-testid="view-help">
+                <a routerLink="/about" fragment="dedup" queryParamsHandling="preserve"
+                  class="chip chip-quiet underline underline-offset-2"
+                  data-testid="quarantine-line"
+                  tabindex="0"
+                  [matTooltip]="quarantineTip()"
+                  >{{ q.groups | number }} unstable groups left out</a
+                >
+              </p>
+            }
+          </div>
+        </div>
+
+        @if (phone()) {
+          <!-- The brush rides beside the collapsed button rather than inside
+               it: hidden behind a toggle, the one filter the user drew by hand
+               would have no visible way back. -->
+          <div class="flex w-full flex-wrap items-center gap-2">
+            <button
+              type="button"
+              class="btn flex-1"
+              (click)="toggleFilters()"
+              data-testid="filters-toggle"
+              [attr.aria-expanded]="filtersOpen()"
+            >
+              <lucide-icon
+                class="icon-16 text-ink-3 transition-transform"
+                name="chevron-down"
+                color="currentColor"
+                [size]="16"
+                [strokeWidth]="1.75"
+                [class.rotate-180]="filtersOpen()"
+                aria-hidden="true"
+              />
+              Filters ({{ filterCount() }} active)
+            </button>
+            <ng-container [ngTemplateOutlet]="brushChip"></ng-container>
+          </div>
+        }
+
+        @if (filtersShown()) {
+          <!-- The filters are a second group behind a 1px rule: they narrow
+               whatever modality and view chose, and used to be visually
+               identical to the two controls that decide what every figure on
+               the page means. `flex-1` keeps them beside the primary group
+               and wrapping inside it, rather than taking a row of their own --
+               which is 64px of sticky chrome above every panel. Under 700px
+               the rule turns and runs across instead. -->
+          <!-- 12px each side of the rule, which is the 24px gutter the style
+               guide asks for, measured from the controls rather than from the
+               group's padding box. -->
+          <div
+            class="flex min-w-0 flex-wrap content-start items-start gap-3 min-[1300px]:ml-3 min-[1300px]:border-l min-[1300px]:border-border min-[1300px]:pl-3"
+            data-testid="filter-group"
+          >
+            @for (entry of filterFields(); track entry.field.id) {
+              <ng-container
+                [ngTemplateOutlet]="categoricalFilter"
+                [ngTemplateOutletContext]="{ $implicit: entry, cls: 'w-52 max-[700px]:w-full' }"
+              ></ng-container>
+            }
+
+            <!-- The three actions on one row, bottom-aligned with the selects
+                 beside them. `self-end` and not `self-center`: a select is a
+                 12px caption above a 36px control, so a bare 36px button
+                 centred in that line sits 8px high and reads as floating. The
+                 flex line's own bottom is the selects' bottom, which is the
+                 edge every control in the row should share. -->
+            <div class="flex flex-wrap items-center gap-3 self-end" data-testid="filter-actions">
+              <button
+                type="button"
+                class="btn"
+                (click)="toggleMore()"
+                data-testid="more-filters-toggle"
+                [attr.aria-expanded]="moreOpen()"
+              >
+                <lucide-icon
+                  class="icon-16 text-ink-3 transition-transform"
+                  name="chevron-down"
+                  color="currentColor"
+                  [size]="16"
+                  [strokeWidth]="1.75"
+                  [class.rotate-180]="moreOpen()"
+                  aria-hidden="true"
+                />
+                More filters
+                @if (moreCount() > 0) {
+                  <span class="chip chip-amber caption-badge" data-testid="more-filters-badge">{{
+                    moreCount()
+                  }}</span>
+                }
+              </button>
+
+              <button
+                type="button"
+                class="btn btn-quiet"
+                (click)="clearFilters()"
+                data-testid="clear-filters"
+              >
+                Clear filters
+              </button>
+
+              <!-- The one amber-outlined control on the page, and the primary
+                   way a cohort comes into being: the dashboard already *is* a
+                   selection, so saving it is one click and the name composes
+                   itself. No glyph -- the words are the affordance. -->
+              <button
+                type="button"
+                class="btn btn-amber"
+                (click)="saveAsCohort()"
+                [disabled]="cohortsFull()"
+                data-testid="cohort-save-current"
+                [matTooltip]="
+                  cohortsFull()
+                    ? 'The dashboard holds as many cohorts as it can; remove one first.'
+                    : 'Save this dashboard\u2019s view, filters and brush as a cohort'
+                "
+              >
+                Save as cohort
+              </button>
+
+              <!-- Beside the other filter controls, not 1200px away in the
+                   status line, where a reader took it for a stray label. On a
+                   phone it is next to the collapsed button instead, so it is
+                   never rendered twice. -->
+              @if (!phone()) {
+                <ng-container [ngTemplateOutlet]="brushChip"></ng-container>
+              }
+            </div>
+          </div>
+        }
+      </div>
+
+      <!--
+        The ranges, collapsed by default: eleven two-ended numeric controls and a
+        date picker took three rows of the bar and pushed the panels off the
+        first screen. `@if` rather than CSS, so a hidden control is not in the
+        tab order; the form keeps its value either way, because the controls
+        belong to the graph's form group and not to this template.
+      -->
+      @if (filtersShown() && moreOpen()) {
+        <div
+          class="grid grid-cols-[repeat(auto-fill,minmax(200px,1fr))] gap-3 border-t border-border pt-3"
+          data-testid="more-filters"
+        >
+          <!-- The long-tail categorical fields, in the same control as the
+               primary row and ahead of the ranges: they are still value lists,
+               and a reader who opened this section is looking for one of the
+               rarely-used filters whichever kind it is. -->
+          @for (entry of secondaryFields(); track entry.field.id) {
+            <ng-container
+              [ngTemplateOutlet]="categoricalFilter"
+              [ngTemplateOutletContext]="{ $implicit: entry, cls: 'min-w-0' }"
+            ></ng-container>
+          }
+
+          <ng-container formGroupName="numeric">
+            @for (entry of numericFields(); track entry.field.id) {
+              <div [attr.data-testid]="'numeric-' + entry.field.id">
+                <span
+                  class="field-label truncate"
+                  tabindex="0"
+                  [matTooltip]="fieldTip(entry.field.id)"
+                  >{{ entry.field.label }}</span
+                >
+                <div class="flex w-full items-center gap-3" [formGroupName]="entry.field.id">
+                  <mat-form-field
+                    appearance="outline"
+                    subscriptSizing="dynamic"
+                    class="min-w-0 flex-1"
+                  >
+                    <input
+                      matInput
+                      type="number"
+                      formControlName="lo"
+                      [attr.aria-label]="entry.field.label + ' minimum'"
+                      [placeholder]="bound(entry, 'min')"
+                      [attr.data-testid]="'numeric-' + entry.field.id + '-lo'"
+                    />
+                  </mat-form-field>
+                  <span class="text-caption text-ink-3" aria-hidden="true">to</span>
+                  <mat-form-field
+                    appearance="outline"
+                    subscriptSizing="dynamic"
+                    class="min-w-0 flex-1"
+                  >
+                    <input
+                      matInput
+                      type="number"
+                      formControlName="hi"
+                      [attr.aria-label]="entry.field.label + ' maximum'"
+                      [placeholder]="bound(entry, 'max')"
+                      [attr.data-testid]="'numeric-' + entry.field.id + '-hi'"
+                    />
+                  </mat-form-field>
+                </div>
+              </div>
+            }
+          </ng-container>
+
+          <div class="col-span-2 max-[520px]:col-span-1">
+            <span class="field-label">Uploaded between</span>
+            <mat-form-field appearance="outline" subscriptSizing="dynamic">
+              <mat-date-range-input [rangePicker]="picker">
+                <input matStartDate formControlName="createdFrom" placeholder="start" />
+                <input matEndDate formControlName="createdTo" placeholder="end" />
+              </mat-date-range-input>
+              <mat-datepicker-toggle matIconSuffix [for]="picker"></mat-datepicker-toggle>
+              <mat-date-range-picker #picker></mat-date-range-picker>
+            </mat-form-field>
+          </div>
+        </div>
+      }
+    </form>
+
+    <!-- The cohort row, under the filters it is made of: a cohort is a saved
+         selection, so it belongs below the controls that produce one rather
+         than beside them. Outside the form on purpose -- each cohort has its
+         own view and filters, and the form above drives the dashboard. -->
+    <app-cohort-bar />
+  </div>
+
+  <!-- The active brush, rendered in one place and outlet twice: in the filter
+       group on a desktop, beside the collapsed "Filters" button on a phone. A
+       brush is a filter, so it wears the amber of "this is what you did" and
+       carries its own way out. -->
+  <ng-template #brushChip>
+    @for (b of brushes(); track b.metric) {
+      <button
+        type="button"
+        class="chip chip-amber"
+        (click)="clearBrush(b)"
+        data-testid="brush-chip"
+        [attr.aria-label]="'Clear the brushed range on ' + b.label"
+        matTooltip="Other panels show only records in this range. Click to clear."
+      >
+        <span class="tnum">Brushed: {{ b.label }} {{ b.lo }}&ndash;{{ b.hi }}</span>
+        <lucide-icon
+          class="icon-16"
+          name="x"
+          color="currentColor"
+          [size]="16"
+          [strokeWidth]="1.75"
+          aria-hidden="true"
+        />
+      </button>
+    }
+  </ng-template>
+
+  @if (studyUpload && studyDialogOpen()) {
+    <div
+      class="fixed inset-0 z-50 flex items-center justify-center bg-ink/40 p-4"
+      (click)="closeStudyDialog()"
+      (keydown.escape)="closeStudyDialog()"
+      data-testid="study-backdrop"
+    >
+      <div
+        class="flex max-h-full w-full max-w-sm flex-col gap-4 overflow-auto rounded-card border border-border bg-surface p-6"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="study-title"
+        aria-describedby="study-explanation"
+        tabindex="-1"
+        (click)="$event.stopPropagation()"
+        data-testid="study-dialog"
+      >
+        <div class="flex items-start justify-between gap-3">
+          <h2 id="study-title" class="text-title font-semibold text-ink">Add my study</h2>
+          <button
+            type="button"
+            class="icon-btn"
+            (click)="closeStudyDialog()"
+            aria-label="Close study upload"
+            data-testid="study-close"
+          >
+            <lucide-icon
+              class="icon-16"
+              name="x"
+              color="currentColor"
+              [size]="16"
+              [strokeWidth]="1.75"
+              aria-hidden="true"
+            />
+          </button>
+        </div>
+
+        <p id="study-explanation" class="text-caption text-ink-2">
+          Choose an MRIQC group CSV or TSV table, or a zip of per-scan MRIQC JSON files. Metric
+          columns are matched to the metrics on this dashboard. The file stays in this browser.
+        </p>
+
+        <label class="btn w-fit cursor-pointer" data-testid="study-file-label">
+          Choose file
+          <input
+            class="sr-only"
+            type="file"
+            accept=".csv,.tsv,.zip,text/csv,text/tab-separated-values,application/zip"
+            (change)="chooseStudy($event)"
+            data-testid="study-file"
+          />
+        </label>
+
+        @if (study(); as study) {
+          @if (study !== 'none' && study.status === 'loading') {
+            <p class="text-caption text-ink-2" role="status" data-testid="study-loading">
+              Loading {{ selectedStudyName() ?? 'study file' }}&hellip;
+            </p>
+          } @else if (study !== 'none' && study.status === 'error') {
+            <div
+              class="rounded-card border border-danger p-3"
+              role="alert"
+              data-testid="study-error"
+            >
+              @if (selectedStudyName(); as name) {
+                <p class="font-semibold text-ink">{{ name }}</p>
+              }
+              <p class="text-caption text-danger">{{ study.error }}</p>
+            </div>
+          } @else if (study !== 'none' && study.status === 'ready') {
+            <div class="rounded-card border border-border p-3" data-testid="study-ready">
+              <p class="font-semibold text-ink">{{ study.name }}</p>
+              <p class="text-caption text-ink-2">
+                {{ study.rows | number }} scans &middot; {{ studyMetricSummary(study) }}
+              </p>
+              @if (study.ignoredColumns.length > 0) {
+                <details class="mt-2 text-caption text-ink-2" data-testid="study-ignored">
+                  <summary class="cursor-pointer">
+                    {{ study.ignoredColumns.length | number }} ignored
+                    {{ study.ignoredColumns.length === 1 ? 'column' : 'columns' }}
+                  </summary>
+                  <ul class="mt-1 list-disc pl-5">
+                    @for (column of study.ignoredColumns; track column) {
+                      <li>{{ column }}</li>
+                    }
+                  </ul>
+                </details>
+              }
+            </div>
+          }
+        }
+      </div>
+    </div>
+  }
+</header>
+@if (exportOpen()) { <app-export-dialog (closed)="exportOpen.set(false)" /> }

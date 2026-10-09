@@ -1,0 +1,42 @@
+{
+  "name": "@mriqc/server",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "policies"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json && node scripts/copy-sql.mjs",
+    "build:db": "tsx src/db/build-cli.ts",
+    "ingest": "tsx src/ingest/ingest-cli.ts",
+    "validate:canonical": "tsx scripts/validate-canonical.mjs",
+    "dev": "tsx watch src/index.ts",
+    "start": "node dist/index.js",
+    "test": "vitest run",
+    "lint": "tsc -p tsconfig.check.json"
+  },
+  "dependencies": {
+    "@duckdb/node-api": "^1.5.6-r.1",
+    "@mriqc/shared": "workspace:*",
+    "@trpc/server": "^11.19.0",
+    "apache-arrow": "^21.0.0",
+    "mongodb": "^7.7.0",
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "@types/node": "^24.10.1",
+    "tsx": "^4.20.6",
+    "typescript": "~6.0.2",
+    "vitest": "^5.0.0"
+  }
+}

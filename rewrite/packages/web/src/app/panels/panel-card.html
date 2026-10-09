@@ -1,0 +1,920 @@
+@if (view(); as v) {
+  <section
+    class="panel-box relative flex h-full min-h-0 flex-col overflow-hidden rounded-card border border-border bg-surface"
+    data-testid="panel-card"
+    [attr.aria-label]="cardTitle()"
+    [attr.data-panel-id]="v.id"
+    [attr.data-panel-kind]="shapeOf(v.panel)"
+  >
+    <div class="flex min-h-0 flex-1 flex-col">
+    <!-- Header: the title block with the panel's own buttons beside it, then
+         the selects as one full-width row underneath.
+         `ui-style.md` puts the controls to the right of the title and wraps
+         them below it under 480px of card width -- but the mandated grid is
+         three columns from 1500px, which makes a card about 480px wide, so the
+         wrapped case is still the normal one and the row is unconditional. -->
+    <div class="flex flex-col gap-3 p-4">
+      <div class="flex flex-wrap items-start gap-2">
+        <div class="min-w-0 flex-1 space-y-1">
+          <h2 class="text-title font-semibold leading-6 text-ink">
+            <button type="button" class="metric-title" aria-label="Change metric" [title]="cardTitle()"
+              [attr.aria-labelledby]="'metric-name-' + v.id + ' metric-action-' + v.id"
+              cdkOverlayOrigin #metricOrigin="cdkOverlayOrigin" (click)="metricOpen.set(!metricOpen())"
+              [attr.aria-expanded]="metricOpen()" aria-haspopup="dialog" data-testid="metric-title">
+              <span [id]="'metric-name-' + v.id">{{ cardTitle() }}</span><span class="sr-only" [id]="'metric-action-' + v.id">Change metric</span><lucide-icon class="metric-pencil" name="pencil" [size]="16" aria-hidden="true" />
+            </button>
+          </h2>
+          <ng-template cdkConnectedOverlay [cdkConnectedOverlayOrigin]="metricOrigin" [cdkConnectedOverlayOpen]="metricOpen()"
+            [cdkConnectedOverlayHasBackdrop]="true" cdkConnectedOverlayBackdropClass="cdk-overlay-transparent-backdrop"
+            (backdropClick)="metricOpen.set(false)" (overlayKeydown)="$event.key === 'Escape' && metricOpen.set(false)">
+            <div class="metric-popover" role="dialog" [attr.aria-label]="v.panel.chart === 'correlation' ? 'Correlation metrics' : 'Metric'"
+              cdkTrapFocus [cdkTrapFocusAutoCapture]="true" data-testid="metric-popover">
+              <div class="flex items-center justify-between gap-2">
+                <span class="text-body font-semibold">{{ v.panel.chart === 'correlation' ? 'Metric set' : 'Metric' }}</span>
+                <button class="icon-btn" type="button" aria-label="Close metric picker" (click)="metricOpen.set(false)"><lucide-icon name="x" [size]="16" aria-hidden="true" /></button>
+              </div>
+              @if (v.panel.chart === 'correlation') {
+                <div class="flex flex-wrap gap-1" aria-label="Selected correlation metrics">
+                  @for (metric of correlationChips(); track metric.id) {
+                    <button type="button" class="chip chip-quiet" [attr.aria-label]="'Remove ' + metric.label" (click)="removeCorrelationMetric(metric.id)">{{ metric.label }} <lucide-icon name="x" [size]="12" aria-hidden="true" /></button>
+                  }
+                </div>
+                <app-metric-picker [metrics]="allMetrics()" [disabledMetrics]="correlationIds().length >= 24 ? allMetricIds() : correlationDisabledMetrics()"
+                  (picked)="addCorrelationMetric($event)" />
+              } @else {
+                <app-metric-picker [metrics]="allMetrics()" [selected]="v.panel.x" [disabledMetrics]="disabledMetrics()" (picked)="setMetric($event)" />
+                <button type="button" class="btn btn-quiet justify-start" (click)="setMetric('created_at')">Upload time</button>
+                <label class="field-label" [id]="'label-y-' + v.id">Second metric (y)</label>
+                <mat-form-field appearance="outline" subscriptSizing="dynamic">
+                  <mat-select aria-label="Second metric (y)" placeholder="No second metric" [value]="v.panel.y" (valueChange)="setSecondMetric($event)" data-testid="panel-y-selector">
+                    <mat-option [value]="null">No second metric</mat-option>
+                    @for (group of metricGroups(); track group.label) {
+                      <mat-optgroup [label]="group.label">
+                        @for (metric of group.metrics; track metric.id) {
+                          <mat-option [value]="metric.id" [disabled]="metric.id === v.panel.x || studyMetricMissing(metric.id)">{{ metric.label }}</mat-option>
+                        }
+                      </mat-optgroup>
+                    }
+                  </mat-select>
+                </mat-form-field>
+                @if (v.metricHelp; as help) {
+                  <div class="flex flex-col gap-2 border-t border-border pt-3">
+                    <span class="text-body font-semibold">{{ help.label }}</span>
+                    <span class="text-caption text-ink-2" data-testid="metric-info-family">{{ help.taxonomy }}</span>
+                    <p class="text-caption text-ink-2" data-testid="metric-info-description">{{ help.description ?? 'The catalogue has no description for this metric yet.' }}</p>
+                    @if (help.unit; as unit) { <span class="text-caption text-ink-2" data-testid="metric-info-unit">Measured in {{ unit }}.</span> }
+                    <a class="text-caption text-action-ink underline" [href]="metricDocs()" target="_blank" rel="noopener">MRIQC documentation</a>
+                  </div>
+                }
+                <button type="button" class="btn btn-quiet justify-start" (click)="setChart('correlation'); metricOpen.set(false)">Metric correlations</button>
+              }
+            </div>
+          </ng-template>
+          <!-- One sentence about this data, and it wraps rather than truncates:
+               the clause it would cut is the one that says how many scans are
+               behind the chart. The taxonomy path that used to sit here said
+               nothing a reader of the title did not already know. -->
+          @if (v.cohorts; as cohorts) {
+            <!-- The cohorts this card is comparing, as chips: the colour that
+                 names each one on the chart, its `n`, and a ✕ that takes it off
+                 *this panel* -- the cohort itself is untouched, which is what
+                 the ✕ in the top bar's list does instead. A single total `n`
+                 would be the sum of cohorts that overlap, which counts
+                 nothing, so each chip carries its own. -->
+            <div class="mt-1 flex flex-wrap items-center gap-1.5" data-testid="panel-cohort-counts">
+              @for (cohort of cohorts; track cohort.id) {
+                <span
+                  class="chip chip-quiet gap-1.5"
+                  [attr.data-testid]="'panel-cohort-' + cohort.id"
+                  [attr.data-cohort-name]="cohort.name"
+                >
+                  <span
+                    class="inline-block h-2.5 w-2.5 flex-none rounded-chip"
+                    [style.background-color]="cohort.color"
+                    aria-hidden="true"
+                  ></span>
+                  <span class="truncate" [title]="cohort.name">{{ cohort.name }}</span>
+                  <span class="tnum text-ink-2">{{
+                    cohort.n === null ? '…' : (cohort.n | number)
+                  }}</span>
+                  <button
+                    [disabled]="cohort.id === 'display:other'"
+                    type="button"
+                    class="text-ink-2 hover:text-ink"
+                    (click)="removeCohort(cohort.id)"
+                    [attr.aria-label]="'Remove ' + cohort.name + ' from this panel'"
+                    [attr.data-testid]="'panel-cohort-remove-' + cohort.id"
+                    matTooltip="Take this cohort off this panel. The cohort itself stays."
+                  >
+                    <lucide-icon
+                      class="icon-16"
+                      name="x"
+                      color="currentColor"
+                      [size]="16"
+                      [strokeWidth]="1.75"
+                      aria-hidden="true"
+                    />
+                  </button>
+                </span>
+              }
+            </div>
+            @if (v.outsideNotes.length > 0) {
+              <!-- The shared range is the union of the cohorts' own, so a
+                   cohort can still have real mass outside it. Neither the bars
+                   nor the smoothing folds that mass back into the edges -- that
+                   would draw scans at values they do not have -- so it is said
+                   here instead. -->
+              <p class="mt-0.5 text-caption text-ink-3" data-testid="panel-outside-range">
+                {{ v.outsideNotes.join(' · ') }}
+              </p>
+            }
+          }
+          @if (v.n !== null || v.subtitle !== '' || v.notes.length > 0 || v.clipChip) {
+            <p class="mt-0.5 text-caption text-ink-2">
+              @if (v.subtitle !== '') {
+                <span class="tnum" data-testid="panel-shown">{{ v.subtitle }}</span>
+              }
+              @if (v.n !== null) {
+                <span class="tnum" data-testid="panel-count"
+                  >{{ v.n | number }} {{ v.countLabel }}</span
+                >
+              }
+              @for (note of v.notes; track note; let i = $index) {
+                <!-- A brush narrowing this card, or this being the card it was
+                     drawn on. The separator is a separator: a failed panel has
+                     no count, and the line must not open with one. -->
+                <span data-testid="panel-note">
+                  @if (v.n !== null || v.subtitle !== '' || i > 0) {
+                    <span aria-hidden="true">&#160;&middot;</span>
+                  }
+                  {{ note }}</span
+                >
+              }
+              @if (v.clipChip; as clip) {
+                <!-- Only when the range is not the one every panel opens on, so
+                     the chip means "someone changed this" and not "nothing has
+                     been changed". -->
+                <span
+                  class="chip chip-quiet ml-1 align-middle"
+                  data-testid="panel-clip"
+                  tabindex="0"
+                  matTooltip="The chart is drawn over this part of the range only; the figures below still cover every value."
+                  >{{ clip }}</span
+                >
+              }
+            </p>
+          }
+        </div>
+
+        <div
+          class="ml-auto flex flex-none items-center justify-end"
+          data-testid="panel-icon-actions"
+        >
+          @if (columns() > 1 && !maximized()) {
+            <button type="button" class="icon-btn panel-move-handle" data-grid-drag
+              aria-label="Move panel (drag, or arrow keys)"
+              matTooltip="Drag to move · arrow keys move · Shift+arrows resize">
+              <lucide-icon name="grip-vertical" [size]="16" [strokeWidth]="1.75" aria-hidden="true" />
+            </button>
+          }
+          <button type="button" class="icon-btn" [attr.aria-label]="maximized() ? 'Minimize' : 'Maximize'" [matTooltip]="maximized() ? 'Minimize' : 'Maximize'" (click)="maximize()">
+            <lucide-icon [name]="maximized() ? 'minimize-2' : 'maximize-2'" [size]="16" [strokeWidth]="1.75" aria-hidden="true" />
+          </button>
+          <button
+            class="icon-btn"
+            [matMenuTriggerFor]="options"
+            matTooltip="Panel options"
+            aria-label="Panel options"
+            type="button"
+          >
+            <lucide-icon
+              class="icon-16"
+              name="sliders-horizontal"
+              color="currentColor"
+              [size]="16"
+              [strokeWidth]="1.75"
+              aria-hidden="true"
+            />
+          </button>
+          <button
+            class="icon-btn"
+            (click)="remove()"
+            matTooltip="Remove panel"
+            aria-label="Remove panel"
+            type="button"
+          >
+            <lucide-icon
+              class="icon-16"
+              name="x"
+              color="currentColor"
+              [size]="16"
+              [strokeWidth]="1.75"
+              aria-hidden="true"
+            />
+          </button>
+        </div>
+      </div>
+
+      <div class="card-controls-container">
+        @if (v.panel.chart !== 'correlation') {
+          <div class="card-controls">
+            <div class="card-control">
+              <span class="field-label" [id]="'label-split-' + v.id">Split by</span>
+              <mat-form-field appearance="outline" subscriptSizing="dynamic" [title]="groupLabel()">
+                <mat-select [attr.aria-labelledby]="'label-split-' + v.id" [value]="v.panel.split" [disabled]="v.panel.y !== null && v.panel.x !== 'created_at'"
+                  (valueChange)="setGroup($event)" placeholder="No split" data-testid="panel-split-selector">
+                  @if (v.panel.x !== 'created_at') { <mat-option [value]="null">No split</mat-option> }
+                  @for (field of groupFields(); track field.id) { <mat-option [value]="field.id">{{ field.label }}</mat-option> }
+                </mat-select>
+              </mat-form-field>
+            </div>
+            <div class="card-control">
+              <span class="field-label" [id]="'label-compare-' + v.id">Compare</span>
+              <mat-form-field appearance="outline" subscriptSizing="dynamic" [title]="compareLabel()">
+                <mat-select #compareSelect [attr.aria-labelledby]="'label-compare-' + v.id" [value]="compareValue()"
+                  (selectionChange)="selectCompare($event.value); compareSelect.value = compareValue()" data-testid="panel-compare-selector">
+                  <mat-select-trigger>{{ compareLabel() }}</mat-select-trigger>
+                  @if (compareValue() === 'multiple') { <mat-option value="multiple" disabled>{{ compareLabel() }}</mat-option> }
+                  @for (entry of showOptions(); track entry.cohort.id) {
+                    <mat-option [value]="entry.cohort.id" [disabled]="cohortUnavailable(entry.cohort.id)">{{ entry.cohort.name }}</mat-option>
+                  }
+                  <mat-option value="new">Compare with…</mat-option>
+                </mat-select>
+              </mat-form-field>
+            </div>
+            <div class="chart-form-toggle" role="group" aria-label="Chart form" data-testid="chart-form-toggle">
+              @for (chart of charts(); track chart) {
+                <button type="button" [attr.aria-label]="chartFormName(chart)" [matTooltip]="chartTip(chart)" [title]="chartTip(chart)" [disabled]="!chartAvailable(chart)"
+                  [attr.aria-pressed]="v.panel.chart === chart" (click)="setChart(chart)">
+                  <lucide-icon [name]="chartIcon(chart)" [size]="16" [strokeWidth]="1.75" aria-hidden="true" />
+                </button>
+              }
+            </div>
+          </div>
+        }
+
+        @if (v.panel.y !== null && v.panel.x !== 'created_at') {
+          <div class="mt-3 flex flex-wrap items-center gap-3 text-caption">
+            @if (v.panel.chart !== 'clusters') {
+              <label class="flex items-center gap-2"><input type="checkbox" [checked]="v.panel.options.showPoints ?? false"
+                (change)="analysisOptions({ showPoints: $any($event.target).checked })" />Sampled points</label>
+            }
+            @if (v.panel.chart === 'clusters') {
+              <label class="flex items-center gap-2">Clusters (k)
+                <select class="btn" [value]="v.panel.options.k ?? 3" (change)="analysisOptions({ k: +$any($event.target).value })" aria-label="Clusters k">
+                  @for (k of [2,3,4,5,6,7,8]; track k) { <option [value]="k" [selected]="k === (v.panel.options.k ?? 3)">{{ k }}</option> }
+                </select>
+              </label>
+              <label class="flex items-center gap-2">Seed<input class="btn w-24" type="number" min="0" max="2147483647"
+                [value]="v.panel.options.seed ?? 42" (change)="analysisOptions({ seed: +$any($event.target).value })" /></label>
+              <button type="button" class="btn" [attr.aria-pressed]="v.panel.options.clusterSplit ?? false"
+                (click)="analysisOptions({ clusterSplit: !v.panel.options.clusterSplit })">Use clusters as split</button>
+              @if (v.panel.options.clusterSplit) {
+                <span role="status">Cluster split is client-side colouring for this panel only; unavailable in other charts.</span>
+                <label>Split by <select class="btn" disabled aria-label="Client-side cluster split"><option>Clusters (this chart only)</option></select></label>
+              }
+            }
+          </div>
+        }
+        @if (v.panel.chart === 'correlation') {
+          <div class="correlation-controls flex flex-wrap items-start gap-3">
+            <label class="text-caption">Metrics
+              <select class="btn" aria-label="Correlation metric family" [value]="activeFamily()"
+                (change)="analysisOptions({ family: $any($event.target).value, metrics: undefined })">
+                <option value="custom">Cross-family / custom</option>
+                @for (family of families(); track family) { <option [value]="family" [selected]="family === activeFamily()">{{ family }}</option> }
+              </select>
+            </label>
+            <label class="text-caption">Coefficient
+              <select class="btn" aria-label="Correlation coefficient" [value]="v.panel.options.coefficient ?? 'spearman'" (change)="analysisOptions({ coefficient: $any($event.target).value })">
+                <option value="spearman">Spearman ρ</option><option value="pearson">Pearson r</option>
+              </select>
+            </label>
+            <label class="flex items-center gap-2 text-caption" title="reorders rows and columns so strongly related metrics sit together"><input type="checkbox" [checked]="v.panel.options.clusterOrder ?? false"
+              (change)="analysisOptions({ clusterOrder: $any($event.target).checked })" />Group similar metrics</label>
+            <div class="flex w-full flex-wrap gap-1" aria-label="Included metrics">
+              @for (metric of correlationChips(); track metric.id) {
+                <span class="chip chip-quiet">{{ metric.label }}<button type="button" [attr.aria-label]="'Remove ' + metric.label" (click)="removeCorrelationMetric(metric.id)"><lucide-icon name="x" [size]="12" aria-hidden="true" /></button></span>
+              }
+              <select class="btn" aria-label="Add correlation metric" [disabled]="correlationIds().length >= 24" (change)="addCorrelationMetric($any($event.target).value); $any($event.target).value = ''">
+                <option value="">Add metric…</option>
+                @for (metric of allMetrics(); track metric.id) {
+                  @if (!correlationIds().includes(metric.id)) { <option [value]="metric.id" [disabled]="studyMetricMissing(metric.id)">{{ metric.label }}</option> }
+                }
+              </select>
+            </div>
+          </div>
+        }
+
+        <mat-menu #options="matMenu">
+          <div class="flex w-80 max-w-[calc(100vw-32px)] flex-col gap-3 p-4" (click)="$event.stopPropagation()">
+            @if (v.panel.x !== 'created_at' && v.panel.chart !== 'table' && v.panel.chart !== 'correlation') {
+              <app-axes-controls [view]="v" [yUnit]="yUnit()" (changed)="analysisOptions($event)" />
+            }
+            @if (v.panel.split !== null || v.panel.cohorts.length > 1) {
+              <fieldset><legend class="field-label">Layout</legend>
+                <div [matTooltip]="v.panel.cohorts.length > 1 ? 'Cohorts can overlap, so stacking would double count' : ''" tabindex="0">
+                  <select class="w-full rounded border border-border bg-surface p-2 text-caption" aria-label="Layout" [value]="v.panel.options.layout" (change)="analysisOptions({layout: $any($event.target).value})">
+                    <option value="overlaid">Overlaid</option>
+                    <option value="stacked" [disabled]="v.panel.cohorts.length > 1" title="Cohorts can overlap, so stacking would double count">Stacked</option>
+                    <option value="stacked100" [disabled]="v.panel.cohorts.length > 1" title="Cohorts can overlap, so stacking would double count">Stacked 100%</option>
+                  </select>
+                </div>
+              </fieldset>
+            }
+            @if (v.panel.chart === 'correlation') {
+              <div>
+                <span class="field-label">Show</span>
+                <mat-form-field appearance="outline" subscriptSizing="dynamic">
+                  <mat-select
+                    aria-label="Show cohort"
+                    [value]="v.panel.cohorts[0] ?? 'current'"
+                    (valueChange)="setCohort($event)"
+                    data-testid="panel-show-selector"
+                  >
+                    @for (entry of showOptions(); track entry.cohort.id) {
+                      <mat-option [value]="entry.cohort.id">{{ entry.cohort.name }}</mat-option>
+                    }
+                  </mat-select>
+                </mat-form-field>
+              </div>
+            }
+            @if (shapeOf(v.panel) !== 'sample' && v.panel.x !== 'created_at') {
+              <div>
+                <span class="field-label">Bars</span>
+                <mat-form-field appearance="outline" subscriptSizing="dynamic">
+                  <mat-select
+                    aria-label="Bars"
+                    [value]="v.panel.options.bins"
+                    (valueChange)="setBins($event)"
+                  >
+                    @for (bins of binChoices; track bins) {
+                      <mat-option [value]="bins">{{ bins }}</mat-option>
+                    }
+                  </mat-select>
+                </mat-form-field>
+              </div>
+              <div>
+                <span class="field-label">Range</span>
+                <mat-form-field appearance="outline" subscriptSizing="dynamic">
+                  <mat-select
+                    aria-label="Range"
+                    [value]="v.panel.options.clip"
+                    (valueChange)="setClip($event)"
+                  >
+                    @for (clip of clipModes; track clip) {
+                      <mat-option [value]="clip">{{ clipLabels[clip] }}</mat-option>
+                    }
+                  </mat-select>
+                </mat-form-field>
+              </div>
+              @if (v.panel.chart === 'box') {
+                <div>
+                  <span class="field-label">Rank boxes by</span>
+                  <mat-form-field appearance="outline" subscriptSizing="dynamic">
+                    <mat-select
+                      aria-label="Rank boxes by"
+                      [value]="v.panel.options.boxSort"
+                      (valueChange)="setBoxSort($event)"
+                      data-testid="box-sort-selector"
+                    >
+                      @for (sort of boxSorts; track sort) {
+                        <mat-option [value]="sort">{{
+                          sort === 'n' ? 'Count' : 'Median'
+                        }}</mat-option>
+                      }
+                    </mat-select>
+                  </mat-form-field>
+                </div>
+              }
+              @if (shapeOf(v.panel) === 'distribution' && v.panel.split !== null) {
+                <div>
+                  <span class="field-label">Split presentation</span>
+                  <mat-form-field appearance="outline" subscriptSizing="dynamic">
+                    <mat-select
+                      aria-label="Split presentation"
+                      [value]="v.panel.options.splitPresentation"
+                      (valueChange)="setSplitPresentation($event)"
+                      data-testid="split-presentation-selector"
+                    >
+                      <mat-option value="overlay">Overlaid distributions</mat-option>
+                      <mat-option value="facets">Faceted small multiples</mat-option>
+                    </mat-select>
+                  </mat-form-field>
+                </div>
+              }
+            }
+            @if (v.panel.x === 'created_at') {
+              <div>
+                <span class="field-label">Bucket</span>
+                <mat-form-field appearance="outline" subscriptSizing="dynamic">
+                  <mat-select
+                    aria-label="Bucket"
+                    [value]="v.panel.options.granularity"
+                    (valueChange)="setGranularity($event)"
+                  >
+                    @for (granularity of granularities; track granularity) {
+                      <mat-option [value]="granularity">by {{ granularity }}</mat-option>
+                    }
+                  </mat-select>
+                </mat-form-field>
+              </div>
+              @if (v.panel.y === null) {
+              <mat-slide-toggle
+                [checked]="v.panel.options.cumulative"
+                (change)="toggleCumulative($event.checked)"
+                data-testid="coverage-cumulative-toggle"
+                >Cumulative</mat-slide-toggle
+              >
+              <mat-slide-toggle
+                [checked]="v.panel.options.share"
+                (change)="toggleShare($event.checked)"
+                data-testid="coverage-share-toggle"
+                >100% stacked share</mat-slide-toggle
+              >
+              }
+              <div>
+                <span class="field-label">Window</span>
+                <mat-form-field appearance="outline" subscriptSizing="dynamic">
+                  <mat-select
+                    aria-label="Coverage window"
+                    [value]="v.panel.options.coverageWindow"
+                    (valueChange)="setCoverageWindow($event)"
+                    data-testid="coverage-window-selector"
+                  >
+                    @for (window of coverageWindows; track window) {
+                      <mat-option [value]="window">{{
+                        window === '12m'
+                          ? 'Last 12 months'
+                          : window === '5y'
+                            ? 'Last 5 years'
+                            : window === 'all'
+                              ? 'All time'
+                              : 'Custom'
+                      }}</mat-option>
+                    }
+                  </mat-select>
+                </mat-form-field>
+              </div>
+              @if (v.panel.options.coverageWindow === 'custom') {
+                <label class="flex flex-col gap-1 text-caption text-ink-2">
+                  From
+                  <input
+                    type="date"
+                    class="h-9 rounded-control border border-border bg-surface px-3 text-control text-ink outline-none focus:border-focus"
+                    [value]="
+                      v.panel.options.coverageCustom ? v.panel.options.coverageCustom[0] : ''
+                    "
+                    (change)="setCoverageCustom(0, $any($event.target).value)"
+                    data-testid="coverage-custom-start"
+                  />
+                </label>
+                <label class="flex flex-col gap-1 text-caption text-ink-2">
+                  To
+                  <input
+                    type="date"
+                    class="h-9 rounded-control border border-border bg-surface px-3 text-control text-ink outline-none focus:border-focus"
+                    [value]="
+                      v.panel.options.coverageCustom ? v.panel.options.coverageCustom[1] : ''
+                    "
+                    (change)="setCoverageCustom(1, $any($event.target).value)"
+                    data-testid="coverage-custom-end"
+                  />
+                </label>
+              }
+              @if (v.panel.y === null) {
+              <mat-slide-toggle
+                [checked]="v.panel.options.coverageLogY"
+                [disabled]="v.panel.options.share"
+                (change)="toggleCoverageLogY($event.checked)"
+                data-testid="coverage-log-y-toggle"
+                >Log y axis</mat-slide-toggle
+              >
+              }
+            }
+            @if (shapeOf(v.panel) === 'comparison') {
+              <!-- The explicit way out of a comparison, so a reader who
+                   assembled one is not left removing cohorts until it
+                   collapses. It lands on the same panel the <2-cohort rule
+                   produces: this dashboard, one metric. -->
+              <button
+                type="button"
+                class="btn btn-quiet w-full justify-start"
+                (click)="backToSingle()"
+                data-testid="back-to-single"
+              >
+                Back to single distribution
+              </button>
+            }
+            <mat-slide-toggle
+              [checked]="v.panel.options.useSelection"
+              (change)="toggleSelection($event.checked)"
+              >Follow the brushed range</mat-slide-toggle
+            >
+
+            @if (comparable()) {
+              <!-- The entry point the design asks for on every distribution
+                   panel: one click turns this card into the same metric across
+                   two cohorts, and on a comparison panel it adds a third. -->
+              <div class="border-t border-border pt-3">
+                <span class="field-label">{{
+                  shapeOf(v.panel) === 'comparison' ? 'Add a cohort' : 'Compare with'
+                }}</span>
+                <div class="flex flex-col items-start gap-1">
+                  @for (entry of compareOptions(); track entry.cohort.id) {
+                    <button
+                      type="button"
+                      class="btn btn-quiet w-full justify-start gap-2"
+                      (click)="compareWith(entry.cohort.id)"
+                      [attr.data-testid]="'compare-with-' + entry.cohort.id"
+                    >
+                      <span
+                        class="inline-block h-2.5 w-2.5 flex-none rounded-chip"
+                        [style.background-color]="entry.color"
+                        aria-hidden="true"
+                      ></span>
+                      {{ entry.cohort.name }}
+                    </button>
+                  }
+                  <!-- The one-click path, here too: save the dashboard as a
+                       cohort and compare against it, with no dialog. -->
+                  <button
+                    type="button"
+                    class="btn btn-quiet w-full justify-start"
+                    (click)="compareWithSavedCurrent()"
+                    data-testid="compare-with-saved-current"
+                  >
+                    This dashboard, saved as cohort
+                  </button>
+                  <button
+                    type="button"
+                    class="btn btn-quiet w-full justify-start"
+                    (click)="compareWithNew()"
+                    data-testid="compare-with-new"
+                  >
+                    New cohort&hellip;
+                  </button>
+                </div>
+              </div>
+            }
+          </div>
+        </mat-menu>
+      </div>
+    </div>
+
+    @if (shapeOf(v.panel) === 'grouped' && v.panel.options.layout !== 'overlaid' && v.panel.chart === 'histogram') {
+      <p class="flex flex-none items-center gap-2 px-4 pb-3 text-caption text-ink-2" data-testid="stacking-note" role="note">
+        <lucide-icon name="info" size="16" aria-hidden="true" />
+        Stacking uses a step histogram instead of smoothed density.
+      </p>
+    }
+
+    <!-- A split panel's groups, to tick and compare. A split group *is* a
+         cohort -- this dashboard plus `field in [value]` -- so comparing three
+         manufacturers needs no new concept, only a way to name them. The
+         button carries the whole selection in one command, so the panel never
+         passes through a state comparing something nobody ticked. -->
+    @if (v.splitCohorts.length > 0) {
+      <div
+        class="panel-chip-legend flex flex-none flex-wrap items-center gap-1.5 px-4 py-3"
+        data-testid="split-select"
+        role="group"
+        aria-label="Groups to compare"
+      >
+        @for (entry of splitGroups(); track entry.cohort.id) {
+          <button
+            type="button"
+            class="chip"
+            [class.chip-amber]="isPicked(entry.cohort.id)"
+            [class.chip-quiet]="!isPicked(entry.cohort.id)"
+            [attr.aria-pressed]="isPicked(entry.cohort.id)"
+            [attr.data-testid]="'split-pick-' + entry.cohort.id"
+            (click)="togglePicked(entry.cohort.id)"
+          >
+            <span
+              class="inline-block h-2.5 w-2.5 flex-none rounded-chip"
+              [style.background-color]="entry.color"
+              aria-hidden="true"
+            ></span>
+            {{ entry.cohort.name }}
+          </button>
+        }
+        <button
+          type="button"
+          class="btn btn-quiet"
+          [disabled]="pickedCount() < 2"
+          (click)="compareSelected()"
+          data-testid="compare-selected"
+          matTooltip="Turn the ticked groups into a comparison panel on this metric"
+        >
+          Compare selected ({{ pickedCount() }})
+        </button>
+      </div>
+    }
+
+    <!-- The chart area: a fixed 260px box the Vega view fills, axis bands
+         included (`height: 'container'` with `fit` autosize). The box plot and
+         the small multiples size themselves by their group count instead, so
+         theirs is the one that scrolls. -->
+    <div class="panel-chart-slot flex-1 px-4" [class.pb-4]="!v.stats && !v.comparison">
+      <div class="chart-box" [class.overflow-y-auto]="grows()"
+        [class.overflow-x-auto]="v.panel.y !== null && v.panel.cohorts.length > 3"
+        [attr.tabindex]="v.panel.y !== null && v.panel.cohorts.length > 3 ? 0 : null"
+        [attr.role]="v.panel.y !== null && v.panel.cohorts.length > 3 ? 'region' : null"
+        [attr.aria-label]="v.panel.y !== null && v.panel.cohorts.length > 3 ? 'Cohort density charts' : null">
+        @if (v.status.kind === 'empty') {
+          <div
+            class="flex h-full items-center justify-center px-6 text-center text-caption text-ink-2"
+          >
+            {{ v.status.message }}
+          </div>
+        } @else if (v.status.kind === 'error') {
+          <!-- The server's own words, and the one thing the reader can do about
+               them. "Missing result" with no cause and no retry was the state
+               every panel sat in when the API was down. -->
+          <div
+            class="flex h-full flex-col items-center justify-center gap-2 px-6 text-center"
+            data-testid="panel-error"
+          >
+            <lucide-icon
+              class="icon-16 text-danger"
+              name="triangle-alert"
+              color="currentColor"
+              [size]="16"
+              [strokeWidth]="1.75"
+              aria-hidden="true"
+            />
+            <p class="text-caption text-danger" data-testid="panel-error-message">
+              {{ v.status.message }}
+            </p>
+            <button
+              type="button"
+              class="btn"
+              (click)="retry(v.status.retryKeys)"
+              data-testid="panel-retry"
+            >
+              Try again
+            </button>
+          </div>
+        } @else {
+          @if (shapeOf(v.panel) === 'sample') {
+            <app-sample-table [table]="v.table" (requestPage)="requestPage($event)" />
+          } @else {
+            <div class="h-full w-full" [appVegaView]="v" (brush)="onBrush($event)" (brush2d)="onBrush2d($event)" (cell)="choosePair($event)"></div>
+            @if (v.status.kind === 'ready' && !v.hasRows && !v.partial) {
+              <!-- `!v.partial` matters: a comparison panel's bars come from a
+                   second fetch, so between step one and step two it has no rows
+                   *yet* -- which is not the same as matching none, and saying so
+                   over a populated statistics table was simply false. -->
+              <div
+                class="absolute inset-0 flex items-center justify-center bg-surface px-6 text-center text-caption text-ink-2"
+                data-testid="panel-no-rows"
+              >
+                No records match these filters.
+              </div>
+            }
+          }
+          @if (v.status.kind === 'loading') {
+            <div
+              class="absolute inset-0 flex items-center justify-center bg-surface/70"
+              data-testid="panel-loading"
+            >
+              <mat-spinner diameter="24" aria-label="Loading chart"></mat-spinner>
+            </div>
+          } @else if (v.status.stale) {
+            <!-- A refetch holds the previous render instead of flashing a
+               skeleton; this says so without moving anything. -->
+            <div class="chip chip-amber absolute right-0 top-0">Refreshing</div>
+          } @else if (v.status.kind === 'ready' && v.status.failedExtra; as failed) {
+            <!-- A shared-range histogram failed. The statistics and the ECDF
+                 below are from each cohort's own distribution and are right, so
+                 the card keeps them and reports the gap beside the chart rather
+                 than replacing everything with an error page. -->
+            <div class="absolute right-0 top-0 flex items-center gap-2">
+              <span class="chip chip-amber" data-testid="panel-partial-error"
+                >Bars unavailable</span
+              >
+              <button
+                type="button"
+                class="btn btn-quiet"
+                (click)="retry(failed)"
+                data-testid="panel-partial-retry"
+              >
+                Try again
+              </button>
+            </div>
+          } @else if (v.partial) {
+            <!-- The comparison panel's second step: the statistics and the
+                 ECDF are from each cohort's own distribution and are already
+                 right, and the bars are being rebinned over the shared range.
+                 A chip and not a spinner, because what is on screen is real. -->
+            <div class="chip chip-quiet absolute right-0 top-0" data-testid="panel-partial">
+              Matching bin edges&hellip;
+            </div>
+          }
+        }
+      </div>
+    </div>
+
+    <!-- The stat row: a grid of label-over-value pairs under the chart,
+         separated by a 1px rule. The label is the quieter of the two -- it is
+         smaller, lighter and in secondary ink -- because the number is what the
+         reader came for. The shape lives in `styles.css` (`.stat-row`) because
+         it needs a container query; the wrapper is what the query measures. -->
+    <!-- A comparison panel's table: one row per cohort in the cohort's own
+         colour, which is also this panel's legend in text form, and for exactly
+         two cohorts a differences row underneath. Scrolls horizontally on a
+         narrow card rather than wrapping: a statistics row that wraps is no
+         longer a row. -->
+    @if (v.analysisNote) {
+      <p class="mt-4 border-t border-border px-4 pt-3 text-caption text-ink-2" data-testid="analysis-note">{{ v.analysisNote }}</p>
+    }
+    @if (v.analysisRows?.length) {
+      <div class="mt-3 overflow-x-auto" tabindex="0" role="region" aria-label="Analysis statistics">
+        <table class="w-full text-caption" data-testid="analysis-stats">
+          <thead><tr>@for (header of v.analysisHeaders; track header) { <th class="px-2 py-2 text-left font-normal text-ink-2" scope="col">{{ header }}</th> }</tr></thead>
+          <tbody>@for (row of v.analysisRows; track row.id) {
+            <tr><th scope="row" class="px-2 py-2 text-left font-semibold" [style.border-left]="'3px solid ' + row.color">{{ row.name }}</th>
+              @for (cell of row.cells; track $index) { <td class="tnum whitespace-nowrap px-2 py-2">{{ cell }}</td> }
+            </tr>
+          }</tbody>
+        </table>
+      </div>
+    }
+    @if (v.correlationPairs?.length) {
+      <details class="correlation-pairs mt-3 px-4 pb-3 text-caption"><summary>Inspect a metric pair</summary>
+        <div class="flex flex-wrap gap-2 py-2">@for (pair of v.correlationPairs; track pair.label) {
+          <button type="button" class="btn" (click)="choosePair(pair)">{{ pair.label }}</button>
+        }</div>
+      </details>
+    }
+    @if (v.comparison; as table) {
+      <div class="mt-4 overflow-x-auto border-t border-border" tabindex="0" role="region" aria-label="Cohort statistics">
+        <table class="w-full min-w-[30rem] text-caption" data-testid="comparison-table">
+          <thead>
+            <tr class="border-b border-border">
+              @for (header of table.headers; track header; let first = $first) {
+                <th
+                  class="px-3 py-2 font-normal text-ink-3"
+                  [class.text-left]="first"
+                  [class.text-right]="!first"
+                  scope="col"
+                >
+                  {{ header }}
+                </th>
+              }
+            </tr>
+          </thead>
+          <tbody>
+            @for (row of table.rows; track row.id) {
+              <tr [attr.data-testid]="'comparison-row-' + row.id">
+                <th
+                  class="truncate px-3 py-2 text-left font-semibold text-ink"
+                  [style.border-left]="'3px solid ' + row.color"
+                  scope="row"
+                  [title]="row.name"
+                >
+                  {{ row.name }}
+                </th>
+                @for (cell of row.cells; track $index) {
+                  <td class="tnum px-3 py-2 text-right text-ink">{{ cell }}</td>
+                }
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+
+      @if (table.differences; as differences) {
+        <!-- One row per cohort, each against the reference. Which cohort is the
+             baseline is a question about the reader's study, so it is theirs to
+             pick; the default is the first. -->
+        <div class="border-t border-border px-4 py-3" data-testid="comparison-differences">
+          <div class="mb-2 flex flex-wrap items-center gap-2">
+            <span class="field-label mb-0">Differences vs</span>
+            <mat-form-field appearance="outline" subscriptSizing="dynamic" class="w-48">
+              <mat-select
+                aria-label="Reference cohort"
+                [value]="differences.reference"
+                (valueChange)="setReference($event)"
+                data-testid="reference-select"
+              >
+                @for (row of table.rows; track row.id) {
+                  <mat-option [value]="row.id" [disabled]="row.id === 'display:other'">{{ row.name }}</mat-option>
+                }
+              </mat-select>
+            </mat-form-field>
+            @if (table.rows.length > 2) {
+              <button
+                type="button"
+                class="btn btn-quiet"
+                (click)="toggleAllPairs()"
+                [attr.aria-expanded]="allPairs()"
+                data-testid="all-pairs-toggle"
+              >
+                <span class="text-ink-3" aria-hidden="true">{{ allPairs() ? '-' : '+' }}</span>
+                All pairs
+              </button>
+            }
+          </div>
+
+          <div class="overflow-x-auto" tabindex="0" role="region" aria-label="Cohort differences">
+            <table class="w-full min-w-[28rem] text-caption">
+              <thead>
+                <tr class="border-b border-border">
+                  @for (header of differenceHeaders; track header; let first = $first) {
+                    <th
+                      class="px-3 py-2 font-normal text-ink-3"
+                      [class.text-left]="first"
+                      [class.text-right]="!first"
+                      scope="col"
+                    >
+                      {{ header }}
+                    </th>
+                  }
+                </tr>
+              </thead>
+              <tbody>
+                @for (row of differences.rows; track row.id) {
+                  <tr [attr.data-testid]="'difference-row-' + row.id">
+                    <th
+                      class="truncate px-3 py-2 text-left font-semibold text-ink"
+                      [style.border-left]="'3px solid ' + row.color"
+                      scope="row"
+                      [title]="row.name"
+                    >
+                      {{ row.name }}
+                    </th>
+                    @for (cell of row.cells; track cell.label) {
+                      <td
+                        class="tnum px-3 py-2 text-right text-ink"
+                        [attr.data-stat]="cell.label"
+                        [title]="cell.title"
+                      >
+                        {{ cell.value }}
+                      </td>
+                    }
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+
+          @if (allPairs() && table.pairs) {
+            <!-- Every pairwise distance, which is the one question a single
+                 reference cannot answer: which two of these are furthest apart.
+                 The largest is the only one in full ink. -->
+            <div class="mt-3 overflow-x-auto border-t border-border pt-3">
+              <table class="w-full min-w-[24rem] text-caption" data-testid="all-pairs-table">
+                <tbody>
+                  @for (pair of table.pairs; track pair.aName + '|' + pair.bName) {
+                    <tr>
+                      <td class="truncate px-3 py-1 text-ink-2">
+                        {{ pair.aName }} &harr; {{ pair.bName }}
+                      </td>
+                      <td
+                        class="tnum px-3 py-1 text-right"
+                        [class.text-ink]="pair.worst"
+                        [class.font-semibold]="pair.worst"
+                        [class.text-ink-2]="!pair.worst"
+                        [attr.data-worst]="pair.worst ? 'true' : null"
+                      >
+                        {{ pair.value }}
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          }
+        </div>
+      }
+    }
+
+    @if (v.stats; as stats) {
+      <!-- The padding sits on the grid, not the container, so that the query
+           below measures the card's own width and not the width less 32px. -->
+      <div class="stat-row-container mt-4 border-t border-border">
+        <div class="stat-row px-4 py-3" data-testid="panel-stats">
+          @for (stat of stats; track stat.label) {
+            <!-- The label carries the explanation, not the page: eight
+                 uppercase abbreviations under a chart are unreadable to anyone
+                 who has not met them, and standing prose for them would be
+                 longer than the row. -->
+            <div class="stat-cell" [attr.data-stat]="stat.label">
+              <span class="stat-label" [title]="stat.title" tabindex="0">{{ stat.label }}</span>
+              <span class="stat-value">{{ stat.value }}</span>
+            </div>
+          }
+        </div>
+      </div>
+    }
+    </div>
+    <p class="flex-none truncate px-4 pb-3 text-caption leading-4 text-ink-2" [title]="v.meaning" data-testid="panel-meaning">{{ v.meaning }}</p>
+    @if (columns() > 1 && !maximized()) {
+      <span class="panel-resize-handle" data-grid-resize role="img" aria-label="Resize panel" title="Drag to resize; focus the card and use Shift + arrow keys">
+        <lucide-icon name="grip" [size]="16" aria-hidden="true" />
+      </span>
+    }
+  </section>
+}

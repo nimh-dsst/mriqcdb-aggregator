@@ -1,0 +1,142 @@
+<div class="flex min-h-full flex-col bg-bg">
+  <app-top-bar />
+
+  <main class="flex-1 px-6 py-6 max-[700px]:px-4 max-[700px]:py-4" aria-label="Panels">
+    @if (panels().length === 0) {
+      <div
+        class="flex min-h-[40vh] flex-col items-center justify-center gap-2 rounded-card border border-dashed border-border bg-surface text-center"
+        data-testid="empty-dashboard"
+      >
+        <p class="text-body font-semibold text-ink">No panels yet</p>
+        <p class="max-w-sm text-caption text-ink-2">
+          Add a distribution, a grouped summary, coverage over time, or the raw records behind them.
+        </p>
+      </div>
+    } @else {
+      <!-- 1 / 2 / 3 columns at 0 / 900 / 1500px. 1500 and not 1400: at 1440 --
+           the commonest laptop width -- three columns make a 440px card, which
+           truncates the metric name in every one of them. -->
+      <div
+        class="panel-grid"
+        [class.panel-grid-narrow]="columns() === 1"
+        [class.panel-grid-maximized]="!!maximized()"
+        [style.grid-template-rows]="maximized() ? maximizedHeight() + 'px' : null"
+        data-testid="panel-grid"
+      >
+        @for (panel of visiblePanels(); track panel.id; let i = $index) {
+          <app-panel-card
+            appGridInteraction
+            [geometry]="geometry()[panel.id]"
+            [columnsWide]="columns()"
+            [gridPanelId]="panel.id"
+            [gridMaximized]="!!maximized()"
+            (geometryAnnouncement)="announcement.set($event)"
+            [panelId]="panel.id"
+            [index]="i"
+            [count]="panels().length"
+            [columns]="columns()"
+            [maximized]="!!maximized()"
+            [style.grid-column]="maximized() || columns() === 1 ? null : (geometry()[panel.id].x + 1) + ' / span ' + geometry()[panel.id].w"
+            [style.grid-row]="maximized() || columns() === 1 ? null : (geometry()[panel.id].y + 1) + ' / span ' + geometry()[panel.id].h"
+            [style.height.px]="!maximized() && columns() === 1 ? geometry()[panel.id].h * 56 - 16 : null"
+            (removed)="onRemoved($event)"
+          />
+        }
+      </div>
+    }
+  </main>
+  <span class="sr-only" aria-live="polite">{{ announcement() }}</span>
+
+  <!-- The add bar: one primary action, and the share line. A `<footer>` so the
+       panel count is inside a landmark rather than loose on the page. -->
+  <footer
+    class="sticky bottom-0 z-10 border-t border-border bg-surface px-6 py-3 max-[700px]:px-4"
+    aria-label="Dashboard actions"
+  >
+    <div class="flex flex-wrap items-center gap-4">
+      <button class="btn btn-quiet" type="button" (click)="resetLayout()">Reset layout</button>
+      <button class="btn" cdkOverlayOrigin #addOrigin="cdkOverlayOrigin" (click)="addOpen.set(!addOpen())" [attr.aria-expanded]="addOpen()" aria-haspopup="dialog" type="button" data-testid="add-panel">
+        <lucide-icon
+          class="icon-16"
+          name="plus"
+          color="currentColor"
+          [size]="16"
+          [strokeWidth]="1.75"
+          aria-hidden="true"
+        />
+        Add panel
+      </button>
+      <ng-template cdkConnectedOverlay [cdkConnectedOverlayOrigin]="addOrigin" [cdkConnectedOverlayOpen]="addOpen()"
+        [cdkConnectedOverlayHasBackdrop]="true" cdkConnectedOverlayBackdropClass="cdk-overlay-transparent-backdrop"
+        (backdropClick)="addOpen.set(false)" (overlayKeydown)="$event.key === 'Escape' && addOpen.set(false)">
+        <div class="metric-popover" role="dialog" aria-label="Add panel" cdkTrapFocus [cdkTrapFocusAutoCapture]="true" data-testid="add-panel-picker">
+          <div class="flex items-center justify-between gap-2">
+            <span class="text-body font-semibold">Choose a metric</span>
+            <button type="button" class="icon-btn" aria-label="Close Add panel" (click)="addOpen.set(false)"><lucide-icon name="x" [size]="16" aria-hidden="true" /></button>
+          </div>
+          <app-metric-picker [metrics]="metrics()" (picked)="addMetric($event)" />
+        </div>
+      </ng-template>
+
+      <p class="flex items-center gap-2 text-caption text-ink-2">
+        <span class="tnum">{{ panels().length }} panel{{ panels().length === 1 ? '' : 's' }}</span>
+        <span aria-hidden="true">&middot;</span>
+        <button
+          type="button"
+          class="btn btn-quiet px-2 text-ink-2 underline decoration-border underline-offset-2 hover:text-ink"
+          (click)="shareView()"
+          data-testid="share-view"
+          matTooltip="Copies this page's address. Everything on screen -- the filters, the panels, the brushed range -- is in it."
+        >
+          <lucide-icon
+            class="icon-16"
+            name="link"
+            color="currentColor"
+            [size]="16"
+            [strokeWidth]="1.75"
+            aria-hidden="true"
+          />
+          {{ shareLabel() }}
+        </button>
+      </p>
+    </div>
+  </footer>
+
+  <!-- Removing a panel used to be instant, silent and, as far as anything on
+       screen said, irreversible. The undo dispatches `restorePanel` with the
+       panel value the card handed over, so what comes back is the same card in
+       the same place and not a lookalike. -->
+  @if (removed(); as entry) {
+    <div
+      class="fixed bottom-20 left-1/2 z-40 flex h-10 -translate-x-1/2 items-center gap-3 rounded-card border border-border bg-ink px-3 text-caption text-surface"
+      role="status"
+      data-testid="undo-snackbar"
+    >
+      <span>Removed {{ entry.title }}</span>
+      <span aria-hidden="true">&middot;</span>
+      <button
+        type="button"
+        class="font-semibold text-highlight underline underline-offset-2"
+        (click)="undoRemove()"
+        data-testid="undo-remove"
+      >
+        Undo
+      </button>
+      <button
+        type="button"
+        class="text-surface/70 hover:text-surface"
+        (click)="dismissUndo()"
+        aria-label="Dismiss"
+      >
+        <lucide-icon
+          class="icon-16"
+          name="x"
+          color="currentColor"
+          [size]="16"
+          [strokeWidth]="1.75"
+          aria-hidden="true"
+        />
+      </button>
+    </div>
+  }
+</div>

@@ -1,0 +1,3 @@
+bids_name,cjv,efc,bids_meta.Manufacturer,unused_note
+sub-01_T1w,0.41,0.52,Siemens,"first, scan"
+sub-02_T1w,0.62,0.73,GE,second scan

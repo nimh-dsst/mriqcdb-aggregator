@@ -1,0 +1,236 @@
+import { shapeOf } from '../graph/panel-shapes';
+/**
+ * The page: the top bar, the panel grid, and the menu that adds panels.
+ *
+ * It subscribes to exactly two projections through `toSignal` and dispatches
+ * commands. No layout decision here feeds back into state.
+ */
+
+import {
+  ChangeDetectionStrategy,
+  Component,
+  DestroyRef,
+  ElementRef,
+  effect,
+  computed,
+  inject,
+  signal,
+} from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
+import { MatMenuModule } from '@angular/material/menu';
+import { OverlayModule } from '@angular/cdk/overlay';
+import { A11yModule } from '@angular/cdk/a11y';
+import { MetricPicker } from '../panels/metric-picker';
+import { asColumnId, metricsFor } from '@mriqc/shared';
+import { MatTooltipModule } from '@angular/material/tooltip';
+import { LucideAngularModule } from 'lucide-angular';
+import type { PanelKind } from '@mriqc/shared';
+import { deriveLayout, panelsWithPreferredRows } from '../graph/layout';
+import { GridInteractionDirective } from './grid-interaction.directive';
+import { map, distinctUntilChanged } from 'rxjs';
+import { TopBar } from '../chrome/top-bar';
+import {
+  THREE_COLUMN_QUERY,
+  TWO_COLUMN_QUERY,
+  gridColumns,
+  matchesMedia,
+} from '../chrome/media';
+import { Graph } from '../graph/graph';
+import { PANEL_KINDS, PANEL_KIND_IDS } from '../graph/panel-shapes';
+import { PanelCard } from '../panels/panel-card';
+import type { Panel } from '../graph/state';
+import { environment } from '../../environments/environment';
+
+/** The resting label of the share action, and how long its confirmation stays. */
+const SHARE_LABEL = 'Share this view';
+const SHARE_NOTICE_MS = 3000;
+
+/** How long "Removed … · Undo" stays up. */
+export const UNDO_NOTICE_MS = 6000;
+
+/** One entry of the "+ panel" menu. */
+export interface PanelKindEntry {
+  kind: PanelKind;
+  label: string;
+  hint: string;
+}
+
+const PANEL_KIND_LABELS: readonly PanelKindEntry[] = PANEL_KIND_IDS.map((kind) => ({
+  kind,
+  label: PANEL_KINDS[kind].label,
+  hint: PANEL_KINDS[kind].hint,
+}));
+
+/**
+ * The kinds the "+ panel" menu offers.
+ *
+ * Every one of them, now. The comparison entry used to be hidden behind
+ * `features.studyUpload`, because a comparison meant "this population against an
+ * uploaded study" and nothing in the UI could choose a file -- a permanently
+ * greyed row with no picker to act on. A comparison is between *cohorts*, and
+ * two of those always exist ("This dashboard" and "Whole population"), so the
+ * entry can always be chosen and always produces a panel that draws something.
+ *
+ * The parameter stays, unused by the filter, because the signature is what the
+ * study-upload pass will hand a `study` cohort entry to.
+ */
+export function visiblePanelKinds(
+  kinds: readonly PanelKindEntry[],
+  _studyUpload: boolean,
+): readonly PanelKindEntry[] {
+  return kinds;
+}
+
+/** A removed panel, held just long enough for its undo offer. */
+interface RemovedPanel {
+  panel: Panel;
+  at: number;
+  title: string;
+}
+
+@Component({
+  selector: 'app-dashboard',
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [
+    MatMenuModule,
+    MatTooltipModule,
+    LucideAngularModule,
+    PanelCard,
+    TopBar,
+    GridInteractionDirective,
+    OverlayModule,
+    A11yModule,
+    MetricPicker,
+  ],
+  templateUrl: './dashboard.html',
+  host: { '(document:keydown.escape)': 'restoreMaximized()' },
+})
+export class Dashboard {
+  private readonly graph = inject(Graph);
+
+  protected readonly panels = toSignal(this.graph.panels$, { initialValue: [] });
+  protected readonly chrome = toSignal(this.graph.chrome$);
+  protected readonly addOpen = signal(false);
+  protected readonly metrics = computed(() => metricsFor(this.chrome()?.modality ?? 'bold'));
+  protected addMetric(metric: string): void {
+    this.graph.dispatch({ t: 'addPanel', kind: 'distribution', metric: asColumnId(metric) });
+    this.addOpen.set(false);
+  }
+  protected readonly gridState = toSignal(this.graph.state$.pipe(map(state => ({layout:state.layout,panels:panelsWithPreferredRows(state)}))));
+  protected readonly maximized = toSignal(this.graph.state$.pipe(map(state => state.maximizedPanel), distinctUntilChanged()));
+  protected readonly announcement = signal('');
+  private readonly host = inject(ElementRef<HTMLElement>).nativeElement;
+  protected readonly maximizedHeight = signal(600);
+  protected readonly panelKinds = visiblePanelKinds(
+    PANEL_KIND_LABELS,
+    environment.features.studyUpload,
+  );
+
+  /* ------------------------------------------------------------- the grid */
+
+  private readonly twoColumns = matchesMedia(TWO_COLUMN_QUERY);
+  private readonly threeColumns = matchesMedia(THREE_COLUMN_QUERY);
+
+  /** 1 below 900px, 2 from 900, 3 from 1500. */
+  protected readonly columns = computed(() => gridColumns(this.twoColumns(), this.threeColumns()));
+
+  protected readonly geometry = computed(() => this.gridState()?.layout ?? deriveLayout(this.gridState()?.panels ?? [], this.columns()));
+  protected readonly visiblePanels = computed(() => {
+    const panels = this.panels();
+    if (this.maximized()) return panels.filter(panel => panel.id === this.maximized());
+    if (this.columns() > 1) return panels;
+    const layout = this.geometry();
+    return [...panels].sort((a, b) => layout[a.id].y - layout[b.id].y || layout[a.id].x - layout[b.id].x);
+  });
+  protected resetLayout(): void { this.graph.dispatch({ t: 'resetLayout' }); }
+  protected restoreMaximized(): void {
+    if (this.maximized()) this.graph.dispatch({ t: 'maximizePanel', id: null });
+  }
+
+  protected add(kind: PanelKind): void {
+    this.graph.dispatch({ t: 'addPanel', kind });
+  }
+
+  /* ------------------------------------------------------------ remove / undo */
+
+  /**
+   * The panel the last removal took away, for the length of its snackbar and no
+   * longer.
+   *
+   * Local component state on purpose: whether a toast is showing decides
+   * nothing about what the dashboard shows, it is not in the URL, and it must
+   * not survive a reload. The *undo* goes through the reducer like everything
+   * else, as `restorePanel` with the whole panel value, so the card comes back
+   * identical and in the place it left.
+   */
+  protected readonly removed = signal<RemovedPanel | null>(null);
+
+  private undoTimer: ReturnType<typeof setTimeout> | null = null;
+
+  protected onRemoved(entry: RemovedPanel): void {
+    this.removed.set(entry);
+    if (this.undoTimer !== null) clearTimeout(this.undoTimer);
+    this.undoTimer = setTimeout(() => this.removed.set(null), UNDO_NOTICE_MS);
+  }
+
+  protected undoRemove(): void {
+    const entry = this.removed();
+    if (!entry) return;
+    this.graph.dispatch({ t: 'restorePanel', panel: entry.panel, at: entry.at });
+    this.dismissUndo();
+  }
+
+  protected dismissUndo(): void {
+    this.removed.set(null);
+    if (this.undoTimer !== null) clearTimeout(this.undoTimer);
+    this.undoTimer = null;
+  }
+
+  /**
+   * "Share this view" -- the whole dashboard is already in the address bar
+   * (`url.ts`), so sharing it is a clipboard write and nothing else. No state:
+   * the label is the only thing that changes, and it changes back.
+   */
+  protected readonly shareLabel = signal(SHARE_LABEL);
+
+  private shareTimer: ReturnType<typeof setTimeout> | null = null;
+
+  constructor() {
+    const measureMaximized = () => {
+      const grid = this.host.querySelector('[data-testid="panel-grid"]');
+      if (!grid || !this.maximized()) return;
+      const footer = this.host.querySelector('footer')?.getBoundingClientRect().height ?? 56;
+      this.maximizedHeight.set(Math.max(300, window.innerHeight - grid.getBoundingClientRect().top - footer - 24));
+    };
+    effect(() => {
+      if (this.maximized()) requestAnimationFrame(measureMaximized);
+    });
+    window.addEventListener('resize', measureMaximized);
+    inject(DestroyRef).onDestroy(() => {
+      window.removeEventListener('resize', measureMaximized);
+      if (this.shareTimer !== null) clearTimeout(this.shareTimer);
+      if (this.undoTimer !== null) clearTimeout(this.undoTimer);
+    });
+  }
+
+  protected shareView(): void {
+    const href = typeof window === 'undefined' ? '' : window.location.href;
+    const done = (label: string) => {
+      this.shareLabel.set(label);
+      if (this.shareTimer !== null) clearTimeout(this.shareTimer);
+      this.shareTimer = setTimeout(() => this.shareLabel.set(SHARE_LABEL), SHARE_NOTICE_MS);
+    };
+    // `navigator.clipboard` is absent over plain http on a non-localhost host
+    // and in jsdom, and a denied permission rejects. Either way the address bar
+    // still has the link, which is what the tooltip says.
+    const clipboard = navigator.clipboard;
+    if (!clipboard || href === '') {
+      done('Copy from the address bar');
+      return;
+    }
+    clipboard.writeText(href).then(
+      () => done('Link copied'),
+      () => done('Copy from the address bar'),
+    );
+  }
+}

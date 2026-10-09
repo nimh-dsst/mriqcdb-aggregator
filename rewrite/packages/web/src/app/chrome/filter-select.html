@@ -1,0 +1,47 @@
+<div [attr.data-testid]="'filter-' + entry().field.id">
+  <span class="field-label flex items-center gap-2">
+    <span class="truncate" tabindex="0" [matTooltip]="tip()">{{ entry().field.label }}</span>
+    @if (activeCount()) {
+      <span class="chip chip-amber caption-badge" [attr.data-testid]="'active-' + entry().field.id">{{
+        activeCount()
+      }}</span>
+    }
+  </span>
+  <mat-form-field appearance="outline" subscriptSizing="dynamic">
+    <mat-select
+      [value]="value()"
+      (valueChange)="pick($event)"
+      [disabled]="disabled()"
+      [attr.aria-label]="entry().field.label"
+      placeholder="All"
+      multiple
+    >
+      @if (entry().searchable) {
+        <div
+          class="sticky top-0 z-10 flex flex-col gap-1 border-b border-border bg-surface px-3 py-2"
+          (click)="$event.stopPropagation()"
+          (keydown)="onSearchKey($event)"
+        >
+          <input
+            class="h-8 w-full rounded-card border border-border bg-surface px-2 text-control text-ink outline-none placeholder:text-ink-3 focus:border-highlight"
+            type="text"
+            placeholder="Search {{ entry().field.label | lowercase }}"
+            [attr.data-testid]="'search-' + entry().field.id"
+            (input)="onSearch($event)"
+          />
+          @if (hiddenCount() > 0) {
+            <span class="text-caption text-ink-3"
+              >{{ hiddenCount() | number }} more &mdash; type to narrow</span
+            >
+          }
+        </div>
+      }
+      @for (value of options(); track value.value) {
+        <mat-option [value]="optionValue(value.value)">
+          {{ label(entry().field.id, value.value) }}
+          <span class="tnum text-caption text-ink-3">{{ value.n | number }}</span>
+        </mat-option>
+      }
+    </mat-select>
+  </mat-form-field>
+</div>

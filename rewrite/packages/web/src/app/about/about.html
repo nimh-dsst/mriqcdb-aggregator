@@ -1,0 +1,203 @@
+<div>
+  <header class="flex flex-wrap items-center justify-between gap-4 border-b border-border pb-4">
+    <a routerLink="/" queryParamsHandling="preserve" data-testid="about-back">Back to dashboard</a>
+    <app-theme-toggle />
+  </header>
+  <main class="pt-6" data-testid="about-page">
+    <h1>About this data</h1>
+    <nav class="mt-4 flex flex-wrap gap-4 text-ink-2" aria-label="About sections">
+      <a routerLink="/about" fragment="dedup" queryParamsHandling="preserve">Deduplication</a>
+      <a routerLink="/about" fragment="stability" queryParamsHandling="preserve"
+        >Run-to-run stability</a
+      >
+      <a routerLink="/about" fragment="views" queryParamsHandling="preserve">Views</a>
+    </nav>
+
+    <section aria-labelledby="population-title">
+      <h2 id="population-title">The population</h2>
+      <p>
+        These are image-quality reports submitted to the public MRIQC web API for BOLD functional,
+        T1-weighted and T2-weighted structural MRI. This is a contributed collection, not a curated
+        or representative sample of people, scanners or studies. Counts describe this database, not
+        the number of participants.
+      </p>
+      @if (data(); as d) {
+        @if (d.error) {
+          <p role="alert">
+            The catalog could not be loaded.
+            <button class="btn" (click)="retry()">Try again</button>
+          </p>
+        } @else if (!d.catalog) {
+          <p role="status">Loading population counts…</p>
+        } @else {
+          <table class="tnum" data-testid="about-population">
+            <caption class="text-left text-caption text-ink-2">
+              Current catalog totals, before dashboard filters
+            </caption>
+            <thead>
+              <tr>
+                <th scope="col">Modality</th>
+                <th scope="col">Uploads</th>
+                <th scope="col">Deduplicated scans</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (population of d.populations; track population.modality) {
+                <tr>
+                  <th scope="row">{{ population.label }}</th>
+                  <td>
+                    {{
+                      population.uploads === null ? 'Unavailable' : (population.uploads | number)
+                    }}
+                  </td>
+                  <td>
+                    {{ population.scans === null ? 'Unavailable' : (population.scans | number) }}
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        }
+      }
+      <p>
+        An <strong>upload</strong> is one submitted report. The same image can be processed or
+        submitted repeatedly. A <strong>scan</strong> in a deduplicated view is one admitted
+        identity group under the policy below. It is not a unique person: different software
+        versions or relevant settings can keep the same image in separate groups.
+      </p>
+    </section>
+
+    <section id="dedup" aria-labelledby="dedup-title">
+      <h2 id="dedup-title">How deduplication works</h2>
+      <p>
+        The policy first groups uploads by an exact identity key, then tests the whole group.
+        Matching one neighbour is not enough: a chain of similar uploads cannot conceal a large
+        difference between its endpoints. Raw uploads are retained.
+      </p>
+      <h3>BOLD: K4+</h3>
+      <p>
+        The key combines the image-content MD5, the original MRIQC version string, the framewise
+        displacement threshold and the normalized motion-correction method (AFNI, FSL or unknown).
+        Every value in the 36-metric vector must be finite. Five count-related metrics must agree
+        exactly; each of the 31 continuous metrics must have a whole-group range no larger than one
+        millionth (10⁻⁶) of its frozen reference interquartile range (IQR). This admits tiny
+        numerical differences, not substantial processing variation.
+      </p>
+      <h3>T1-weighted and T2-weighted: K3++</h3>
+      <p>
+        The key combines image-content MD5, the exact MRIQC version string and its testing setting.
+        Image dimensions and voxel spacing must agree exactly, and all 62 compared metrics must be
+        finite. The largest metric range, divided by that metric’s reference IQR, must be at most
+        0.1. This allows more run-to-run variation than K4+, including small differences in
+        structural segmentation. The reference scales are frozen per policy version; a metric with
+        zero reference IQR uses its non-zero-value IQR.
+      </p>
+      <h3>One observed representative</h3>
+      <p>
+        An admitted group contributes a <strong>medoid</strong>: an actual observed metric vector
+        with the smallest total absolute distance to the other distinct vectors after IQR scaling.
+        Repeated copies of a vector do not give it extra votes. Ties use the lowest upload ID. This
+        preserves a real report instead of inventing a scan by averaging its metrics.
+      </p>
+      <h3>Why unstable groups are left out</h3>
+      <p>
+        A group is unstable when required values are missing or non-finite, exact fields disagree,
+        or its diameter exceeds the policy tolerance. The deduplicated view leaves out the whole
+        group because one representative would hide that disagreement. “Unstable” describes the
+        evidence for merging, not a clinical assessment of image quality. The raw and combined views
+        retain these uploads. Content hashes also cannot merge the same acquisition saved into
+        different files; this limitation is particularly relevant to T2-weighted data.
+      </p>
+    </section>
+
+    <section id="stability" aria-labelledby="stability-title">
+      <h2 id="stability-title">Run-to-run stability</h2>
+      <p>
+        <code>canonical_diameter</code> is the largest within-group metric range divided by its
+        frozen reference IQR. It measures disagreement between repeat runs of the same keyed input,
+        not distance from the medoid, and it is not a percentage or a quality score. Zero means the
+        compared continuous metrics agree; smaller values mean more stable results.
+      </p>
+      <p>
+        Choose a deduplicated view, open <strong>More filters</strong> and set the maximum
+        <strong>Run-to-run stability</strong> to, for example, <strong>0.01</strong> for a stricter
+        structural subset. Leave the minimum empty to include zero. The default policy still admits
+        up to 0.1 for structural scans and 10⁻⁶ for BOLD. Unstable raw uploads in the combined view
+        have no canonical diameter, so applying this range excludes them.
+      </p>
+    </section>
+
+    <section id="views" aria-labelledby="views-title">
+      <h2 id="views-title">Three views per modality</h2>
+      <ul>
+        <li>
+          <strong>Every upload (raw)</strong> counts all submissions. Repeated uploads of one image
+          contribute repeatedly.
+        </li>
+        <li>
+          <strong>Deduplicated</strong>, the default, counts one representative per admitted group:
+          K4+ for BOLD and K3++ for T1-weighted and T2-weighted images.
+        </li>
+        <li>
+          <strong>Deduplicated + unstable uploads</strong> adds every raw upload from excluded
+          groups to the representatives. This mixes scans and uploads, not one scan per group.
+        </li>
+      </ul>
+      <p>
+        Filters and chart counts use the chosen view. A metric’s count includes only finite values
+        of that metric, so it can be smaller than the population total.
+      </p>
+    </section>
+
+    <section aria-labelledby="comparisons-title">
+      <h2 id="comparisons-title">Comparisons and KS distance</h2>
+      <p>
+        A cohort is a named selection with its own view, filters and optional brushed range.
+        Comparisons normalize each cohort by its own count. Histogram overlays use identical bin
+        edges over a shared range. Density curves smooth those histograms with a Gaussian kernel at
+        Silverman’s bandwidth, floored at 1.5 bin widths; they are estimates at histogram
+        resolution. Values outside the displayed range are reported separately.
+      </p>
+      <p>
+        The differences table uses the selected reference cohort. Median shifts in IQR units use the
+        reference’s IQR. The approximate Kolmogorov–Smirnov (KS) distance is the largest gap between
+        the two cumulative histogram shares on their shared grid, including each cohort’s
+        below-range mass. Zero means no detected distributional difference at that resolution;
+        values nearer one mean stronger separation. It is an effect-size distance, not a p-value.
+        The ≈ sign matters because the largest true gap may lie inside a bin. Cohorts can overlap,
+        so their counts should not be added as if they were distinct scans.
+      </p>
+      <p>
+        For what each measurement means, see the
+        <a
+          href="https://mriqc.readthedocs.io/en/stable/measures.html"
+          target="_blank"
+          rel="noopener noreferrer"
+          data-testid="mriqc-docs-link"
+          >MRIQC image-quality metric documentation</a
+        >.
+      </p>
+      <p>
+        Charts show at most six named series plus grey Other. On comparisons, Other pools the
+        remaining cohort memberships, so overlapping scans contribute once per member cohort. Its
+        quantiles are estimates from shared histogram bins; quantiles outside that grid are left
+        unavailable. On categorical splits, Other is the remaining groups.
+      </p>
+    </section>
+
+    <section aria-labelledby="provenance-title">
+      <h2 id="provenance-title">Data provenance</h2>
+      <p data-testid="about-date">
+        {{ dateLabel(data()?.latest ?? null) }} (UTC, newest dated upload in the catalog).
+      </p>
+      <p class="break-all" data-testid="about-version">
+        Ingest version: {{ data()?.version ?? 'Unavailable' }}.
+      </p>
+      <p>
+        Source: reports submitted to the public MRIQC web API, loaded into this aggregator’s
+        database. The ingest version identifies the served dataset; the upload date is the newest
+        submission timestamp, not an acquisition date.
+      </p>
+    </section>
+  </main>
+</div>
