@@ -133,7 +133,6 @@ Specific tasks:
 - "Export the rows behind this chart, with the dedup policy noted, for my own stats software." (meta-paper researcher) `[partly]` — export carries the policy columns; an explicit label isn't confirmed.
 - "Export a grouped summary table, not raw rows, for citation." (meta-paper researcher) `[partly]` — the table renders on-screen; the export route is row-level, not an aggregate-table endpoint.
 - "Reopen a six-month-old link and get the same numbers." (reviewer) `[partly]` — the view/filters reproduce exactly; the underlying population can have grown since, so numbers can drift.
-- "Share a comparison that includes my uploaded study." (PI) `[cannot]` — study rows never leave the browser, by design.
 - "Pick a custom bin count or range and have that exact choice travel in the link." (researcher) `[can]`
 
 ### E10 Onboard a newcomer in five minutes
