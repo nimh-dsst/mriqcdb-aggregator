@@ -70,7 +70,11 @@
         [cdkConnectedOverlayHasBackdrop]="true" cdkConnectedOverlayBackdropClass="cdk-overlay-transparent-backdrop"
         (backdropClick)="addOpen.set(false)" (overlayKeydown)="$event.key === 'Escape' && addOpen.set(false)">
         <div class="column-drawer" role="dialog" aria-modal="true" aria-label="Add panel" cdkTrapFocus [cdkTrapFocusAutoCapture]="true" data-testid="add-panel-picker">
-          <app-column-picker [metrics]="metrics()" [fields]="fields()" [drawer]="true" (closed)="addOpen.set(false)" />
+          <app-question-picker [metrics]="metrics()" [fields]="fields()" (closed)="addOpen.set(false)" />
+          <details class="mt-3 border-t border-border pt-2">
+            <summary class="cursor-pointer text-caption text-ink-2">Or pick the columns yourself</summary>
+            <app-column-picker [metrics]="metrics()" [fields]="fields()" [drawer]="true" (closed)="addOpen.set(false)" />
+          </details>
         </div>
       </ng-template>
 

@@ -20,6 +20,7 @@ import { MatMenuModule } from '@angular/material/menu';
 import { OverlayModule } from '@angular/cdk/overlay';
 import { A11yModule } from '@angular/cdk/a11y';
 import { ColumnPicker } from '../panels/column-picker';
+import { QuestionPicker } from '../panels/question-picker';
 import { asColumnId, metricsFor, fieldsFor } from '@mriqc/shared';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { LucideAngularModule } from 'lucide-angular';
@@ -65,7 +66,7 @@ interface RemovedPanel {
     GridInteractionDirective,
     OverlayModule,
     A11yModule,
-    ColumnPicker,
+    ColumnPicker, QuestionPicker,
   ],
   templateUrl: './dashboard.html',
   host: { '(document:keydown.escape)': 'restoreMaximized()' },
