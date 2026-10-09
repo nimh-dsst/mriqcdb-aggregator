@@ -1064,3 +1064,39 @@ Scroll behavior is part of the same URL integration:
   population, and traverses Back twice. It checks URL/history, restored
   controls, and component identity. Recorded scrollY values were 900 before,
   900 after Form, 900 after adding the series, and 900 after each Back.
+
+## Module layout (decided 2026-10-09: "split the graph logically with subjects and stuff, switchMap instead of a big switch")
+
+One state, one `scan`, one URL schema remain. Everything else is composed:
+
+- **`loop/`** (≈150 lines): the command subject, the single `scan` over the
+  composed reducer, `state$`, history (undo), URL sync. No feature logic.
+- **`slices/<feature>/`** for panels, series, layout, filters, cohorts, study,
+  history: each owns `commands.ts` (its part of the union), `reducer.ts` (its
+  cases, a pure function `(state, command) => state`), `url.ts` (its field
+  table), `queries.ts` (its query derivation), `view.ts` (its projection),
+  and tests. The root `Command` is the union of slice commands; the root
+  reducer composes slice reducers in ONE fold (never several `scan`s joined by
+  `combineLatest`: that emits half-updated states). `commands$.pipe(groupBy(family))`
+  is used for effects and logging only. Cross-slice reactions are a fan-out
+  stage (one command → several), never a slice reading another slice.
+- **`forms/<form>/`**: one folder per chart form exporting a `FormDef`:
+  `id, label, glyph, hint, availability(x, y, series), options` (its own
+  option schema with defaults and URL fields), `queries(panel)`, `spec(view)`,
+  `stats(view)`, `brushable`, optional `control` component. `FORM_ORDER` is the
+  registry order; the URL form token is the registry index. `PanelOptions` =
+  common fields + a per-form bag typed by the form. Adding a form = one folder.
+- **`panels/card/`**: `panel-card` is a shell with slots — `form-picker`,
+  `bin-control`, `axis-menu`, `series-chips`, `stats-sheet`, `context-menu`
+  service — plus the form's own control. A card subscribes to `panel$(id)`
+  (per-panel projection, `distinctUntilChanged`), nothing global.
+- **`effects/`**: `state$ → groupBy(panelId) → map(descriptor) →
+  distinctUntilChanged → switchMap(fetch)`; results re-enter as commands.
+  Shared cohort ranges are their own stream, joined with `withLatestFrom`.
+- Ephemeral UI (hover, drag outline, open menus, typed filters) is component
+  local; never in state or URL.
+
+Phases: 1 form registry; 2 slices + loop (removes the url-fields ↔ reducer ↔
+url cycle: defaults live in the panels slice); 3 card decomposition + per-panel
+projections; 4 effects as operators. Behaviour is locked by the existing tests.
+
