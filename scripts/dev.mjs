@@ -79,6 +79,8 @@ function listener(port) {
   try {
     const lsof = run('lsof', ['-nP', `-iTCP:${port}`, '-sTCP:LISTEN', '-t']);
     if (lsof.status === 0) return Number(lsof.stdout.trim().split(/\s+/)[0]) || null;
+    // lsof exits 1 with no output when nothing listens; only fall back to ss when it failed.
+    if (lsof.status === 1 && !lsof.stdout.trim() && !lsof.stderr.trim()) return null;
   } catch (error) {
     if (error.code !== 'ENOENT') throw error;
   }
@@ -137,6 +139,14 @@ function processAgeSeconds(created) {
   return (Date.now() - started.getTime()) / 1000;
 }
 
+// ps etime is [[dd-]hh:]mm:ss on Linux and macOS alike; macOS has no etimes.
+function elapsedSeconds(etime) {
+  const match = etime.match(/^(?:(\d+)-)?(?:(\d+):)?(\d+):(\d+)$/);
+  if (!match) return null;
+  const [, days = 0, hours = 0, minutes, seconds] = match;
+  return ((Number(days) * 24 + Number(hours)) * 60 + Number(minutes)) * 60 + Number(seconds);
+}
+
 function processes() {
   if (windows) {
     const result = run('wmic', ['process', 'get', 'CommandLine,CreationDate,Name,ParentProcessId,ProcessId', '/FORMAT:CSV']);
@@ -145,11 +155,11 @@ function processes() {
       .map((row) => ({ pid: Number(row.at(-1)), ppid: Number(row.at(-2)),
         name: row.at(-3), command: row[1], ageSeconds: processAgeSeconds(row[2]) }));
   }
-  const result = run('ps', ['-eo', 'pid=,ppid=,etimes=,comm=,args=']);
+  const result = run('ps', ['-eo', 'pid=,ppid=,etime=,comm=,args=']);
   if (result.status !== 0) throw new Error(result.stderr.trim() || 'ps failed');
-  return result.stdout.split('\n').map((line) => line.trim().match(/^(\d+)\s+(\d+)\s+(\d+)\s+(\S+)\s+(.+)$/))
+  return result.stdout.split('\n').map((line) => line.trim().match(/^(\d+)\s+(\d+)\s+(\S+)\s+(\S+)\s+(.+)$/))
     .filter(Boolean).map((match) => ({ pid: Number(match[1]), ppid: Number(match[2]),
-      ageSeconds: Number(match[3]), name: match[4], command: match[5] }));
+      ageSeconds: elapsedSeconds(match[3]), name: match[4], command: match[5] }));
 }
 
 function isAncestor(ancestor, pid, byPid) {
@@ -370,6 +380,14 @@ if (process.argv[2] === '--test-helpers') {
     ];
     assert.deepEqual(classifyStrays(all, [100, 200], new Set([500])).map(({ pid }) => pid), [91, 300, 302]);
     assert.deepEqual(classifyStrays(all, [100, 200, 300, 302], new Set([500])).map(({ pid }) => pid), [91]);
+  });
+
+  test('ps elapsed time parses minutes, hours and days', () => {
+    assert.equal(elapsedSeconds('00:05'), 5);
+    assert.equal(elapsedSeconds('02:01'), 121);
+    assert.equal(elapsedSeconds('01:00:00'), 3600);
+    assert.equal(elapsedSeconds('2-03:04:05'), ((2 * 24 + 3) * 60 + 4) * 60 + 5);
+    assert.equal(elapsedSeconds('soon'), null);
   });
 
   test('log tail returns the last 20 lines with Windows line endings', () => {
