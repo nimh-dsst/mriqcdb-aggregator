@@ -364,7 +364,14 @@ function, chosen by `INGEST_SOURCE` (`dumps`, the default, or `mongo`).
 `DumpDirSource` (manifest plus files), `MongoSource` (the official `mongodb`
 driver, `MRIQC_MONGO_URI` **from the environment only**, each collection paged by
 `_updated` in batches of `MONGO_BATCH_SIZE`, default 5 000), and `RecordsSource`,
-an in-memory source the tests use to prove the two agree. Every source yields
+an in-memory source the tests use to prove the two agree. `ingest/api-source.ts`
+adds `ApiSource` (`INGEST_SOURCE=api`, `--source api`), which keeps a database
+current from the public MRIQC web API. That API ignores `where` and `sort` but
+lists in insertion order, so the source gallops back from the last record to
+where the watermark falls (bisecting a longer gap down to a page), then reads to
+the end, rewriting Eve's plain JSON into the dump shape. It resumes from the
+`ingest_log` watermark, or from the table's newest `updated_at` on a database no
+ingest has run against, and refuses to start from nothing: a full pull is a build. Every source yields
 `IngestUnit`s carrying records in the same extended-JSON shape; a unit either
 names a JSON file DuckDB reads directly or carries records that `ingest()` spills
 to a temporary `--jsonArray` file. So staging, normalization, upsert, canonical
@@ -461,7 +468,7 @@ file for writing is what DuckDB refuses — which is also why the CLI must not b
 run against a file a server is serving.
 
 **Config.** `MRIQC_DUMP_DIR` (default `rewrite/data/dumps`), `INGEST_SOURCE`,
-`MRIQC_MONGO_URI`, `MRIQC_MONGO_DB` (default `mriqc_api`), `MONGO_BATCH_SIZE`,
+`MRIQC_API_URL`, `MRIQC_API_PAGE_SIZE`, `MRIQC_MONGO_URI`, `MRIQC_MONGO_DB` (default `mriqc_api`), `MONGO_BATCH_SIZE`,
 `INGEST_ENABLED`, `INGEST_HOUR`, `SNAPSHOT_DIR` (default beside `DUCKDB_PATH`),
 `SNAPSHOT_KEEP`.
 

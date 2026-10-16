@@ -59,11 +59,20 @@ export interface IngestState {
   readonly knownHashes: ReadonlySet<string>;
   /** The highest `_updated` ingested per collection. A watermark source resumes here. */
   readonly watermarks: ReadonlyMap<IngestCollection, Date>;
+  /**
+   * The highest `updated_at` each collection's table holds, for a database no
+   * ingest has run against yet. The API source resumes here when `watermarks`
+   * has nothing.
+   */
+  readonly servedWatermarks?: ReadonlyMap<IngestCollection, Date>;
 }
+
+/** Where a source reads from, as `ingest_log.source` records it. */
+export type IngestSourceKind = 'dumps' | 'mongo' | 'api';
 
 /** A source of records for {@link ingest}. */
 export interface IngestSource {
-  readonly kind: 'dumps' | 'mongo';
+  readonly kind: IngestSourceKind;
   /** One line naming what this source will read, for the log. */
   describe(): string;
   /** The units to ingest, oldest `_updated` first. */
@@ -397,12 +406,12 @@ function lastUpdatedOf(document: Record<string, unknown> | undefined): string | 
  * testing against it tests the whole downstream.
  */
 export class RecordsSource implements IngestSource {
-  readonly kind: 'dumps' | 'mongo';
+  readonly kind: IngestSourceKind;
   readonly #pages: readonly { collection: IngestCollection; records: readonly unknown[] }[];
 
   constructor(
     pages: readonly { collection: IngestCollection; records: readonly unknown[] }[],
-    kind: 'dumps' | 'mongo' = 'mongo',
+    kind: IngestSourceKind = 'mongo',
   ) {
     this.#pages = pages;
     this.kind = kind;

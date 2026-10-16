@@ -94,15 +94,21 @@ export const MRIQC_DUMP_DIR: string = resolveFromPackage(
 /**
  * Which {@link IngestSource} the scheduled job and a bare `ingest` CLI use.
  * `dumps` is the default and the owner's preference: the server never connects
- * to MongoDB unless it is told to.
+ * to MongoDB unless it is told to. `api` reads the public MRIQC web API.
  */
-export const INGEST_SOURCE: 'dumps' | 'mongo' = ((): 'dumps' | 'mongo' => {
+export const INGEST_SOURCE: 'dumps' | 'mongo' | 'api' = ((): 'dumps' | 'mongo' | 'api' => {
   const raw = envString('INGEST_SOURCE', 'dumps').toLowerCase();
-  if (raw !== 'dumps' && raw !== 'mongo') {
-    throw new Error(`INGEST_SOURCE must be "dumps" or "mongo", got ${JSON.stringify(raw)}`);
+  if (raw !== 'dumps' && raw !== 'mongo' && raw !== 'api') {
+    throw new Error(`INGEST_SOURCE must be "dumps", "mongo" or "api", got ${JSON.stringify(raw)}`);
   }
   return raw;
 })();
+
+/** The public MRIQC web API root the `api` source reads. */
+export const MRIQC_API_URL: string = envString('MRIQC_API_URL', 'https://mriqc.nimh.nih.gov/api/v1');
+
+/** Records per API page; Eve's cap is 1000. */
+export const MRIQC_API_PAGE_SIZE: number = envInt('MRIQC_API_PAGE_SIZE', 1_000, 1, 1_000);
 
 /**
  * The MongoDB connection string, read from the environment only.

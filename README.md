@@ -406,7 +406,9 @@ the in-range pairs inside DuckDB; only the capped sample reaches the client.
 | `PORT` | `8787` | port the HTTP server listens on |
 | `READ_POOL_SIZE` | CPUs, clamped to 2..16 | concurrent DuckDB read connections |
 | `MRIQC_DUMP_DIR` | `<repo>/data/dumps` | directory of dump files plus `manifest.json` that ingest reads |
-| `INGEST_SOURCE` | `dumps` | `dumps` or `mongo`; which source a bare `ingest` and the nightly schedule use |
+| `INGEST_SOURCE` | `dumps` | `dumps`, `mongo` or `api`; which source a bare `ingest` and the nightly schedule use |
+| `MRIQC_API_URL` | `https://mriqc.nimh.nih.gov/api/v1` | the public MRIQC web API the `api` source reads |
+| `MRIQC_API_PAGE_SIZE` | `1000` | records per API page, at most Eve's cap of 1000 |
 | `MRIQC_MONGO_URI` | unset | MongoDB connection string. Environment only, never a file in the repo: it carries a credential |
 | `MRIQC_MONGO_DB` | `mriqc_api` | database holding the four collections |
 | `MONGO_BATCH_SIZE` | `5000` | records per staged page on the Mongo path |

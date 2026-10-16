@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * `pnpm --filter @mriqc/server ingest -- [--dumps <dir>] [--source dumps|mongo]
+ * `pnpm --filter @mriqc/server ingest -- [--dumps <dir>] [--source dumps|mongo|api]
  * [--dry-run] [--no-verify] [--no-snapshot]`
  *
  * Runs one ingest against `DUCKDB_PATH` and exits. See `docs/backend-graph.md`,
@@ -9,7 +9,8 @@
  * With no arguments it uses `INGEST_SOURCE` (default `dumps`) and
  * `MRIQC_DUMP_DIR`. `--dumps <dir>` names the directory explicitly and implies
  * the dump source; `--source mongo` pulls with the official driver, which needs
- * `MRIQC_MONGO_URI` in the environment.
+ * `MRIQC_MONGO_URI` in the environment; `--source api` reads what is new from
+ * the public MRIQC web API (`ingest/api-source.ts`).
  *
  * The server must not be running against the same file: DuckDB allows one writing
  * process at a time, and the CLI is that process for as long as it runs. The
@@ -23,11 +24,12 @@ import '../bootstrap.js';
 import { DUCKDB_PATH, INGEST_SOURCE, MRIQC_MONGO_URI } from '../config.js';
 import { Db } from '../db/instance.js';
 import { ingest, type IngestOptions } from './ingest.js';
-import { MongoSource } from './sources.js';
+import { ApiSource } from './api-source.js';
+import { MongoSource, type IngestSourceKind } from './sources.js';
 
 /** What the command line asked for. */
 export interface CliOptions {
-  source: 'dumps' | 'mongo';
+  source: IngestSourceKind;
   dumpsDir: string | null;
   dryRun: boolean;
   verify: boolean;
@@ -61,8 +63,8 @@ export function parseIngestArgs(argv: readonly string[]): CliOptions {
         break;
       case '--source': {
         const value = next();
-        if (value !== 'dumps' && value !== 'mongo') {
-          throw new Error(`--source must be "dumps" or "mongo", got ${JSON.stringify(value)}`);
+        if (value !== 'dumps' && value !== 'mongo' && value !== 'api') {
+          throw new Error(`--source must be "dumps", "mongo" or "api", got ${JSON.stringify(value)}`);
         }
         options.source = value;
         break;
@@ -80,8 +82,8 @@ export function parseIngestArgs(argv: readonly string[]): CliOptions {
         throw new Error(`unknown argument ${JSON.stringify(arg)}`);
     }
   }
-  if (options.source === 'mongo' && options.dumpsDir !== null) {
-    throw new Error('--dumps names a directory, which --source mongo does not read');
+  if (options.source !== 'dumps' && options.dumpsDir !== null) {
+    throw new Error(`--dumps names a directory, which --source ${options.source} does not read`);
   }
   return options;
 }
@@ -117,6 +119,7 @@ export function ingestOptionsFor(
           }),
         }
       : {}),
+    ...(cli.source === 'api' ? { source: new ApiSource({ log }) } : {}),
     ...(cli.snapshot ? {} : { snapshotDir: null }),
   };
 }

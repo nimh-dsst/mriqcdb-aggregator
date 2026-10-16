@@ -61,10 +61,12 @@ import {
   targetColumnsOf,
   type IngestCollection,
 } from './flatten.js';
+import { ApiSource } from './api-source.js';
 import {
   DumpDirSource,
   MongoSource,
   type IngestSource,
+  type IngestSourceKind,
   type IngestState,
   type IngestUnit,
 } from './sources.js';
@@ -133,11 +135,20 @@ export async function readIngestState(connection: DbConnection): Promise<IngestS
     const date = value instanceof Date ? value : new Date(String(value));
     if (!Number.isNaN(date.getTime())) watermarks.set(String(row['c']) as IngestCollection, date);
   }
+  const servedWatermarks = new Map<IngestCollection, Date>();
+  for (const [collection, table] of Object.entries(COLLECTION_TABLE) as [IngestCollection, string][]) {
+    const columns = await describeTable(connection, table).catch(() => []);
+    if (!columns.some((column) => column.name === 'updated_at')) continue;
+    const rows = await connection.all(`SELECT max(updated_at) AS hi FROM ${quoteIdent(table)}`);
+    const value = rows[0]?.['hi'];
+    if (value instanceof Date) servedWatermarks.set(collection, value);
+  }
   const dataVersion = String(meta[0]?.['v'] ?? '');
   const base = meta[0]?.['b'];
   return {
     knownHashes: new Set(hashes.map((row) => String(row['h']))),
     watermarks,
+    servedWatermarks,
     dataVersion,
     baseDataVersion: base === null || base === undefined ? dataVersion : String(base),
   };
@@ -450,7 +461,7 @@ export interface IngestedUnit {
 
 /** What one ingest run did. */
 export interface IngestResult {
-  readonly source: 'dumps' | 'mongo';
+  readonly source: IngestSourceKind;
   readonly dryRun: boolean;
   readonly units: readonly IngestedUnit[];
   /** Modalities whose canonical tables were recomputed. */
@@ -499,6 +510,7 @@ export function defaultSource(options: IngestOptions = {}): IngestSource {
     }
     return new MongoSource({ uri: MRIQC_MONGO_URI, log });
   }
+  if (INGEST_SOURCE === 'api' && options.dumpsDir === undefined) return new ApiSource({ log });
   return new DumpDirSource(options.dumpsDir ?? MRIQC_DUMP_DIR, {
     ...(options.verify === undefined ? {} : { verify: options.verify }),
     log,
