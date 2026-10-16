@@ -60,7 +60,7 @@ Tables:
 
 | Table | Source | Notes |
 |---|---|---|
-| `raw_bold`, `raw_t1w`, `raw_t2w` | raw Parquet | immutable log; `_id` primary identity |
+| `raw_bold`, `raw_t1w`, `raw_t2w` | raw Parquet | immutable log; `_id` primary identity; plus `mean_rating`, copied from `ratings_by_md5` by `provenance_md5sum` and refreshed by every build and ingest (`db/ratings.ts`) |
 | `canon_bold_k4plus`, `canon_t1w_k3pp`, `canon_t2w_k3pp` | computed by the build from the policy views (see "Implementation notes: computed canonical tables") | same normalized columns plus `canonical_policy`, `canonical_group_rows`, `canonical_distinct_vectors`, `canonical_diameter`, `canonical_selection`, and for bold `canonical_hmc_mode` |
 | `canonical_groups_<policy>`, `canonical_members_<policy>` | build | the groups aggregate and the admitted membership each policy was materialized through |
 | `v_<policy>_quarantined_raw`, `v_<modality>_<view>_all` | build (views) | the raw rows the policy refused, and the canonical table unioned with them |

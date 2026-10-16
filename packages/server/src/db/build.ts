@@ -29,6 +29,7 @@ import type { Modality, View } from '@mriqc/shared';
 import { isDroppedColumn, normalizeColumnName, viewsFor } from '@mriqc/shared';
 import { DUCKDB_PATH, MRIQC_DATA_DIR } from '../config.js';
 import { Db, type DbConnection } from './instance.js';
+import { ensureMeanRatingColumn, RAW_RATED_TABLES, refreshMeanRating } from './ratings.js';
 import {
   CANONICAL_POLICIES,
   CANONICAL_POLICY_VERSION,
@@ -816,6 +817,12 @@ export async function buildDatabase(options: BuildOptions = {}): Promise<BuildRe
          GROUP BY md5sum`,
       );
 
+      // Before the policies run, so the canonical tables copy it with each row.
+      for (const [, table] of RAW_RATED_TABLES) {
+        await ensureMeanRatingColumn(connection, table);
+        await refreshMeanRating(connection, table);
+      }
+
       // The canonical half: computed from the policies, in the same writer
       // transaction as the raw load, so the database is never readable with raw
       // tables and canonical tables that disagree about what the raw rows are.
@@ -877,6 +884,15 @@ export async function buildDatabase(options: BuildOptions = {}): Promise<BuildRe
           } else {
             log(`  ${policy.id}: matches ${artifact?.file} at ${artifactRows.toLocaleString('en-US')} rows`);
           }
+        }
+      }
+
+      // Canonical tables loaded from the Parquet artifacts never went through the
+      // policies, so they get the column here.
+      if (canonicalSource === 'parquet') {
+        for (const policy of CANONICAL_POLICIES) {
+          await ensureMeanRatingColumn(connection, policyCanonTable(policy));
+          await refreshMeanRating(connection, policyCanonTable(policy));
         }
       }
 

@@ -88,9 +88,10 @@ for (const [modality, view] of pairs) {
  * each is derived from. `manufacturer_raw` is the uploaded vendor string kept
  * beside the canonicalized `manufacturer`
  * (`packages/server/src/db/vendors.ts`), so it exists exactly where
- * `manufacturer` does.
+ * `manufacturer` does. `mean_rating` is copied from the ratings by
+ * `provenance_md5sum` (`packages/server/src/db/ratings.ts`).
  */
-const DERIVED_FROM = { manufacturer_raw: 'manufacturer' };
+const DERIVED_FROM = { manufacturer_raw: 'manufacturer', mean_rating: 'provenance_md5sum' };
 
 /** Does `id` exist in every (modality, view) the catalog claims it for? */
 function check(kind, id, modality, views) {

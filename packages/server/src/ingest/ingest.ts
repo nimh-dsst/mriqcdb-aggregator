@@ -43,6 +43,14 @@ import {
 import { materializePolicy, projection, quoteIdent, type ColumnPlan } from '../db/build.js';
 import { CANONICAL_POLICIES, policyCanonTable, type CanonicalPolicy } from '../db/canonical.js';
 import { getDb, type Db, type DbConnection } from '../db/instance.js';
+import {
+  DERIVED_COLUMNS,
+  ensureMeanRatingColumn,
+  hasTable,
+  RAW_RATED_TABLES,
+  recordMeanRating,
+  refreshMeanRating,
+} from '../db/ratings.js';
 import { readVendorMap, vendorCaseSql } from '../db/vendors.js';
 import {
   COLLECTION_MODALITY,
@@ -308,7 +316,8 @@ export async function applyStaged(
 ): Promise<UnitCounts> {
   const table = COLLECTION_TABLE[collection];
   const target = quoteIdent(table);
-  const columns = await describeTable(connection, table);
+  const columns = (await describeTable(connection, table))
+    .filter((column) => !DERIVED_COLUMNS.has(column.name));
   const hasUpdatedAt = columns.some((column) => column.name === 'updated_at');
   const stagedUpdated = hasUpdatedAt ? 's.updated_at' : 'CAST(NULL AS TIMESTAMP)';
   const servedUpdated = hasUpdatedAt
@@ -675,6 +684,25 @@ export async function ingest(options: IngestOptions = {}): Promise<IngestResult>
           await connection.exec('DROP TABLE build_scanner_records');
         }
 
+        // The mean rating lives on the raw rows, so new observations and new ratings
+        // both change it. A raw table that gains the column changes on every row,
+        // and its canonical tables are recomputed so they carry it too.
+        const rated: string[] = [];
+        if (await hasTable(connection, 'ratings_by_md5')) {
+          for (const [modality, table] of RAW_RATED_TABLES) {
+            if (!(await hasTable(connection, table))) continue;
+            rated.push(table);
+            if (await ensureMeanRatingColumn(connection, table)) {
+              await recordMeanRating(connection, modality);
+              modalities.add(modality);
+              touched = true;
+            }
+          }
+        }
+        if (touched) {
+          for (const table of rated) await refreshMeanRating(connection, table);
+        }
+
         const policies = CANONICAL_POLICIES.filter((policy) => options.initializeCanonical || modalities.has(policy.modality));
         const canonicalBefore = options.initializeCanonical
           ? Object.fromEntries(policies.map((policy) => [policy.id, 0]))
@@ -698,6 +726,17 @@ export async function ingest(options: IngestOptions = {}): Promise<IngestResult>
             if (!recomputed.includes(policy.modality)) recomputed.push(policy.modality);
           }
           canonicalAfter = await canonicalCounts(connection, policies);
+        }
+
+        // A canonical table that was not recomputed still copies its ratings from
+        // raw rows that may just have changed.
+        if (touched && rated.length > 0) {
+          for (const policy of CANONICAL_POLICIES) {
+            const table = policyCanonTable(policy);
+            if (recomputed.includes(policy.modality) || !(await hasTable(connection, table))) continue;
+            await ensureMeanRatingColumn(connection, table);
+            await refreshMeanRating(connection, table);
+          }
         }
 
         const stamp = new Date().toISOString();

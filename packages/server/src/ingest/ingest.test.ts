@@ -287,6 +287,9 @@ describe('a dump of new rows, a re-send and a rating', () => {
     expect(added[0]?.['summary_bg_n']).toBe(9999n);
     expect(added[0]?.['echo_time']).toBe(0.031);
 
+    // The new rating lands on the raw row with its md5.
+    expect(added.map((row) => row['mean_rating'])).toEqual([4, null, null, null]);
+
     const replaced = await rowsOf(fixture, 'raw_t2w', `id = 't2w-0100'`);
     expect(replaced).toHaveLength(1);
     expect(replaced[0]?.['cjv']).toBe(42.5);
@@ -396,6 +399,38 @@ describe('a dump of new rows, a re-send and a rating', () => {
     expect(kept).toHaveLength(3);
     expect(kept).toContain(`mriqc-${await metaVersion(fixture)}.duckdb`);
   }, 300_000);
+
+  it('copies a rating-only ingest onto the raw and canonical rows it rates', async () => {
+    const [target] = await rowsOf(
+      fixture,
+      'canon_bold_k4plus',
+      'id = (SELECT min(id) FROM canon_bold_k4plus WHERE mean_rating IS NULL)',
+    );
+    const md5 = String(target?.['provenance_md5sum']);
+    const ratingDumps = join(dir, 'rating-only');
+    writeDumpDir(ratingDumps, [
+      {
+        collection: 'rating',
+        records: [1, 2].map((n) => ({
+          _id: { $oid: `rating-only-${n}` },
+          rating: String(n * 2),
+          md5sum: md5,
+          _updated: { $date: '2026-10-09T00:00:00.000Z' },
+          _created: { $date: '2026-10-09T00:00:00.000Z' },
+        })),
+        stamp: '20261009T000000',
+      },
+    ]);
+
+    await ingest({ db: fixture.db, dumpsDir: ratingDumps, snapshotDir: null, log: () => undefined });
+
+    // Ratings 2 and 4 average to 3, on both sides, though no policy was recomputed.
+    for (const table of ['raw_bold', 'canon_bold_k4plus']) {
+      const rows = await rowsOf(fixture, table, `provenance_md5sum = '${md5}'`);
+      expect(rows.length, table).toBeGreaterThan(0);
+      expect(rows.map((row) => row['mean_rating']), table).toEqual(rows.map(() => 3));
+    }
+  }, 180_000);
 });
 
 /* ---------------------------------------------------------------- dry run */

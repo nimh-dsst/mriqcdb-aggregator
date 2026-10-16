@@ -311,6 +311,25 @@ describe('buildDatabase', () => {
     expect(Number(rows[0]?.['groups'])).toBeGreaterThan(0);
   });
 
+  it('copies the mean rating onto every raw and canonical row by md5', async () => {
+    // Rating i rates md5('bold' || 3i) with (i % 4) + 1, one rating per md5.
+    const raw = await db.withRead((c) =>
+      c.all(`SELECT id, mean_rating FROM raw_bold WHERE id IN ('bold-0003', 'bold-0004')
+             ORDER BY id`),
+    );
+    expect(raw.map((row) => row['mean_rating'])).toEqual([2, null]);
+
+    for (const table of ['raw_bold', 'canon_bold_k4plus']) {
+      const rows = await db.withRead((c) =>
+        c.all(`SELECT count(*) FILTER (WHERE t.mean_rating IS NOT NULL) AS rated,
+                      count(*) FILTER (WHERE t.mean_rating IS DISTINCT FROM r.mean_rating) AS wrong
+               FROM ${table} t LEFT JOIN ratings_by_md5 r ON r.md5sum = t.provenance_md5sum`),
+      );
+      expect(Number(rows[0]?.['rated']), table).toBeGreaterThan(0);
+      expect(Number(rows[0]?.['wrong']), table).toBe(0);
+    }
+  });
+
   it('writes one meta row with the version, the manifest and the policies', async () => {
     const rows = await db.withRead((c) => c.all('SELECT * FROM meta'));
     const row = rows[0] as Record<string, unknown>;

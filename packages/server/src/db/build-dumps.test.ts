@@ -96,6 +96,18 @@ describe('database from August extended-JSON fixture', () => {
       expect(policies.policies).toHaveLength(3);
       expect(policies.views.T1w.map((v: { view: string }) => v.view)).toContain('k3pp_all');
       expect((await connection.all('SELECT count(DISTINCT sha256) AS n FROM ingest_log'))[0]?.['n']).toBe(4n);
+      // Every served relation carries the mean rating of its row's md5.
+      let rated = 0;
+      for (const table of ['raw_bold', 'raw_t1w', 'raw_t2w', 'canon_bold_k4plus', 'canon_t1w_k3pp',
+        'canon_t2w_k3pp', 'v_bold_k4plus_all', 'v_t1w_k3pp_all', 'v_t2w_k3pp_all']) {
+        const row = (await connection.all(`SELECT
+            count(*) FILTER (WHERE t.mean_rating IS NOT NULL) AS rated,
+            count(*) FILTER (WHERE t.mean_rating IS DISTINCT FROM r.mean_rating) AS wrong
+          FROM ${table} t LEFT JOIN ratings_by_md5 r ON r.md5sum = t.provenance_md5sum`))[0]!;
+        expect(Number(row['wrong']), table).toBe(0);
+        rated += Number(row['rated']);
+      }
+      expect(rated).toBeGreaterThan(0);
     });
   });
 

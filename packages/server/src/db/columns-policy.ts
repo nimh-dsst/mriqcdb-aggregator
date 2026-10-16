@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs';
 
 import { quoteIdent } from './build.js';
 import type { DbConnection } from './instance.js';
+import { DERIVED_COLUMNS } from './ratings.js';
 import { jsonPathOf } from '../ingest/flatten.js';
 
 export interface ColumnPolicyRow {
@@ -326,6 +327,8 @@ export async function captureColumnPolicy(connection: DbConnection): Promise<Col
     const description = await connection.all(`DESCRIBE ${quoteIdent(table)}`);
     for (const entry of description) {
       const column = describeValue(entry, 'column_name', table);
+      // Computed by the database after every load, so no dump ever carries it.
+      if (DERIVED_COLUMNS.has(column)) continue;
       const duckType = describeValue(entry, 'column_type', table);
       const catalogEntry = catalogByColumn.get(`${modality}\u0000${column}`);
       if (catalogEntry === undefined) {

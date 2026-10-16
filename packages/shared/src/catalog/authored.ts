@@ -205,6 +205,16 @@ const METRICS: readonly MetricDef[] = [
     clipDefault: 'p01p99',
   },
   {
+    id: id('mean_rating'),
+    label: 'Mean rating',
+    family: 'Ratings',
+    description: "Mean of the ratings submitted to the MRIQC web API for this image, matched by its md5sum. Empty when nobody rated it.",
+    higherIsBetter: null,
+    source: 'authored',
+    modalities: ['bold', 'T1w', 'T2w'],
+    clipDefault: 'p01p99',
+  },
+  {
     id: id('size_t'),
     label: 'Size T',
     family: 'Resolution',

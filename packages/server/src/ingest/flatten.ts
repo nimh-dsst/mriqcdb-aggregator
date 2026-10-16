@@ -37,6 +37,7 @@ import type { Modality } from '@mriqc/shared';
 import { normalizeColumnName } from '@mriqc/shared';
 import { quoteIdent, type ColumnPlan, type SourceColumn } from '../db/build.js';
 import type { DbConnection } from '../db/instance.js';
+import { DERIVED_COLUMNS } from '../db/ratings.js';
 import { MANUFACTURER_COLUMN, MANUFACTURER_RAW_COLUMN } from '../db/vendors.js';
 
 /* -------------------------------------------------------------- collections */
@@ -279,7 +280,8 @@ export async function targetColumnsOf(
   const sources = new Map<string, string>();
   for (const row of rows) sources.set(String(row['c']), String(row['s']));
 
-  return described.map((column) => {
+  // A derived column has no JSON field behind it; the database refills it after the load.
+  return described.filter((column) => !DERIVED_COLUMNS.has(column.name)).map((column) => {
     const sourceName = sources.get(column.name);
     if (sourceName === undefined) {
       throw new Error(

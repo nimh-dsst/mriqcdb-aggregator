@@ -111,9 +111,9 @@ describe('authored catalog integrity', () => {
   });
 
   it('counts the metrics each modality has', () => {
-    expect(metricsFor('bold')).toHaveLength(44);
-    expect(metricsFor('T1w')).toHaveLength(68);
-    expect(metricsFor('T2w')).toHaveLength(68);
+    expect(metricsFor('bold')).toHaveLength(45);
+    expect(metricsFor('T1w')).toHaveLength(69);
+    expect(metricsFor('T2w')).toHaveLength(69);
   });
 
   it('restricts canonical_hmc_mode to bold canonical views', () => {
@@ -233,7 +233,8 @@ describe('authored catalog integrity', () => {
   });
 
   it('points every metric at the MRIQC documentation', () => {
-    for (const metric of catalog.metrics) {
+    // The mean rating comes from the ratings collection, which no IQM page covers.
+    for (const metric of catalog.metrics.filter((m) => m.id !== 'mean_rating')) {
       expect(metric.docsUrl, metric.id).toMatch(
         /^https:\/\/mriqc\.readthedocs\.io\/en\/latest\/iqms\/(t1w|bold)\.html(#[\w-]+)?$/,
       );
